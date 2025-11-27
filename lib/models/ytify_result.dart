@@ -154,7 +154,7 @@ class YtifyThumbnail {
     String url = json['url'] ?? '';
     // Replace low resolution pattern with higher resolution
     if (url.contains('=w120-h120-l90-rj')) {
-      url = url.replaceAll('=w120-h120-l90-rj', '=w200-h200');
+      url = url.replaceAll('=w120-h120-l90-rj', '=w220-h220');
     }
     return YtifyThumbnail(
       url: url,

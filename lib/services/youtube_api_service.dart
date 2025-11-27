@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:ytx/models/ytify_result.dart';
+import 'package:ytx/services/storage_service.dart';
 
 class YtifySearchResponse {
   final List<YtifyResult> results;
@@ -19,7 +20,7 @@ class YouTubeApiService {
   static const String _clientVersion = '19.17.34';
   static const int _clientId = 3;
 
-  Future<String?> getStreamUrl(String videoId, {String? title, String? artist}) async {
+  Future<String?> getStreamUrl(String videoId, {String? title, String? artist, VoidCallback? onFallback}) async {
     try {
       final url = Uri.parse('${_baseUrl}player?key=$_apiKey');
       final headers = {
@@ -47,6 +48,7 @@ class YouTubeApiService {
 
       if (response.statusCode != 200) {
         debugPrint('YouTube API Error: ${response.statusCode}');
+        onFallback?.call();
         return await _getFallbackStreamUrl(videoId, title, artist);
       }
 
@@ -56,12 +58,14 @@ class YouTubeApiService {
       if (playabilityStatus?['status'] != 'OK') {
         final reason = playabilityStatus?['reason'] ?? 'Unknown error';
         debugPrint('Video not playable: $reason');
+        onFallback?.call();
         return await _getFallbackStreamUrl(videoId, title, artist);
       }
 
       final streamingData = data['streamingData'];
       if (streamingData == null) {
         debugPrint('No streaming data found for video: $videoId');
+        onFallback?.call();
         return await _getFallbackStreamUrl(videoId, title, artist);
       }
 
@@ -102,54 +106,62 @@ class YouTubeApiService {
       }
 
       debugPrint('No suitable audio stream found for video: $videoId');
+      onFallback?.call();
       return await _getFallbackStreamUrl(videoId, title, artist);
 
     } catch (e, stackTrace) {
       debugPrint('Error fetching stream info for video: $videoId');
       debugPrint('Exception: $e');
+      onFallback?.call();
       return await _getFallbackStreamUrl(videoId, title, artist);
     }
   }
 
   Future<String?> _getFallbackStreamUrl(String videoId, String? title, String? artist) async {
-    if (title == null || artist == null) return null;
-    
     try {
-      debugPrint('Attempting fallback API for $title by $artist');
-      // Notify UI about fallback usage (this will be handled by the caller checking if the returned URL is from fallback, 
-      // but for now we just return the URL. The caller can't easily distinguish, so we might need a callback or 
-      // just rely on the fact that we are here).
-      // Actually, the requirement is to show an alert. Since this is a service, we shouldn't do UI here.
-      // But we can print a log. The caller (AudioHandler) can't know if fallback was used unless we return 
-      // a special object or if we handle the alert here (which is bad practice) or if we use a global event bus.
-      // Given the constraints, I'll implement the fallback fetching here.
+      // Access key and country code via singleton
+      final apiKey = StorageService().rapidApiKey;
+      final countryCode = StorageService().rapidApiCountryCode;
       
-      final uri = Uri.parse('https://ytify-backend-dsxz.onrender.com/api/stream').replace(queryParameters: {
+      if (apiKey == null || apiKey.isEmpty) {
+        debugPrint('RapidAPI Key not set. Fallback disabled.');
+        return null;
+      }
+
+      debugPrint('Attempting RapidAPI fallback for $videoId with cgeo=$countryCode');
+      
+      final uri = Uri.parse('https://yt-api.p.rapidapi.com/dl').replace(queryParameters: {
         'id': videoId,
-        'title': title,
-        'artist': artist,
+        'cgeo': countryCode.isNotEmpty ? countryCode : 'IN',
       });
 
-      final response = await http.get(uri);
+      final response = await http.get(uri, headers: {
+        'x-rapidapi-host': 'yt-api.p.rapidapi.com',
+        'x-rapidapi-key': apiKey,
+      });
+
       if (response.statusCode != 200) {
-        debugPrint('Fallback API Error: ${response.statusCode}');
+        debugPrint('RapidAPI Error: ${response.statusCode}');
         return null;
       }
 
       final data = jsonDecode(response.body);
-      if (data['success'] != true) return null;
+      if (data['status'] != 'OK') {
+        debugPrint('RapidAPI Status: ${data['status']}');
+        return null;
+      }
 
-      final streamingUrls = data['streamingUrls'] as List?;
-      if (streamingUrls == null || streamingUrls.isEmpty) return null;
+      // Parse adaptiveFormats for best audio
+      final adaptiveFormats = data['adaptiveFormats'] as List?;
+      if (adaptiveFormats == null) return null;
 
-      // Find best audio
       String? bestUrl;
       int bestBitrate = 0;
 
-      for (final stream in streamingUrls) {
-        final mimeType = stream['mimeType'] as String?;
-        final bitrate = stream['bitrate'] as int?;
-        final url = stream['url'] as String?;
+      for (final format in adaptiveFormats) {
+        final mimeType = format['mimeType'] as String?;
+        final bitrate = format['bitrate'] as int?;
+        final url = format['url'] as String?;
 
         if (mimeType != null && mimeType.startsWith('audio/') && url != null && bitrate != null) {
            if (bitrate > bestBitrate) {
@@ -159,32 +171,9 @@ class YouTubeApiService {
         }
       }
 
-      if (bestUrl != null) {
-        // Check for invidious service and replace domain
-        if (data['service'] == 'invidious' && data['instance'] != null) {
-          final instance = data['instance'] as String;
-          // Extract the path and query from the original URL
-          final originalUri = Uri.parse(bestUrl);
-          // Construct new URI with instance host
-          // The instance string might be just domain or full URL. Usually it's a URL like https://inv.tux.pizza
-          Uri instanceUri = Uri.parse(instance);
-          if (!instance.startsWith('http')) {
-             instanceUri = Uri.parse('https://$instance');
-          }
-          
-          final newUri = originalUri.replace(
-            scheme: instanceUri.scheme,
-            host: instanceUri.host,
-            port: instanceUri.port,
-          );
-          bestUrl = newUri.toString();
-        }
-        return bestUrl;
-      }
-      
-      return null;
+      return bestUrl;
     } catch (e) {
-      debugPrint('Fallback API Exception: $e');
+      debugPrint('RapidAPI Exception: $e');
       return null;
     }
   }
@@ -295,6 +284,31 @@ class YouTubeApiService {
       return [];
     }
   }
+
+  Future<List<YtifyResult>> getRelatedVideos(String videoId) async {
+    try {
+      final uri = Uri.parse('https://ytify-backend.vercel.app/api/related/$videoId');
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) {
+        debugPrint('Ytify Related Videos Error: ${response.statusCode}');
+        return [];
+      }
+
+      final data = jsonDecode(response.body);
+      if (data['success'] != true) {
+        return [];
+      }
+
+      final resultsJson = data['data'] as List?;
+      if (resultsJson == null) return [];
+
+      return resultsJson.map((json) => YtifyResult.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint('Error fetching related videos: $e');
+      return [];
+    }
+  }
   Future<Map<String, List<YtifyResult>>> getTrendingContent() async {
     try {
       final uri = Uri.parse('https://ytify-backend.vercel.app/api/trending');
@@ -312,16 +326,22 @@ class YouTubeApiService {
 
       final content = data['data'];
       
-      List<YtifyResult> parseList(String key) {
+      List<YtifyResult> parseList(String key, {String? forceType}) {
         final list = content[key] as List?;
         if (list == null) return [];
-        return list.map((json) => YtifyResult.fromJson(Map<String, dynamic>.from(json))).toList();
+        return list.map((json) {
+          final map = Map<String, dynamic>.from(json);
+          if (forceType != null) {
+            map['resultType'] = forceType;
+          }
+          return YtifyResult.fromJson(map);
+        }).toList();
       }
 
       return {
         'songs': parseList('songs'),
         'videos': parseList('videos'),
-        'playlists': parseList('playlists'),
+        'playlists': parseList('playlists', forceType: 'playlist'),
       };
     } catch (e) {
       debugPrint('Error fetching trending content: $e');

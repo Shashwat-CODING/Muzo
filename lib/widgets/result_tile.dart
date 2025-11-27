@@ -170,6 +170,8 @@ class ResultTile extends ConsumerWidget {
                           if (value == 'queue') {
                             ref.read(audioHandlerProvider).addToQueue(result);
                             showGlassSnackBar(context, 'Added to queue');
+                          } else if (value == 'play_next') {
+                            ref.read(audioHandlerProvider).playNext(result);
                           } else if (value == 'playlist') {
                             showDialog(
                               context: context,
@@ -233,6 +235,16 @@ class ResultTile extends ConsumerWidget {
                                 Icon(Icons.queue_music, color: Colors.white),
                                 SizedBox(width: 12),
                                 Text('Add to queue', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'play_next',
+                            child: Row(
+                              children: [
+                                Icon(Icons.playlist_play, color: Colors.white),
+                                SizedBox(width: 12),
+                                Text('Play next', style: TextStyle(color: Colors.white)),
                               ],
                             ),
                           ),

@@ -32,7 +32,7 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
     final audioHandler = ref.watch(audioHandlerProvider);
 
     // Calculate margins to keep player between header and nav bar
-    const double topMargin = 60.0;
+    final double topMargin = MediaQuery.of(context).padding.top + 16.0;
     final double bottomMargin = 100.0 + MediaQuery.of(context).padding.bottom;
     const double sideMargin = 16.0;
 
@@ -57,30 +57,14 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
               ),
 
               // Floating Card
-              Center(
+              Dismissible(
+                key: const Key('player_dismiss'),
+                direction: DismissDirection.down,
+                onDismissed: (_) => Navigator.of(context).pop(),
                 child: Container(
-                  margin: EdgeInsets.only(
-                    top: topMargin, 
-                    bottom: bottomMargin, 
-                    left: sideMargin, 
-                    right: sideMargin
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 40,
-                        spreadRadius: 10,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: Stack(
-                      children: [
+                  color: const Color(0xFF1E1E1E),
+                  child: Stack(
+                    children: [
                         // Background Image with Blur
                         Positioned.fill(
                           child: CachedNetworkImage(
@@ -91,32 +75,40 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                         ),
                         Positioned.fill(
                           child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 120, sigmaY: 120), // Increased blur further
+                            filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
                             child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.4), // More transparent
-                                borderRadius: BorderRadius.circular(32),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.2), // More visible border
-                                  width: 0.5,
-                                ),
-                              ),
+                              color: Colors.black.withValues(alpha: 0.5), // Slight overlay for readability
                             ),
                           ),
                         ),
+
 
                         // Content
                         Column(
                           children: [
                             // Header / Drag Handle
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12.0),
-                              child: Container(
-                                width: 40,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(2),
+                            SafeArea(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 32),
+                                      onPressed: () => Navigator.of(context).pop(),
+                                    ),
+                                    const Spacer(),
+                                    // Drag Handle Indicator (Optional, but good for UX)
+                                    Container(
+                                      width: 40,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    const SizedBox(width: 48), // Balance the row
+                                  ],
                                 ),
                               ),
                             ),
@@ -150,11 +142,7 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                                                       ),
                                                     ],
                                                   ),
-                                                  child: Stack(
-                                                    children: [
-                                                      ClipRRect(
-                                                        borderRadius: BorderRadius.circular(20),
-                                                        child: CachedNetworkImage(
+                                                  child: CachedNetworkImage(
                                                           imageUrl: artworkUrl,
                                                           fit: BoxFit.contain,
                                                           errorWidget: (context, url, error) => Container(
@@ -165,132 +153,8 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                                                                 color: Colors.white, size: 64),
                                                           ),
                                                         ),
-                                                      ),
-                                                      Positioned(
-                                                        top: 8,
-                                                        right: 8,
-                                                        child: Container(
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.black.withValues(alpha: 0.5),
-                                                            borderRadius: BorderRadius.circular(12),
-                                                          ),
-                                                          child: Consumer(
-                                                            builder: (context, ref, child) {
-                                                              final storage = ref.watch(storageServiceProvider);
-                                                              return ValueListenableBuilder(
-                                                                valueListenable: storage.favoritesListenable,
-                                                                builder: (context, box, _) {
-                                                                  final isFav = storage.isFavorite(mediaItem.id);
-                                                                  return IconButton(
-                                                                    icon: Icon(
-                                                                      isFav ? Icons.favorite : Icons.favorite_border,
-                                                                      color: isFav ? Colors.red : Colors.white,
-                                                                    ),
-                                                                    onPressed: () {
-                                                                      final result = YtifyResult(
-                                                                        videoId: mediaItem.id,
-                                                                        title: mediaItem.title,
-                                                                        thumbnails: [YtifyThumbnail(url: mediaItem.artUri.toString(), width: 0, height: 0)],
-                                                                        artists: [YtifyArtist(name: mediaItem.artist ?? '', id: '')], 
-                                                                        resultType: isSong ? 'song' : 'video',
-                                                                        isExplicit: false,
-                                                                      );
-                                                                      storage.toggleFavorite(result);
-                                                                    },
-                                                                  );
-                                                                },
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      Positioned(
-                                                        top: 8,
-                                                        left: 8,
-                                                        child: Container(
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.black.withValues(alpha: 0.5),
-                                                            borderRadius: BorderRadius.circular(12),
-                                                          ),
-                                                          child: Consumer(
-                                                            builder: (context, ref, child) {
-                                                              final storage = ref.watch(storageServiceProvider);
-                                                              return ValueListenableBuilder(
-                                                                valueListenable: storage.downloadsListenable,
-                                                                builder: (context, box, _) {
-                                                                  final isDownloaded = storage.isDownloaded(mediaItem.id);
-                                                                  return IconButton(
-                                                                    icon: Icon(
-                                                                      isDownloaded ? Icons.download_done : Icons.download_rounded,
-                                                                      color: Colors.white,
-                                                                    ),
-                                                                    onPressed: () async {
-                                                                      final downloadService = DownloadService();
-                                                                      
-                                                                      if (isDownloaded) {
-                                                                        await downloadService.deleteDownload(mediaItem.id);
-                                                                        if (context.mounted) {
-                                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                                            const SnackBar(content: Text('Removed from downloads')),
-                                                                          );
-                                                                        }
-                                                                      } else {
-
-                                                                        // Show downloading alert
-                                                                        bool isDialogVisible = true;
-                                                                        showAppAlertDialog(
-                                                                          context: context,
-                                                                          title: 'Downloading',
-                                                                          content: const Column(
-                                                                            mainAxisSize: MainAxisSize.min,
-                                                                            children: [
-                                                                              Text('Please wait while the song is being downloaded...'),
-                                                                              SizedBox(height: 16),
-                                                                              CupertinoActivityIndicator(),
-                                                                            ],
-                                                                          ),
-                                                                          actions: [
-                                                                            CupertinoDialogAction(
-                                                                              onPressed: () => Navigator.pop(context),
-                                                                              child: const Text('Hide'),
-                                                                            ),
-                                                                          ],
-                                                                        ).then((_) => isDialogVisible = false);
-
-                                                                        final result = YtifyResult(
-                                                                          videoId: mediaItem.id,
-                                                                          title: mediaItem.title,
-                                                                          thumbnails: [YtifyThumbnail(url: mediaItem.artUri.toString(), width: 0, height: 0)],
-                                                                          artists: [YtifyArtist(name: mediaItem.artist ?? '', id: '')], 
-                                                                          resultType: isSong ? 'song' : 'video',
-                                                                          isExplicit: false,
-                                                                        );
-                                                                        final success = await ref.read(downloadProvider.notifier).startDownload(result);
-                                                                        
-                                                                        if (context.mounted) {
-                                                                          if (isDialogVisible) {
-                                                                            Navigator.of(context, rootNavigator: true).pop();
-                                                                          }
-                                                                          
-                                                                          if (success) {
-                                                                            showGlassSnackBar(context, 'Download complete');
-                                                                          } else {
-                                                                            showGlassSnackBar(context, 'Download failed - Please try again');
-                                                                          }
-                                                                        }
-                                                                      }
-                                                                    },
-                                                                  );
-                                                                },
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
                                                   ),
                                                 ),
-                                              ),
                                               const SizedBox(height: 20),
 
                                               // Title and Artist
@@ -333,6 +197,115 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
+                                              ),
+                                              const SizedBox(height: 16),
+
+                                              // Action Buttons (Favorite & Download)
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Consumer(
+                                                    builder: (context, ref, child) {
+                                                      final storage = ref.watch(storageServiceProvider);
+                                                      return ValueListenableBuilder(
+                                                        valueListenable: storage.favoritesListenable,
+                                                        builder: (context, box, _) {
+                                                          final isFav = storage.isFavorite(mediaItem.id);
+                                                          return IconButton(
+                                                            icon: Icon(
+                                                              isFav ? Icons.favorite : Icons.favorite_border,
+                                                              color: isFav ? Colors.red : Colors.white,
+                                                              size: 28,
+                                                            ),
+                                                            onPressed: () {
+                                                              final result = YtifyResult(
+                                                                videoId: mediaItem.id,
+                                                                title: mediaItem.title,
+                                                                thumbnails: [YtifyThumbnail(url: mediaItem.artUri.toString(), width: 0, height: 0)],
+                                                                artists: [YtifyArtist(name: mediaItem.artist ?? '', id: '')], 
+                                                                resultType: isSong ? 'song' : 'video',
+                                                                isExplicit: false,
+                                                              );
+                                                              storage.toggleFavorite(result);
+                                                            },
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                  ),
+                                                  const SizedBox(width: 24),
+                                                  Consumer(
+                                                    builder: (context, ref, child) {
+                                                      final storage = ref.watch(storageServiceProvider);
+                                                      return ValueListenableBuilder(
+                                                        valueListenable: storage.downloadsListenable,
+                                                        builder: (context, box, _) {
+                                                          final isDownloaded = storage.isDownloaded(mediaItem.id);
+                                                          return IconButton(
+                                                            icon: Icon(
+                                                              isDownloaded ? Icons.download_done : Icons.download_rounded,
+                                                              color: Colors.white,
+                                                              size: 28,
+                                                            ),
+                                                            onPressed: () async {
+                                                              final downloadService = DownloadService();
+                                                              if (isDownloaded) {
+                                                                await downloadService.deleteDownload(mediaItem.id);
+                                                                if (context.mounted) {
+                                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                                    const SnackBar(content: Text('Removed from downloads')),
+                                                                  );
+                                                                }
+                                                              } else {
+                                                                // Show downloading alert
+                                                                bool isDialogVisible = true;
+                                                                showAppAlertDialog(
+                                                                  context: context,
+                                                                  title: 'Downloading',
+                                                                  content: const Column(
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Text('Please wait while the song is being downloaded...'),
+                                                                      SizedBox(height: 16),
+                                                                      CupertinoActivityIndicator(),
+                                                                    ],
+                                                                  ),
+                                                                  actions: [
+                                                                    CupertinoDialogAction(
+                                                                      onPressed: () => Navigator.pop(context),
+                                                                      child: const Text('Hide'),
+                                                                    ),
+                                                                  ],
+                                                                ).then((_) => isDialogVisible = false);
+
+                                                                final result = YtifyResult(
+                                                                  videoId: mediaItem.id,
+                                                                  title: mediaItem.title,
+                                                                  thumbnails: [YtifyThumbnail(url: mediaItem.artUri.toString(), width: 0, height: 0)],
+                                                                  artists: [YtifyArtist(name: mediaItem.artist ?? '', id: '')], 
+                                                                  resultType: isSong ? 'song' : 'video',
+                                                                  isExplicit: false,
+                                                                );
+                                                                final success = await ref.read(downloadProvider.notifier).startDownload(result);
+                                                                
+                                                                if (context.mounted) {
+                                                                  if (isDialogVisible) {
+                                                                    Navigator.of(context, rootNavigator: true).pop();
+                                                                  }
+                                                                  if (success) {
+                                                                    showGlassSnackBar(context, 'Download complete');
+                                                                  } else {
+                                                                    showGlassSnackBar(context, 'Download failed - Please try again');
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
                                               ),
                                               const SizedBox(height: 20),
 
@@ -392,21 +365,24 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
 
 
                                                   IconButton(
-                                                    icon: const Icon(Icons.shuffle, color: Colors.white),
-                                                    onPressed: () {},
+                                                    icon: const Icon(Icons.replay_5_rounded, color: Colors.white),
+                                                    onPressed: () {
+                                                      final position = audioHandler.player.position;
+                                                      audioHandler.seek(position - const Duration(seconds: 5));
+                                                    },
                                                     padding: EdgeInsets.zero,
                                                     constraints: const BoxConstraints(),
                                                   ),
                                                   IconButton(
-                                                    icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 36),
+                                                    icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 48),
                                                     onPressed: () => audioHandler.skipToPrevious(),
                                                     padding: EdgeInsets.zero,
                                                     constraints: const BoxConstraints(),
                                                   ),
                                                   isPlayingAsync.when(
                                                     data: (isPlaying) => Container(
-                                                      width: 60,
-                                                      height: 60,
+                                                      width: 80,
+                                                      height: 80,
                                                       decoration: BoxDecoration(
                                                         color: Colors.white,
                                                         shape: BoxShape.circle,
@@ -422,7 +398,7 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                                                         icon: Icon(
                                                           isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                                                           color: Colors.black,
-                                                          size: 32,
+                                                          size: 48,
                                                         ),
                                                         onPressed: () {
                                                           if (isPlaying) {
@@ -434,26 +410,30 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                                                       ),
                                                     ),
                                                     loading: () => const SizedBox(
-                                                        width: 60,
-                                                        height: 60,
+                                                        width: 80,
+                                                        height: 80,
                                                         child: CircularProgressIndicator(color: Colors.white)
                                                     ),
                                                     error: (_, __) => const Icon(Icons.error, color: Colors.red),
                                                   ),
                                                   IconButton(
-                                                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 36),
+                                                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 48),
                                                     onPressed: () => audioHandler.skipToNext(),
                                                     padding: EdgeInsets.zero,
                                                     constraints: const BoxConstraints(),
                                                   ),
                                                   IconButton(
-                                                    icon: const Icon(Icons.repeat, color: Colors.white),
-                                                    onPressed: () {},
+                                                    icon: const Icon(Icons.forward_5_rounded, color: Colors.white),
+                                                    onPressed: () {
+                                                      final position = audioHandler.player.position;
+                                                      audioHandler.seek(position + const Duration(seconds: 5));
+                                                    },
                                                     padding: EdgeInsets.zero,
                                                     constraints: const BoxConstraints(),
                                                   ),
                                                 ],
                                               ),
+                                              SizedBox(height: MediaQuery.of(context).padding.bottom + 32),
                                             ],
                                           ),
                                         ),
@@ -498,54 +478,74 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                                               final metadata = item.tag as MediaItem;
                                               final isPlaying = index == state?.currentIndex;
                                               
-                                              return ListTile(
-                                                dense: true,
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                                leading: ClipRRect(
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  child: CachedNetworkImage(
-                                                    imageUrl: metadata.artUri.toString(),
-                                                    width: 48,
-                                                    height: 48,
-                                                    fit: BoxFit.cover,
+                                              // Calculate aspect ratio
+                                              final resultType = metadata.extras?['resultType'] ?? 'video';
+                                              final isVideo = resultType == 'video';
+                                              final aspectRatio = isVideo ? 16 / 9 : 1.0;
+                                            
+                                              return Padding(
+                                                padding: index == sequence.length - 1 
+                                                  ? EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 16) 
+                                                  : EdgeInsets.zero,
+                                                child: ListTile(
+                                                  dense: true,
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                                  leading: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    child: SizedBox(
+                                                      height: 48,
+                                                      width: 48 * aspectRatio,
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: metadata.artUri.toString(),
+                                                        fit: BoxFit.cover,
+                                                        errorWidget: (context, url, error) => Container(
+                                                          color: Colors.grey[800],
+                                                          child: const Icon(Icons.music_note, color: Colors.white),
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
-                                                title: Text(
-                                                  metadata.title,
-                                                  style: TextStyle(
-                                                    color: isPlaying ? Colors.red : Colors.white,
-                                                    fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
-                                                    fontSize: 14,
+                                                    title: Text(
+                                                      metadata.title,
+                                                      style: TextStyle(
+                                                        color: isPlaying ? Colors.red : Colors.white,
+                                                        fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                                                        fontSize: 14,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    subtitle: Text(
+                                                      metadata.artist ?? '',
+                                                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    trailing: isPlaying ? const Icon(Icons.equalizer, color: Colors.red) : null,
+                                                    onTap: () {
+                                                      audioHandler.seek(Duration.zero, index: index);
+                                                    },
                                                   ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                subtitle: Text(
-                                                  metadata.artist ?? '',
-                                                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                trailing: isPlaying ? const Icon(Icons.equalizer, color: Colors.red) : null,
-                                                onTap: () {
-                                                  audioHandler.seek(Duration.zero, index: index);
-                                                },
-                                              );
-                                            },
-                                          );
-                                        },
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
+
 
                             // Toggle Button (Only show when queue is NOT shown, to open it)
                             if (!_showQueue)
                               GestureDetector(
                                 onTap: () => setState(() => _showQueue = true),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: EdgeInsets.only(
+                                    top: 16,
+                                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                                  ),
                                   width: double.infinity,
                                   color: Colors.transparent,
                                   child: Column(
@@ -558,10 +558,9 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                               ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
+              ),
               ),
             ],
           );

@@ -41,7 +41,7 @@ dependencies:
   google_fonts: ^6.2.1
   shimmer: ^3.0.0
   just_audio: ^0.9.42
-  just_audio_background: ^0.0.1-beta.13
+  just_audio_background: ^0.0.1-beta.17
   audio_session: ^0.1.21
   rxdart: ^0.28.0
   http: ^1.2.0
@@ -51,6 +51,8 @@ dependencies:
   dio: ^5.9.0
   permission_handler: ^12.0.1
   palette_generator: ^0.3.3+7
+  receive_sharing_intent: ^1.8.1
+  flutter_local_notifications: ^19.5.0
 
 dev_dependencies:
   flutter_test:

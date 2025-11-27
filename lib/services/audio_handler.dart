@@ -6,6 +6,7 @@ import 'package:ytx/services/youtube_api_service.dart';
 import 'package:ytx/models/ytify_result.dart';
 import 'package:ytx/services/navigator_key.dart';
 import 'package:ytx/services/storage_service.dart';
+import 'package:ytx/widgets/glass_snackbar.dart';
 
 class AudioHandler {
   final AudioPlayer _player = AudioPlayer();
@@ -47,9 +48,40 @@ class AudioHandler {
       await addToQueue(video);
       await _player.setAudioSource(_playlist);
       await _player.play();
+      
+      // Queue related videos immediately
+      if (video is YtifyResult && video.videoId != null) {
+        _queueRelatedVideos(video.videoId!);
+      }
     } catch (e) {
       debugPrint('Error playing video: $e');
       isLoadingStream.value = false; // Hide spinner on error
+    }
+  }
+
+  Future<void> _queueRelatedVideos(String videoId) async {
+    if (!_storage.autoQueueEnabled) return;
+
+    try {
+      final related = await _apiService.getRelatedVideos(videoId);
+      if (related.isNotEmpty) {
+        for (final item in related) {
+          // Check if already in queue
+          bool alreadyInQueue = false;
+          for (final source in _playlist.sequence) {
+            if ((source.tag as MediaItem).id == item.videoId) {
+              alreadyInQueue = true;
+              break;
+            }
+          }
+          
+          if (!alreadyInQueue) {
+            await addToQueue(item);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error queueing related videos: $e');
     }
   }
 
@@ -92,7 +124,12 @@ class AudioHandler {
         // Alternatively, we can add a callback to getStreamUrl? No, simpler to just check the domain.
         // Primary URLs usually contain 'googlevideo.com'.
         
-        final streamUrl = await _apiService.getStreamUrl(videoId, title: title, artist: artist);
+        final streamUrl = await _apiService.getStreamUrl(
+          videoId, 
+          title: title, 
+          artist: artist,
+          onFallback: () => _showFallbackAlert(),
+        );
         if (streamUrl == null) return;
         
         audioUri = Uri.parse(streamUrl);
@@ -123,11 +160,6 @@ class AudioHandler {
       // If player is not set to this playlist (e.g. first item), set it
       if (_player.audioSource != _playlist) {
         await _player.setAudioSource(_playlist);
-      }
-      
-      // Show alert if fallback (checking domain)
-      if (audioUri.scheme.startsWith('http') && !audioUri.host.contains('googlevideo.com')) {
-         _showFallbackAlert();
       }
 
     } catch (e) {
@@ -174,16 +206,84 @@ class AudioHandler {
     _player.dispose();
   }
 
+  Future<void> playNext(YtifyResult result) async {
+    try {
+      final index = _player.currentIndex;
+      if (index == null) {
+        await addToQueue(result);
+        return;
+      }
+
+      // We need to insert after current index
+      // But ConcatenatingAudioSource doesn't support insert at index easily with async logic inside addToQueue
+      // So we'll use a modified version of addToQueue logic here
+      
+      String videoId;
+      String title;
+      String artist;
+      String artUri;
+      String resultType = 'video';
+      String? artistId;
+
+      if (result.videoId == null) return;
+      videoId = result.videoId!;
+      title = result.title;
+      artist = result.artists?.map((a) => a.name).join(', ') ?? result.videoType ?? 'Unknown';
+      artistId = result.artists?.firstOrNull?.id;
+      artUri = result.thumbnails.isNotEmpty ? result.thumbnails.last.url : '';
+      resultType = result.resultType;
+
+      // Check if downloaded
+      final downloadPath = _storage.getDownloadPath(videoId);
+      Uri audioUri;
+      
+      if (downloadPath != null && await File(downloadPath).exists()) {
+        audioUri = Uri.file(downloadPath);
+      } else {
+        final streamUrl = await _apiService.getStreamUrl(
+          videoId, 
+          title: title, 
+          artist: artist,
+          onFallback: () => _showFallbackAlert(),
+        );
+        if (streamUrl == null) return;
+        audioUri = Uri.parse(streamUrl);
+      }
+
+      final audioSource = AudioSource.uri(
+        audioUri,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
+        },
+        tag: MediaItem(
+          id: videoId,
+          album: "YTX Music",
+          title: title,
+          artist: artist,
+          artUri: Uri.parse(artUri),
+          extras: {
+            'resultType': resultType,
+            'artistId': artistId,
+          },
+        ),
+      );
+
+      await _playlist.insert(index + 1, audioSource);
+      
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        showGlassSnackBar(context, 'Song added to play next');
+      }
+
+    } catch (e) {
+      debugPrint('Error playing next: $e');
+    }
+  }
+
   void _showFallbackAlert() {
     final context = navigatorKey.currentContext;
     if (context != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Using fallback playback API'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      showGlassSnackBar(context, 'Using fallback playback API');
     }
   }
 }

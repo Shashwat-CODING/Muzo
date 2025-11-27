@@ -108,6 +108,7 @@ class AboutScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _buildInfoRow(CupertinoIcons.device_laptop, 'Platform', 'Flutter'),
               const SizedBox(height: 40),
+              const SizedBox(height: 160),
             ],
           ),
         ),

@@ -29,11 +29,11 @@ class MiniPlayer extends ConsumerWidget {
           onTap: () async {
             if (navigatorKey.currentContext != null) {
               ref.read(isPlayerExpandedProvider.notifier).state = true;
-              await showModalBottomSheet(
-                context: navigatorKey.currentContext!,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const ExpandedPlayer(),
+              await Navigator.of(navigatorKey.currentContext!).push(
+                MaterialPageRoute(
+                  builder: (context) => const ExpandedPlayer(),
+                  fullscreenDialog: true,
+                ),
               );
               ref.read(isPlayerExpandedProvider.notifier).state = false;
             }

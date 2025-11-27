@@ -84,6 +84,34 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     ),
                     const Divider(color: Colors.grey, height: 1),
                     _buildDialogOption(
+                      icon: Icons.playlist_play,
+                      label: 'Play Next',
+                      onTap: () {
+                        Navigator.pop(context);
+                        ref.read(audioHandlerProvider).playNext(item);
+                      },
+                    ),
+                    const Divider(color: Colors.grey, height: 1),
+                    _buildDialogOption(
+                      icon: Icons.queue_music,
+                      label: 'Add to Queue',
+                      onTap: () {
+                        Navigator.pop(context);
+                        ref.read(audioHandlerProvider).addToQueue(item);
+                        // Show snackbar
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Added to queue'),
+                              backgroundColor: Color(0xFF1E1E1E),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const Divider(color: Colors.grey, height: 1),
+                    _buildDialogOption(
                       icon: Icons.playlist_add,
                       label: 'Add to Playlist',
                       onTap: () {

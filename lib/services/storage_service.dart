@@ -10,11 +10,13 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 class StorageService {
   static const String _historyBoxName = 'history';
   static const String _playlistsBoxName = 'playlists';
+  static const String _settingsBoxName = 'settings';
 
   Future<void> init() async {
     await Hive.initFlutter();
     await Hive.openBox(_historyBoxName);
     await Hive.openBox(_playlistsBoxName);
+    await Hive.openBox(_settingsBoxName);
     await _initFavorites();
     await _initDownloads();
     await _initSubscriptions();
@@ -242,4 +244,28 @@ class StorageService {
     final jsonList = subscriptions.map((item) => item.toJson()).toList();
     await _subscriptionsBox.put('list', jsonList);
   }
+
+  // Settings
+  Box get _settingsBox => Hive.box(_settingsBoxName);
+  ValueListenable<Box> get settingsListenable => _settingsBox.listenable();
+
+  bool get autoQueueEnabled => _settingsBox.get('autoQueueEnabled', defaultValue: true);
+
+  Future<void> setAutoQueueEnabled(bool value) async {
+    await _settingsBox.put('autoQueueEnabled', value);
+  }
+
+  String? get rapidApiKey => _settingsBox.get('rapidApiKey');
+
+  Future<void> setRapidApiKey(String? value) async {
+    if (value == null || value.isEmpty) {
+      await _settingsBox.delete('rapidApiKey');
+    } else {
+      await _settingsBox.put('rapidApiKey', value);
+    }
+  }
+
+  String get rapidApiCountryCode => _settingsBox.get('rapidApiCountryCode', defaultValue: 'IN');
+  Future<void> setRapidApiCountryCode(String code) => _settingsBox.put('rapidApiCountryCode', code);
 }
+

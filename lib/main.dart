@@ -7,6 +7,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:ytx/screens/home_screen.dart';
 import 'package:ytx/services/storage_service.dart';
 import 'package:ytx/services/navigator_key.dart';
+import 'package:ytx/services/notification_service.dart';
 import 'package:ytx/widgets/main_layout.dart';
 import 'package:ytx/providers/theme_provider.dart';
 
@@ -32,6 +33,7 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   await StorageService().init();
+  await NotificationService().init();
   runApp(const ProviderScope(child: MyApp()));
 }
 

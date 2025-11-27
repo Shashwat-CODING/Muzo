@@ -8,14 +8,39 @@ import 'package:ytx/screens/settings_screen.dart';
 import 'package:ytx/screens/about_screen.dart';
 import 'package:ytx/services/navigator_key.dart';
 import 'package:ytx/widgets/mini_player.dart';
+import 'package:ytx/services/share_service.dart';
 
-class MainLayout extends ConsumerWidget {
+class MainLayout extends ConsumerStatefulWidget {
   final Widget child;
 
   const MainLayout({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainLayout> createState() => _MainLayoutState();
+}
+
+class _MainLayoutState extends ConsumerState<MainLayout> {
+  late final ShareService _shareService;
+
+  @override
+  void initState() {
+    super.initState();
+    final audioHandler = ref.read(audioHandlerProvider);
+    _shareService = ShareService(audioHandler);
+    // Post frame callback to ensure context is ready for snackbars if needed immediately
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _shareService.init(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _shareService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationIndexProvider);
     final isPlayerExpanded = ref.watch(isPlayerExpandedProvider);
 
@@ -26,7 +51,7 @@ class MainLayout extends ConsumerWidget {
       body: Stack(
         children: [
           // Main Content (Navigator)
-          child,
+          widget.child,
 
           // MiniPlayer and Floating Navigation Bar
           Positioned(
