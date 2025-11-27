@@ -58,7 +58,7 @@ YTX is a feature-rich, privacy-focused YouTube Music client built with Flutter. 
 1.  **Clone the repository**:
     ```bash
     git clone https://github.com/Shashwat-CODING/YTX.git
-    cd ytx
+    cd YTX
     ```
 
 2.  **Install dependencies**:
@@ -101,5 +101,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  Built with ❤️ using Flutter
+  Built with ❤️ by Shashwat
 </p>
