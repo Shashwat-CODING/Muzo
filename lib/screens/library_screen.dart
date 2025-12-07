@@ -30,11 +30,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
               child: Container(
                 width: 300,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E).withValues(alpha: 0.8),
+                  color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
@@ -155,11 +155,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
               child: Container(
                 width: 300,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E).withValues(alpha: 0.8),
+                  color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),

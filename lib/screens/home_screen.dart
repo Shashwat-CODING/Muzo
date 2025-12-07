@@ -1,4 +1,6 @@
+import 'package:ytx/widgets/glass_menu_content.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ytx/providers/navigation_provider.dart';
 import 'package:ytx/providers/explore_provider.dart';
@@ -12,7 +14,6 @@ import 'package:ytx/services/storage_service.dart';
 import 'package:ytx/providers/player_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ytx/screens/artist_screen.dart';
-import 'package:ytx/services/ytify_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ytx/screens/settings_screen.dart';
 import 'package:ytx/widgets/glass_container.dart';
@@ -165,6 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const Spacer(),
           IconButton(
             onPressed: () {
+              HapticFeedback.lightImpact();
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SearchScreen()),
@@ -173,59 +175,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: const Icon(Icons.search, color: Colors.white),
           ),
           const SizedBox(width: 8),
+
+
+// ... (existing imports)
+
           PopupMenuButton<String>(
+            onOpened: () => HapticFeedback.lightImpact(),
             offset: const Offset(0, 50),
-            color: const Color(0xFF1E1E1E),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            onSelected: (value) {
-              if (value == 'settings') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                );
-              } else if (value == 'account') {
-                // Show account info
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E1E1E),
-                    title: const Text('Account Info', style: TextStyle(color: Colors.white)),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Username: $username', style: const TextStyle(color: Colors.white70)),
-                        // Add more account info here if available
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            },
+            color: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'account',
-                child: Row(
+              PopupMenuItem<String>(
+                enabled: false,
+                padding: EdgeInsets.zero,
+                child: GlassMenuContent(
                   children: [
-                    Icon(Icons.person, color: Colors.white, size: 20),
-                    SizedBox(width: 12),
-                    Text('Account Info', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings, color: Colors.white, size: 20),
-                    SizedBox(width: 12),
-                    Text('Settings', style: TextStyle(color: Colors.white)),
+                    ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      leading: const Icon(Icons.person, color: Colors.white, size: 20),
+                      title: const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: Colors.transparent,
+                            contentPadding: EdgeInsets.zero,
+                            content: GlassContainer(
+                              blur: 15,
+                              opacity: 0.2,
+                              color: const Color(0xFF1E1E1E),
+                              borderRadius: BorderRadius.circular(24),
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Account Info',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text('Username: $username', style: const TextStyle(color: Colors.white70)),
+                                  const SizedBox(height: 24),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      leading: const Icon(Icons.settings, color: Colors.white, size: 20),
+                      title: const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -238,8 +266,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (cachedSvg != null) {
                     return SvgPicture.string(
                       cachedSvg,
-                      height: 40,
-                      width: 40,
+                      height: 32,
+                      width: 32,
                       placeholderBuilder: (BuildContext context) => Container(
                         padding: const EdgeInsets.all(10.0),
                         child: const CircularProgressIndicator(),
@@ -248,8 +276,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   }
                   return SvgPicture.network(
                     'https://api.dicebear.com/9.x/rings/svg?seed=$username',
-                    height: 40,
-                    width: 40,
+                    height: 32,
+                    width: 32,
                     placeholderBuilder: (BuildContext context) => Container(
                       padding: const EdgeInsets.all(10.0),
                       child: const CircularProgressIndicator(),
@@ -301,6 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   final item = speedDialItems[index];
                   return GestureDetector(
                     onTap: () {
+                       HapticFeedback.lightImpact();
                        ref.read(audioHandlerProvider).playVideo(item);
                     },
                     child: _buildSpeedDialItem(context, ref, item),
@@ -309,6 +338,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // Library Item (9th item or last item)
                   return GestureDetector(
                     onTap: () {
+                      HapticFeedback.lightImpact();
                       ref.read(navigationIndexProvider.notifier).state = 2; // Switch to Library tab
                     },
                     child: Container(
@@ -343,7 +373,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                color: Colors.grey[900],
                boxShadow: [
                  BoxShadow(
-                   color: Colors.black.withOpacity(0.3),
+                   color: Colors.black.withOpacity(0.0),
                    blurRadius: 8,
                    offset: const Offset(0, 4),
                  ),
@@ -439,6 +469,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     padding: const EdgeInsets.only(right: 16),
                     child: GestureDetector(
                       onTap: () {
+                        HapticFeedback.lightImpact();
                         ref.read(audioHandlerProvider).playVideo(item);
                       },
                       child: SizedBox(
@@ -558,6 +589,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                   return GestureDetector(
                     onTap: () {
+                      HapticFeedback.lightImpact();
                       if (artist.id != null) {
                         Navigator.push(
                           context,

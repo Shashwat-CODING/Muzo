@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ytx/providers/navigation_provider.dart';
 import 'package:ytx/providers/player_provider.dart';
-import 'package:ytx/screens/settings_screen.dart';
-import 'package:ytx/screens/about_screen.dart';
 import 'package:ytx/services/navigator_key.dart';
 import 'package:ytx/widgets/mini_player.dart';
 import 'package:ytx/services/share_service.dart';
@@ -63,23 +61,52 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
             // MiniPlayer and Floating Navigation Bar
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 16,
               child: IgnorePointer(
                 ignoring: isPlayerExpanded,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 200),
                   opacity: isPlayerExpanded ? 0.0 : 1.0,
-                  child: Center(
+                  child: GlassContainer(
+                    borderRadius: BorderRadius.circular(32),
+                    color: const Color(0xFF1E1E1E),
+                    opacity: 0.1, // Decreased opacity to make background more visible
+                    blur: 15, // Increased blur for stronger glass effect
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      width: 1,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: const MiniPlayer(),
+                        // Conditional MiniPlayer
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final mediaItemAsync = ref.watch(currentMediaItemProvider);
+                            return mediaItemAsync.maybeWhen(
+                              data: (mediaItem) {
+                                if (mediaItem == null) return const SizedBox.shrink();
+                                return Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                                      child: MiniPlayer(),
+                                    ),
+                                    Divider(
+                                      height: 1,
+                                      thickness: 0.5,
+                                      color: Colors.white.withValues(alpha: 0.1),
+                                    ),
+                                  ],
+                                );
+                              },
+                              orElse: () => const SizedBox.shrink(),
+                            );
+                          },
                         ),
-                        const SizedBox(height: 2),
                         _buildFloatingNavBar(context, ref, selectedIndex),
                       ],
                     ),
@@ -126,30 +153,16 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 
   Widget _buildFloatingNavBar(BuildContext context, WidgetRef ref, int selectedIndex) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    return GlassContainer(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      color: const Color(0xFF1E1E1E),
-      opacity: 0.50, // Increased opacity for better visibility at bottom
-      blur: 120,
-      border: Border(
-        top: BorderSide(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: SizedBox(
-        height: 64,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(context, ref, FontAwesomeIcons.house, 0, selectedIndex),
-            _buildNavItem(context, ref, FontAwesomeIcons.magnifyingGlass, 1, selectedIndex),
-            _buildNavItem(context, ref, FontAwesomeIcons.compactDisc, 2, selectedIndex),
-            _buildNavItem(context, ref, FontAwesomeIcons.userGroup, 3, selectedIndex),
-          ],
-        ),
+    return SizedBox(
+      height: 64,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildNavItem(context, ref, FontAwesomeIcons.house, 0, selectedIndex),
+          _buildNavItem(context, ref, FontAwesomeIcons.magnifyingGlass, 1, selectedIndex),
+          _buildNavItem(context, ref, FontAwesomeIcons.compactDisc, 2, selectedIndex),
+          _buildNavItem(context, ref, FontAwesomeIcons.userGroup, 3, selectedIndex),
+        ],
       ),
     );
   }
@@ -158,6 +171,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final isSelected = selectedIndex == index;
     return GestureDetector(
       onTap: () {
+        HapticFeedback.lightImpact();
         if (index == 0 || index == 1 || index == 2 || index == 3) {
           ref.read(navigationIndexProvider.notifier).state = index;
           navigatorKey.currentState?.popUntil((route) => route.isFirst);

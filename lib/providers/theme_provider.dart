@@ -78,7 +78,7 @@ class ThemeNotifier extends StateNotifier<ThemeData> {
 
       state = ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: darkMutedColor.withValues(alpha: 0.3), // Tinted background
+        scaffoldBackgroundColor: darkMutedColor.withValues(alpha: 0.0), // Tinted background
         colorScheme: ColorScheme.dark(
           primary: vibrantColor,
           secondary: dominantColor,

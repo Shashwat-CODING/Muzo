@@ -9,7 +9,7 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
 class AuthService {
   final StorageService _storage;
-  static const String _baseUrl = 'https://shashwatidr-ytxauth.hf.space/api/auth';
+  static const String _baseUrl = 'https://mowttvwofyojqsowpsga.supabase.co/functions/v1/express/api/auth';
 
   AuthService(this._storage);
 

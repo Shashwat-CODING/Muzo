@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:ytx/models/ytify_result.dart';
@@ -36,6 +37,7 @@ class ResultTile extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           if (result.resultType == 'artist' && result.browseId != null) {
             Navigator.push(
               context,
@@ -196,161 +198,155 @@ class ResultTile extends ConsumerWidget {
                       return IconButton(
                         icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, color: Colors.white, size: 20),
                         onPressed: () {
-                          showModalBottomSheet(
+                          HapticFeedback.lightImpact();
+                          showDialog(
                             context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            builder: (context) => Container(
-                              margin: const EdgeInsets.all(16),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1E1E1E).withValues(alpha: 0.8),
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.1),
+                            barrierColor: Colors.black.withValues(alpha: 0.5),
+                            builder: (context) => Center(
+                              child: Material(
+                                color: Colors.transparent,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                    child: Container(
+                                      width: 300,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                                       ),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          width: 40,
-                                          height: 4,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.withValues(alpha: 0.3),
-                                            borderRadius: BorderRadius.circular(2),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                                          child: Text(
-                                            result.title,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const SizedBox(height: 24),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                                            child: Text(
+                                              result.title,
+                                              maxLines: 2,
+                                              textAlign: TextAlign.center,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
+                                              ),
                                             ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                                          child: Text(
-                                            result.artists?.map((a) => a.name).join(', ') ?? '',
-                                            style: TextStyle(
-                                              color: Colors.grey[400],
-                                              fontSize: 14,
+                                          const SizedBox(height: 4),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                                            child: Text(
+                                              result.artists?.map((a) => a.name).join(', ') ?? '',
+                                              maxLines: 1,
+                                              textAlign: TextAlign.center,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(color: Colors.grey[400], fontSize: 14),
                                             ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        const SizedBox(height: 24),
-                                        _buildMenuOption(
-                                          context,
-                                          icon: FontAwesomeIcons.list,
-                                          label: 'Add to queue',
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            ref.read(audioHandlerProvider).addToQueue(result);
-                                            showGlassSnackBar(context, 'Added to queue');
-                                          },
-                                        ),
-                                        _buildMenuOption(
-                                          context,
-                                          icon: FontAwesomeIcons.circlePlay,
-                                          label: 'Play next',
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            ref.read(audioHandlerProvider).playNext(result);
-                                          },
-                                        ),
-                                        _buildMenuOption(
-                                          context,
-                                          icon: FontAwesomeIcons.plus,
-                                          label: 'Add to playlist',
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            showCupertinoDialog(
-                                              context: context,
-                                              barrierDismissible: true,
-                                              builder: (context) => PlaylistSelectionDialog(song: result),
-                                            );
-                                          },
-                                        ),
-                                        _buildMenuOption(
-                                          context,
-                                          icon: isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
-                                          label: isFav ? 'Remove from favorites' : 'Add to favorites',
-                                          iconColor: isFav ? Colors.red : Colors.white,
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            storage.toggleFavorite(result);
-                                            showGlassSnackBar(context, isFav ? 'Removed from favorites' : 'Added to favorites');
-                                          },
-                                        ),
-                                        _buildMenuOption(
-                                          context,
-                                          icon: isDownloaded ? FontAwesomeIcons.check : FontAwesomeIcons.download,
-                                          label: isDownloaded ? 'Remove download' : 'Download',
-                                          onTap: () async {
-                                            Navigator.pop(context);
-                                            final downloadService = DownloadService();
-                                            if (storage.isDownloaded(result.videoId!)) {
-                                              await downloadService.deleteDownload(result.videoId!);
-                                              if (context.mounted) showGlassSnackBar(context, 'Removed from downloads');
-                                            } else {
-                                              // Show downloading alert
-                                              bool isDialogVisible = true;
-                                              showAppAlertDialog(
+                                          const SizedBox(height: 24),
+                                          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                                          _buildMenuOption(
+                                            context,
+                                            icon: FontAwesomeIcons.list,
+                                            label: 'Add to queue',
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              ref.read(audioHandlerProvider).addToQueue(result);
+                                              showGlassSnackBar(context, 'Added to queue');
+                                            },
+                                          ),
+                                          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                                          _buildMenuOption(
+                                            context,
+                                            icon: FontAwesomeIcons.circlePlay,
+                                            label: 'Play next',
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              ref.read(audioHandlerProvider).playNext(result);
+                                            },
+                                          ),
+                                          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                                          _buildMenuOption(
+                                            context,
+                                            icon: FontAwesomeIcons.plus,
+                                            label: 'Add to playlist',
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              showCupertinoDialog(
                                                 context: context,
-                                                title: 'Downloading',
-                                                content: const Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text('Please wait while the song is being downloaded...'),
-                                                    SizedBox(height: 16),
-                                                    CupertinoActivityIndicator(),
-                                                  ],
-                                                ),
-                                                actions: [
-                                                  CupertinoDialogAction(
-                                                    onPressed: () => Navigator.pop(context),
-                                                    child: const Text('Hide'),
+                                                barrierDismissible: true,
+                                                builder: (context) => PlaylistSelectionDialog(song: result),
+                                              );
+                                            },
+                                          ),
+                                          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                                          _buildMenuOption(
+                                            context,
+                                            icon: isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart,
+                                            label: isFav ? 'Remove from favorites' : 'Add to favorites',
+                                            iconColor: isFav ? Colors.red : Colors.white,
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              storage.toggleFavorite(result);
+                                              showGlassSnackBar(context, isFav ? 'Removed from favorites' : 'Added to favorites');
+                                            },
+                                          ),
+                                          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                                          _buildMenuOption(
+                                            context,
+                                            icon: isDownloaded ? FontAwesomeIcons.check : FontAwesomeIcons.download,
+                                            label: isDownloaded ? 'Remove download' : 'Download',
+                                            onTap: () async {
+                                              Navigator.pop(context);
+                                              final downloadService = DownloadService();
+                                              if (storage.isDownloaded(result.videoId!)) {
+                                                await downloadService.deleteDownload(result.videoId!);
+                                                if (context.mounted) showGlassSnackBar(context, 'Removed from downloads');
+                                              } else {
+                                                // Show downloading alert
+                                                bool isDialogVisible = true;
+                                                showAppAlertDialog(
+                                                  context: context,
+                                                  title: 'Downloading',
+                                                  content: const Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Text('Please wait while the song is being downloaded...'),
+                                                      SizedBox(height: 16),
+                                                      CupertinoActivityIndicator(),
+                                                    ],
                                                   ),
-                                                ],
-                                              ).then((_) => isDialogVisible = false);
-                                              
-                                              // Use provider to start download and track progress
-                                              final success = await ref.read(downloadProvider.notifier).startDownload(result);
-                                              
-                                              // Close the downloading alert if it's still visible
-                                              if (context.mounted) {
-                                                if (isDialogVisible) {
-                                                  Navigator.of(context, rootNavigator: true).pop();
-                                                }
+                                                  actions: [
+                                                    CupertinoDialogAction(
+                                                      onPressed: () => Navigator.pop(context),
+                                                      child: const Text('Hide'),
+                                                    ),
+                                                  ],
+                                                ).then((_) => isDialogVisible = false);
                                                 
-                                                if (success) {
-                                                  showGlassSnackBar(context, 'Download complete');
-                                                } else {
-                                                  showGlassSnackBar(context, 'Download failed - Please try again');
+                                                // Use provider to start download and track progress
+                                                final success = await ref.read(downloadProvider.notifier).startDownload(result);
+                                                
+                                                // Close the downloading alert if it's still visible
+                                                if (context.mounted) {
+                                                  if (isDialogVisible) {
+                                                    Navigator.of(context, rootNavigator: true).pop();
+                                                  }
+                                                  
+                                                  if (success) {
+                                                    showGlassSnackBar(context, 'Download complete');
+                                                  } else {
+                                                    showGlassSnackBar(context, 'Download failed - Please try again');
+                                                  }
                                                 }
                                               }
-                                            }
-                                          },
-                                        ),
-                                        const SizedBox(height: 16),
-                                      ],
+                                            },
+                                          ),
+                                          const SizedBox(height: 8),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -378,7 +374,10 @@ class ResultTile extends ConsumerWidget {
     Color iconColor = Colors.white,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
         child: Row(

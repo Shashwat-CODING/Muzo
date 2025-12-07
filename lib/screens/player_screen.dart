@@ -1,8 +1,10 @@
+import 'package:ytx/widgets/glass_menu_content.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'dart:ui';
-import 'package:marquee/marquee.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -15,7 +17,6 @@ import 'package:ytx/widgets/app_alert_dialog.dart';
 import 'package:ytx/widgets/glass_snackbar.dart';
 import 'package:ytx/widgets/playlist_selection_dialog.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:ytx/screens/artist_screen.dart';
 
 class ExpandedPlayer extends ConsumerStatefulWidget {
   const ExpandedPlayer({super.key});
@@ -26,6 +27,27 @@ class ExpandedPlayer extends ConsumerStatefulWidget {
 
 class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
   bool _showQueue = false;
+  bool _isVideoMode = false;
+  YoutubePlayerController? _videoController;
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  void _handleClose() {
+    if (_isVideoMode && _videoController != null) {
+      final position = _videoController!.value.position;
+      final audioHandler = ref.read(audioHandlerProvider);
+      
+      // Switch back to audio mode logic
+      // No need to pause video explicitly as controller will be disposed
+      audioHandler.seek(position);
+      audioHandler.resume();
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +77,13 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
     return Stack(
       children: [
         GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: _handleClose,
           child: Container(color: Colors.transparent),
         ),
         Dismissible(
           key: const Key('player_dismiss'),
           direction: DismissDirection.down,
-          onDismissed: (_) => Navigator.of(context).pop(),
+          onDismissed: (_) => _handleClose(),
           child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
@@ -119,9 +141,9 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
               errorWidget: (context, url, error) => Container(color: Colors.black),
             ),
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
               child: Container(
-                color: Colors.black.withValues(alpha: 0.85),
+                color: Colors.black.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -141,29 +163,197 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
         children: [
           IconButton(
             icon: const FaIcon(FontAwesomeIcons.chevronDown, color: Colors.white, size: 20),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _handleClose();
+            },
           ),
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
+          if (!_showQueue)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildModeToggle(false),
+                  _buildModeToggle(true),
+                ],
+              ),
+            )
+          else
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
+
           PopupMenuButton<String>(
+            onOpened: () => HapticFeedback.lightImpact(),
             icon: const FaIcon(FontAwesomeIcons.ellipsisVertical, color: Colors.white, size: 20),
-            onSelected: (value) => _handleMenuAction(context, ref, value, mediaItem, isSong),
-            itemBuilder: (BuildContext context) => _buildMenuItems(ref, mediaItem),
+            color: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                enabled: false,
+                padding: EdgeInsets.zero,
+                child: GlassMenuContent(
+                  children: _buildMenuItems(ref, mediaItem).map((entry) {
+                    if (entry is PopupMenuItem<String>) {
+                      return ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        leading: entry.child is Row ? (entry.child as Row).children[0] : null,
+                        title: entry.child is Row ? (entry.child as Row).children[2] : entry.child,
+                        onTap: () {
+                          Navigator.pop(context);
+                          if (entry.value != null) {
+                            _handleMenuAction(context, ref, entry.value!, mediaItem, isSong);
+                          }
+                        },
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _buildModeToggle(bool isVideo) {
+    final isSelected = _isVideoMode == isVideo;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _toggleVideoMode(isVideo);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          isVideo ? 'Video' : 'Audio',
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleVideoMode(bool isVideo) async {
+    if (_isVideoMode == isVideo) return;
+
+    final audioHandler = ref.read(audioHandlerProvider);
+    final mediaItem = ref.read(currentMediaItemProvider).value;
+    
+    if (mediaItem == null) return;
+
+    setState(() => _isVideoMode = isVideo);
+
+    if (isVideo) {
+      // Switch to Video
+      final position = audioHandler.player.position;
+      audioHandler.pause();
+      
+      _videoController = YoutubePlayerController(
+        initialVideoId: mediaItem.id,
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          hideControls: true,
+          enableCaption: false,
+        ),
+      );
+      
+      _videoController!.addListener(_videoListener);
+      
+      // Seek to current position after initialization
+       // We use load with startAt for initial seek, but for precision we can also seek in onReady if needed.
+       // startAt takes seconds. If we need ms precision, we might need to seek again.
+       // For now, startAt is usually sufficient for "resume", but let's stick with it.
+       _videoController!.load(mediaItem.id, startAt: position.inSeconds);
+       
+    } else {
+      // Switch to Audio
+      if (_videoController != null) {
+        _videoController!.removeListener(_videoListener);
+        final position = _videoController!.value.position;
+        _videoController!.pause();
+        audioHandler.seek(position);
+        audioHandler.resume();
+        _videoController = null; 
+      }
+    }
+  }
+
+  void _seekRelative(Duration amount) {
+    if (_isVideoMode && _videoController != null) {
+      final current = _videoController!.value.position;
+      final newPos = current + amount;
+      _videoController!.seekTo(newPos);
+    } else {
+      final audioHandler = ref.read(audioHandlerProvider);
+      final current = audioHandler.player.position;
+      final newPos = current + amount;
+      audioHandler.seek(newPos);
+    }
+  }
+
+  void _videoListener() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   Widget _buildArtwork(String artworkUrl, MediaItem mediaItem) {
     final resultType = mediaItem.extras?['resultType'] ?? 'video';
     final isSong = resultType == 'song';
+
+    if (_isVideoMode && _videoController != null) {
+       return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 0.0), // Full width for video? Or keep padding?
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: YoutubePlayer(
+                controller: _videoController!,
+                showVideoProgressIndicator: true,
+                progressIndicatorColor: Colors.white,
+                onEnded: (_) {
+                   ref.read(audioHandlerProvider).skipToNext();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 48.0),
@@ -255,11 +445,19 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                 trackShape: const RoundedRectSliderTrackShape(),
               ),
               child: Slider(
-                value: position.inSeconds.toDouble().clamp(0.0, duration.inSeconds.toDouble()).toDouble(),
+                value: _isVideoMode 
+                    ? (_videoController?.value.position.inSeconds.toDouble() ?? 0.0)
+                    : position.inSeconds.toDouble().clamp(0.0, duration.inSeconds.toDouble()).toDouble(),
                 min: 0.0,
-                max: duration.inSeconds.toDouble(),
+                max: _isVideoMode 
+                    ? (_videoController?.metadata.duration.inSeconds.toDouble() ?? duration.inSeconds.toDouble())
+                    : duration.inSeconds.toDouble(),
                 onChanged: (value) {
-                  audioHandler.seek(Duration(seconds: value.toInt()));
+                  if (_isVideoMode) {
+                    _videoController?.seekTo(Duration(seconds: value.toInt()));
+                  } else {
+                    audioHandler.seek(Duration(seconds: value.toInt()));
+                  }
                 },
               ),
             ),
@@ -269,11 +467,15 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _formatDuration(position),
+                    _formatDuration(_isVideoMode 
+                        ? (_videoController?.value.position ?? Duration.zero)
+                        : position),
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
                   ),
                   Text(
-                    _formatDuration(duration),
+                    _formatDuration(_isVideoMode 
+                        ? (_videoController?.metadata.duration ?? Duration.zero)
+                        : duration),
                     style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
                   ),
                 ],
@@ -295,16 +497,29 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
         IconButton(
           iconSize: 28,
           icon: const FaIcon(FontAwesomeIcons.backwardStep, color: Colors.white),
-          onPressed: () => audioHandler.skipToPrevious(),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            audioHandler.skipToPrevious();
+          },
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 20),
+        IconButton(
+          iconSize: 24,
+          icon: const FaIcon(FontAwesomeIcons.rotateLeft, color: Colors.white),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            _seekRelative(const Duration(seconds: -5));
+          },
+        ),
+        const SizedBox(width: 20),
         isPlayingAsync.when(
           data: (isPlaying) => Container(
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.2),
@@ -315,15 +530,27 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
             ),
             child: IconButton(
               icon: FaIcon(
-                isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
-                color: Colors.black,
+                _isVideoMode 
+                    ? ((_videoController?.value.isPlaying ?? false) ? FontAwesomeIcons.pause : FontAwesomeIcons.play)
+                    : (isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play),
+              color: Colors.white,
                 size: 28,
               ),
               onPressed: () {
-                if (isPlaying) {
-                  audioHandler.pause();
+                HapticFeedback.mediumImpact();
+                if (_isVideoMode) {
+                  if (_videoController?.value.isPlaying ?? false) {
+                    _videoController?.pause();
+                  } else {
+                    _videoController?.play();
+                  }
+                  setState(() {}); // Update UI
                 } else {
-                  audioHandler.resume();
+                  if (isPlaying) {
+                    audioHandler.pause();
+                  } else {
+                    audioHandler.resume();
+                  }
                 }
               },
             ),
@@ -338,11 +565,23 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
           ),
           error: (_, __) => const FaIcon(FontAwesomeIcons.circleExclamation, color: Colors.red, size: 32),
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 20),
+        IconButton(
+          iconSize: 24,
+          icon: const FaIcon(FontAwesomeIcons.rotateRight, color: Colors.white),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            _seekRelative(const Duration(seconds: 5));
+          },
+        ),
+        const SizedBox(width: 20),
         IconButton(
           iconSize: 28,
           icon: const FaIcon(FontAwesomeIcons.forwardStep, color: Colors.white),
-          onPressed: () => audioHandler.skipToNext(),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            audioHandler.skipToNext();
+          },
         ),
       ],
     );
@@ -350,7 +589,10 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
 
   Widget _buildQueueButton() {
     return GestureDetector(
-      onTap: () => setState(() => _showQueue = true),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() => _showQueue = true);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
@@ -399,6 +641,7 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                 ),
                 TextButton(
                   onPressed: () {
+                    HapticFeedback.lightImpact();
                     audioHandler.clearQueue();
                     setState(() => _showQueue = false);
                   },
@@ -455,6 +698,7 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                         child: const FaIcon(FontAwesomeIcons.trash, color: Colors.white),
                       ),
                       onDismissed: (direction) {
+                        HapticFeedback.lightImpact();
                         audioHandler.removeQueueItem(index);
                       },
                       child: ListTile(
@@ -504,6 +748,7 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
                         ),
                         trailing: const FaIcon(FontAwesomeIcons.gripLines, color: Colors.grey, size: 16),
                         onTap: () {
+                          HapticFeedback.lightImpact();
                           audioHandler.seek(Duration.zero, index: index);
                         },
                       ),
@@ -528,9 +773,9 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
         value: 'playlist',
         child: Row(
           children: [
-            FaIcon(FontAwesomeIcons.plus, size: 16),
+            FaIcon(FontAwesomeIcons.plus, size: 16, color: Colors.white),
             SizedBox(width: 12),
-            Text('Add to Playlist'),
+            Text('Add to Playlist', style: TextStyle(color: Colors.white)),
           ],
         ),
       ),
@@ -539,9 +784,9 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
         child: Row(
           children: [
             FaIcon(isFav ? FontAwesomeIcons.solidHeart : FontAwesomeIcons.heart, 
-              color: isFav ? Colors.red : null, size: 16),
+              color: isFav ? Colors.red : Colors.white, size: 16),
             const SizedBox(width: 12),
-            Text(isFav ? 'Remove from Favorites' : 'Add to Favorites'),
+            Text(isFav ? 'Remove from Favorites' : 'Add to Favorites', style: const TextStyle(color: Colors.white)),
           ],
         ),
       ),
@@ -549,9 +794,9 @@ class _ExpandedPlayerState extends ConsumerState<ExpandedPlayer> {
         value: 'download',
         child: Row(
           children: [
-            FaIcon(isDownloaded ? FontAwesomeIcons.check : FontAwesomeIcons.download, size: 16),
+            FaIcon(isDownloaded ? FontAwesomeIcons.check : FontAwesomeIcons.download, size: 16, color: Colors.white),
             const SizedBox(width: 12),
-            Text(isDownloaded ? 'Remove Download' : 'Download'),
+            Text(isDownloaded ? 'Remove Download' : 'Download', style: const TextStyle(color: Colors.white)),
           ],
         ),
       ),

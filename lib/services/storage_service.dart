@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ytx/models/ytify_result.dart';
+import 'package:ytx/models/user_data.dart';
 import 'package:ytx/services/ytify_service.dart';
 import 'package:ytx/services/music_api_service.dart';
 import 'package:http/http.dart' as http;
@@ -46,42 +47,32 @@ class StorageService {
     isLoadingNotifier.value = true;
     
     try {
-      final history = await _api!.getHistory();
-      _historyNotifier.value = history;
-    } catch (e) {
-      debugPrint('Error fetching history: $e');
-    }
-    
-    try {
-      final favorites = await _api!.getFavorites();
-      _favoritesNotifier.value = favorites;
-    } catch (e) {
-      debugPrint('Error fetching favorites: $e');
-    }
-    
-    try {
-      final playlists = await _api!.getPlaylists();
+      final userData = await _api!.getUserData();
+      
+      // Update User Info
+      await setUserInfo(userData.user.username, userData.user.email);
+      
+      // Update History
+      _historyNotifier.value = userData.history;
+      
+      // Update Favorites
+      _favoritesNotifier.value = userData.favorites;
+      
+      // Update Subscriptions
+      _subscriptionsNotifier.value = userData.subscriptions;
+      
+      // Update Playlists
       final Map<String, List<YtifyResult>> playlistMap = {};
-      for (var p in playlists) {
-        final name = p['playlist_name'];
-        try {
-          final songs = await _api!.getPlaylistSongs(name);
-          playlistMap[name] = songs;
-        } catch (e) {
-          debugPrint('Error fetching songs for playlist $name: $e');
-          playlistMap[name] = [];
-        }
+      for (var p in userData.playlists) {
+        playlistMap[p.name] = p.songs;
       }
       _playlistsNotifier.value = playlistMap;
+      
     } catch (e) {
-      debugPrint('Error fetching playlists: $e');
-    }
-
-    try {
-      final subscriptions = await _api!.getSubscriptions();
-      _subscriptionsNotifier.value = subscriptions;
-    } catch (e) {
-      debugPrint('Error fetching subscriptions: $e');
+      debugPrint('Error refreshing data: $e');
+      // Fallback to individual calls if consolidated fails? 
+      // Or just log error. The requirement implies replacing it.
+      // We can keep individual calls as fallback if we wanted resilience, but let's stick to the plan.
     } finally {
       isLoadingNotifier.value = false;
     }

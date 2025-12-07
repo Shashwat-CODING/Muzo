@@ -12,11 +12,11 @@ void showGlassSnackBar(BuildContext context, String message) {
       content: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF272727).withValues(alpha: 0.6),
+              color: const Color(0xFF272727).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.1),
