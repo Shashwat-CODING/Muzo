@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:ytx/models/ytify_result.dart';
+import 'package:ytx/models/user_data.dart';
 import 'package:ytx/services/storage_service.dart';
 
 final musicApiServiceProvider = Provider<MusicApiService>((ref) {
@@ -10,7 +11,7 @@ final musicApiServiceProvider = Provider<MusicApiService>((ref) {
 
 class MusicApiService {
   final StorageService _storage;
-  static const String _baseUrl = 'https://shashwatidr-ytxauth.hf.space/api';
+  static const String _baseUrl = 'https://mowttvwofyojqsowpsga.supabase.co/functions/v1/express/api';
 
   MusicApiService(this._storage);
 
@@ -20,6 +21,22 @@ class MusicApiService {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  // --- User Data ---
+
+  Future<UserData> getUserData() async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/user/data'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return UserData.fromJson(data);
+    } else {
+      throw Exception('Failed to load user data');
+    }
   }
 
   // --- History ---

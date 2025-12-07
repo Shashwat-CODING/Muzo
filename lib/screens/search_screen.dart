@@ -62,7 +62,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                     child: TextField(
                       controller: _searchController,
                       style: const TextStyle(color: Colors.white),
@@ -70,7 +70,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         hintText: 'Search songs, videos, artists',
                         hintStyle: TextStyle(color: Colors.grey[400]),
                         filled: true,
-                        fillColor: const Color(0xFF1E1E1E).withValues(alpha: 0.5),
+                        fillColor: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
                         prefixIcon: const Padding(
                           padding: EdgeInsets.all(12.0),
                           child: FaIcon(FontAwesomeIcons.magnifyingGlass, color: Colors.white, size: 18),
@@ -199,14 +199,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: FilterChip(
           label: Text(label),
           selected: isSelected,
           onSelected: (bool selected) {
             ref.read(searchFilterProvider.notifier).state = label.toLowerCase();
           },
-          backgroundColor: const Color(0xFF1E1E1E).withValues(alpha: 0.5),
+          backgroundColor: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
           selectedColor: Colors.white.withValues(alpha: 0.2),
           labelStyle: TextStyle(
             color: isSelected ? Colors.white : Colors.white,

@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ytx/models/ytify_result.dart';
 import 'package:ytx/providers/player_provider.dart';
@@ -28,6 +29,7 @@ class HorizontalResultCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: onTap ?? () {
+        HapticFeedback.lightImpact();
         if (result.resultType == 'artist' && result.browseId != null) {
           Navigator.push(
             context,
