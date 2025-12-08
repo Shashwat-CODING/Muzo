@@ -21,18 +21,11 @@ YTX is a feature-rich, privacy-focused YouTube Music client built with Flutter. 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="images/photo_6140958916184050733_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050748_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050749_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050750_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050751_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050752_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050753_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050754_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050755_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050756_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050757_y.jpg" width="30%" />
-  <img src="images/photo_6140958916184050758_y.jpg" width="30%" />
+  <img src="images/1.jpg" width="30%" />
+  <img src="images/2.jpg" width="30%" />
+  <img src="images/3.jpg" width="30%" />
+  <img src="images/4.jpg" width="30%" />
+  <img src="images/5.jpg" width="30%" />
 </p>
 
 ## 🛠️ Tech Stack
