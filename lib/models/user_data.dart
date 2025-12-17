@@ -1,4 +1,4 @@
-import 'package:ytx/models/ytify_result.dart';
+import 'package:muzo/models/ytify_result.dart';
 
 class UserData {
   final User user;

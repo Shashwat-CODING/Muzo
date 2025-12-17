@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/services/storage_service.dart';
 
 class SyncProgressDialog extends ConsumerStatefulWidget {
   const SyncProgressDialog({super.key});

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/youtube_api_service.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/widgets/result_tile.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:ytx/providers/player_provider.dart';
+import 'package:muzo/providers/player_provider.dart';
 
 class ChannelScreen extends ConsumerStatefulWidget {
   final String channelId;
@@ -117,9 +118,9 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                                 imageUrl: widget.thumbnailUrl!,
                                                 fit: BoxFit.cover,
                                                 errorWidget: (context, url, error) =>
-                                                    const Icon(Icons.person, size: 40, color: Colors.grey),
+                                                    const Icon(FluentIcons.person_24_regular, size: 40, color: Colors.grey),
                                               )
-                                            : const Icon(Icons.person, size: 40, color: Colors.grey),
+                                            : const Icon(FluentIcons.person_24_regular, size: 40, color: Colors.grey),
                                       ),
                                     ),
                                     const SizedBox(height: 12),
@@ -235,7 +236,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                             ref.read(audioHandlerProvider).playAll(_videos);
                           }
                         },
-                        icon: const Icon(Icons.play_arrow, color: Colors.black),
+                        icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
                         label: const Text('Play All', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,

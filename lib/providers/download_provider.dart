@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/download_service.dart';
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/download_service.dart';
+import 'package:muzo/services/storage_service.dart';
 
 class DownloadState {
   final Map<String, double> progressMap;

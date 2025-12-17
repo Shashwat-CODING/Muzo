@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/ytify_result.dart';
+import 'package:muzo/models/ytify_result.dart';
 
-import 'package:ytx/providers/player_provider.dart';
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/services/storage_service.dart';
 
 class PlaylistDetailsScreen extends ConsumerWidget {
   final String playlistName;
@@ -22,7 +23,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
         title: Text(playlistName),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete),
+            icon: const Icon(FluentIcons.delete_24_regular),
             onPressed: () {
               // Confirm delete
               showDialog(
@@ -73,7 +74,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                     onPressed: () {
                       ref.read(audioHandlerProvider).playAll(songs);
                     },
-                    icon: const Icon(Icons.play_arrow, color: Colors.black),
+                    icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
                     label: const Text('Play All', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -115,7 +116,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                         style: TextStyle(color: Colors.grey[400]),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                        icon: const Icon(FluentIcons.subtract_circle_24_regular, color: Colors.grey),
                         onPressed: () {
                           storage.removeFromPlaylist(playlistName, song.videoId ?? '');
                         },

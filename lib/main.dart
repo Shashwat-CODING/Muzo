@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:ytx/screens/home_screen.dart';
-import 'package:ytx/screens/auth_screen.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/services/navigator_key.dart';
-import 'package:ytx/services/notification_service.dart';
+import 'package:muzo/screens/home_screen.dart';
+import 'package:muzo/screens/auth_screen.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/services/notification_service.dart';
 
-import 'package:ytx/widgets/main_layout.dart';
-import 'package:ytx/providers/theme_provider.dart';
-import 'package:ytx/services/auth_service.dart';
+import 'package:muzo/widgets/main_layout.dart';
+import 'package:muzo/providers/theme_provider.dart';
+import 'package:muzo/services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +51,7 @@ class MyApp extends ConsumerWidget {
     
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'YTX',
+      title: 'Muzo',
       debugShowCheckedModeBanner: false,
       theme: theme,
       builder: (context, child) {

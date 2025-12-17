@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/artist_details.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/ytify_service.dart';
-import 'package:ytx/widgets/result_tile.dart';
+import 'package:muzo/models/artist_details.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:ytx/screens/playlist_screen.dart';
+import 'package:muzo/screens/playlist_screen.dart';
 
 class ArtistScreen extends ConsumerStatefulWidget {
   final String browseId;
@@ -210,7 +211,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                 fit: BoxFit.cover,
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[900],
-                  child: const Icon(Icons.music_note, color: Colors.white),
+                  child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
                 ),
               ),
             ),
@@ -258,7 +259,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                 fit: BoxFit.cover,
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[900],
-                  child: const Icon(Icons.person, color: Colors.white),
+                  child: const Icon(FluentIcons.person_24_regular, color: Colors.white),
                 ),
               ),
             ),

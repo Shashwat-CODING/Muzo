@@ -1,11 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ytx/services/auth_service.dart';
-import 'package:ytx/widgets/glass_snackbar.dart';
-import 'package:ytx/widgets/main_layout.dart';
-import 'package:ytx/screens/home_screen.dart';
+import 'package:muzo/services/auth_service.dart';
+import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/widgets/main_layout.dart';
+import 'package:muzo/screens/home_screen.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -139,10 +140,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Header
-                        const Icon(Icons.music_note_rounded, size: 48, color: Colors.white),
+                        Image.asset('assets/logo.png', width: 100, height: 100),
                         const SizedBox(height: 16),
                         Text(
-                          'YTX Music',
+                          'Muzo',
                           style: GoogleFonts.outfit(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -190,13 +191,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                                   _buildTextField(
                                     controller: _emailController,
                                     hint: 'Email',
-                                    icon: Icons.email_outlined,
+                                    icon: FluentIcons.mail_24_regular,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
                                     controller: _passwordController,
                                     hint: 'Password',
-                                    icon: Icons.lock_outline,
+                                    icon: FluentIcons.lock_closed_24_regular,
                                     isPassword: true,
                                   ),
                                 ],
@@ -207,19 +208,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                                   _buildTextField(
                                     controller: _usernameController,
                                     hint: 'Username',
-                                    icon: Icons.person_outline,
+                                    icon: FluentIcons.person_24_regular,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
                                     controller: _emailController,
                                     hint: 'Email',
-                                    icon: Icons.email_outlined,
+                                    icon: FluentIcons.mail_24_regular,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
                                     controller: _passwordController,
                                     hint: 'Password',
-                                    icon: Icons.lock_outline,
+                                    icon: FluentIcons.lock_closed_24_regular,
                                     isPassword: true,
                                   ),
                                 ],
@@ -312,7 +313,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    _obscurePassword ? FluentIcons.eye_24_regular : FluentIcons.eye_off_24_regular,
                     color: Colors.white38,
                     size: 20,
                   ),

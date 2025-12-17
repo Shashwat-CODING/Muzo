@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/storage_service.dart';
 
 class YtifySearchResponse {
   final List<YtifyResult> results;

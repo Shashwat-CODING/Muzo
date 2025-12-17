@@ -1,13 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:ytx/providers/player_provider.dart';
-import 'package:ytx/screens/player_screen.dart';
-import 'package:ytx/services/navigator_key.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/models/ytify_result.dart';
+import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/screens/player_screen.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/models/ytify_result.dart';
 
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
@@ -44,14 +45,15 @@ class MiniPlayer extends ConsumerWidget {
             children: [
               const SizedBox(width: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(8), // Reduced roundness for Spotify look
                 child: CachedNetworkImage(
                   imageUrl: mediaItem.artUri.toString(),
-                  height: 46,
-                  fit: BoxFit.fitHeight,
+                  height: 42, // Slightly smaller to fit better
+                  width: 42,
+                  fit: BoxFit.cover, // Ensure it fills the square
                   errorWidget: (context, url, error) => Container(
                     color: Colors.grey[800],
-                    child: const Icon(Icons.music_note, color: Colors.white),
+                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
                   ),
                 ),
               ),
@@ -94,7 +96,7 @@ class MiniPlayer extends ConsumerWidget {
                       final isFav = storage.isFavorite(mediaItem.id);
                       return IconButton(
                         icon: Icon(
-                          isFav ? Icons.favorite : Icons.favorite_border,
+                          isFav ? FluentIcons.heart_24_filled : FluentIcons.heart_24_regular,
                           color: isFav ? Colors.red : Colors.white,
                           size: 24,
                         ),
@@ -120,7 +122,7 @@ class MiniPlayer extends ConsumerWidget {
               isPlayingAsync.when(
                 data: (isPlaying) => IconButton(
                   icon: Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    isPlaying ? FluentIcons.pause_24_filled : FluentIcons.play_24_filled,
                     color: Colors.white,
                     size: 28, // Slightly smaller icon
                   ),
@@ -138,7 +140,7 @@ class MiniPlayer extends ConsumerWidget {
                   height: 24, 
                   child: CircularProgressIndicator(strokeWidth: 2)
                 ),
-                error: (_, __) => const Icon(Icons.error, size: 24),
+                error: (_, __) => const Icon(FluentIcons.error_circle_24_regular, size: 24),
               ),
               const SizedBox(width: 8),
             ],

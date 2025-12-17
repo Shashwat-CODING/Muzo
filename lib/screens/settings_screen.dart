@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/providers/settings_provider.dart';
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/providers/settings_provider.dart';
+import 'package:muzo/services/storage_service.dart';
 
 import 'package:permission_handler/permission_handler.dart';
-import 'package:ytx/widgets/global_background.dart';
-import 'package:ytx/screens/about_screen.dart';
-import 'package:ytx/services/auth_service.dart';
-import 'package:ytx/screens/auth_screen.dart';
+import 'package:muzo/widgets/global_background.dart';
+import 'package:muzo/screens/about_screen.dart';
+import 'package:muzo/services/auth_service.dart';
+import 'package:muzo/screens/auth_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentQuality = ref.watch(settingsProvider);
+    final settingsState = ref.watch(settingsProvider);
+    final currentQuality = settingsState.audioQuality;
+    final isLiteMode = settingsState.isLiteMode;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -29,6 +32,21 @@ class SettingsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildSection('Appearance', [
+                 ListTile(
+                  title: const Text('Lite Mode', style: TextStyle(color: Colors.white)),
+                  subtitle: Text('Disable blur and effects for better performance', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                  trailing: Switch(
+                    value: isLiteMode,
+                    onChanged: (value) {
+                      ref.read(settingsProvider.notifier).setLiteMode(value);
+                    },
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.grey[700],
+                  ),
+                ),
+              ]),
+
               _buildSection('Audio Quality', [
                 _buildQualityOption(context, ref, 'High', AudioQuality.high, currentQuality),
                 const Divider(height: 1, color: Colors.white10),
@@ -48,9 +66,20 @@ class SettingsScreen extends ConsumerWidget {
                       
                       return _buildSection('Playback', [
                         ListTile(
+                          title: const Text('Auto Queue', style: TextStyle(color: Colors.white)),
+                          subtitle: Text('Automatically add recommended songs to queue', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                          trailing: Switch(
+                            value: storage.isAutoQueueEnabled,
+                            onChanged: (value) => storage.setAutoQueueEnabled(value),
+                            activeColor: Colors.white,
+                            activeTrackColor: Colors.grey[700],
+                          ),
+                        ),
+                        const Divider(height: 1, color: Colors.white10),
+                        ListTile(
                           title: const Text('Ignore Battery Optimizations', style: TextStyle(color: Colors.white)),
                           subtitle: Text('Prevent app from being suspended', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                          trailing: const Icon(Icons.battery_alert, color: Colors.white),
+                          trailing: const Icon(FluentIcons.battery_warning_24_regular, color: Colors.white),
                           onTap: () async => await Permission.ignoreBatteryOptimizations.request(),
                         ),
                         const Divider(height: 1, color: Colors.white10),
@@ -60,7 +89,7 @@ class SettingsScreen extends ConsumerWidget {
                             apiKey != null && apiKey.isNotEmpty ? 'Key set' : 'Not set',
                             style: TextStyle(color: Colors.grey[400], fontSize: 12),
                           ),
-                          trailing: const Icon(Icons.edit, color: Colors.white),
+                          trailing: const Icon(FluentIcons.edit_24_regular, color: Colors.white),
                           onTap: () => _showApiKeyDialog(context, storage),
                         ),
                         const Divider(height: 1, color: Colors.white10),
@@ -70,7 +99,7 @@ class SettingsScreen extends ConsumerWidget {
                             countryCode.isNotEmpty ? 'Current: $countryCode' : 'Default: IN',
                             style: TextStyle(color: Colors.grey[400], fontSize: 12),
                           ),
-                          trailing: const Icon(Icons.public, color: Colors.white),
+                          trailing: const Icon(FluentIcons.globe_24_regular, color: Colors.white),
                           onTap: () => _showApiCountryDialog(context, storage),
                         ),
                       ]);
@@ -89,7 +118,7 @@ class SettingsScreen extends ConsumerWidget {
                         // Show User Info if logged in
                         if (storage.username != null) ...[
                           ListTile(
-                            leading: const Icon(Icons.person, color: Colors.white),
+                            leading: const Icon(FluentIcons.person_24_regular, color: Colors.white),
                             title: Text('Logged in as ${storage.username}', style: const TextStyle(color: Colors.white)),
                             subtitle: Text(storage.email ?? '', style: const TextStyle(color: Colors.grey)),
                             trailing: TextButton(
@@ -107,7 +136,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ] else ...[
                           ListTile(
-                            leading: const Icon(Icons.login, color: Colors.white),
+                            leading: const Icon(FluentIcons.person_add_24_regular, color: Colors.white),
                             title: const Text('Login / Signup', style: TextStyle(color: Colors.white)),
                             onTap: () {
                               Navigator.of(context).push(
@@ -125,8 +154,8 @@ class SettingsScreen extends ConsumerWidget {
               _buildSection('App Info', [
                 ListTile(
                   title: const Text('About', style: TextStyle(color: Colors.white)),
-                  subtitle: Text('Version 1.0.0', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                  trailing: const Icon(Icons.info_outline, color: Colors.white),
+                  subtitle: Text('Version 1.2.0', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                  trailing: const Icon(FluentIcons.info_24_regular, color: Colors.white),
                   onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
                   },
@@ -284,7 +313,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check, color: Colors.white)
+          ? const Icon(FluentIcons.checkmark_24_regular, color: Colors.white)
           : null,
       onTap: () {
         ref.read(settingsProvider.notifier).setAudioQuality(quality);

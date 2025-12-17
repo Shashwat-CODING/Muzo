@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/widgets/glass_snackbar.dart';
-import 'package:ytx/widgets/app_alert_dialog.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/widgets/app_alert_dialog.dart';
 
 class PlaylistSelectionDialog extends ConsumerStatefulWidget {
   final YtifyResult song;
@@ -46,7 +47,7 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
                       itemBuilder: (context, index) {
                         final name = playlists[index];
                         return ListTile(
-                          leading: const Icon(Icons.album, color: Colors.white),
+                          leading: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
                           title: Text(name, style: const TextStyle(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
                           onTap: () {
                             storage.addToPlaylist(name, widget.song);

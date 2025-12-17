@@ -3,10 +3,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/services/youtube_api_service.dart';
-import 'package:ytx/services/notification_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/services/notification_service.dart';
 
 class DownloadService {
   final Dio _dio = Dio();

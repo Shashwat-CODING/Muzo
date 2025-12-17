@@ -1,17 +1,18 @@
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/providers/navigation_provider.dart';
-import 'package:ytx/providers/player_provider.dart';
-import 'package:ytx/services/navigator_key.dart';
-import 'package:ytx/widgets/mini_player.dart';
-import 'package:ytx/services/share_service.dart';
-import 'package:ytx/widgets/global_background.dart';
-import 'package:ytx/widgets/sync_progress_dialog.dart';
-import 'package:ytx/widgets/glass_container.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/widgets/glass_snackbar.dart';
+import 'package:muzo/providers/navigation_provider.dart';
+import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/widgets/mini_player.dart';
+import 'package:muzo/services/share_service.dart';
+import 'package:muzo/widgets/global_background.dart';
+import 'package:muzo/widgets/sync_progress_dialog.dart';
+import 'package:muzo/widgets/glass_container.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/widgets/glass_snackbar.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   final Widget child;
@@ -59,59 +60,74 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             // Main Content (Navigator)
             widget.child,
 
-            // MiniPlayer and Floating Navigation Bar
+            // Bottom Navigation Bar (Floating)
             Positioned(
               left: 16,
               right: 16,
-              bottom: MediaQuery.of(context).padding.bottom + 16,
+              bottom: MediaQuery.of(context).padding.bottom + 12,
               child: IgnorePointer(
                 ignoring: isPlayerExpanded,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 200),
                   opacity: isPlayerExpanded ? 0.0 : 1.0,
-                  child: GlassContainer(
-                    borderRadius: BorderRadius.circular(32),
-                    color: const Color(0xFF1E1E1E),
-                    opacity: 0.1, // Decreased opacity to make background more visible
-                    blur: 15, // Increased blur for stronger glass effect
+                  child: GlassContainer( 
+                    borderRadius: BorderRadius.circular(16), // Match MiniPlayer radius (16)
+                    color: Colors.black.withValues(alpha: 0.85),
+                    opacity: 0.0,
+                    blur: 30,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      width: 1,
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 1,
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Conditional MiniPlayer
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final mediaItemAsync = ref.watch(currentMediaItemProvider);
-                            return mediaItemAsync.maybeWhen(
-                              data: (mediaItem) {
-                                if (mediaItem == null) return const SizedBox.shrink();
-                                return Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
-                                      child: MiniPlayer(),
-                                    ),
-                                    Divider(
-                                      height: 1,
-                                      thickness: 0.5,
-                                      color: Colors.white.withValues(alpha: 0.1),
-                                    ),
-                                  ],
-                                );
-                              },
-                              orElse: () => const SizedBox.shrink(),
-                            );
-                          },
-                        ),
-                        _buildFloatingNavBar(context, ref, selectedIndex),
-                      ],
+                    child: SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: _buildFloatingNavBar(context, ref, selectedIndex),
                     ),
                   ),
                 ),
+              ),
+            ),
+
+            // MiniPlayer (Floating above Navbar) - Placed AFTER Navbar to ensure z-index top
+            Positioned(
+              left: 16, // Aligned with Navbar
+              right: 16, // Aligned with Navbar
+              bottom: MediaQuery.of(context).padding.bottom + 12 + 52 + 12, // NavBottom (12) + NavHeight (52) + Spacing (12)
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final mediaItemAsync = ref.watch(currentMediaItemProvider);
+                  // Check if player is expanded to hide miniplayer during transition
+                  final isPlayerExpandedVal = ref.watch(isPlayerExpandedProvider);
+                  
+                  return mediaItemAsync.maybeWhen(
+                    data: (mediaItem) {
+                      if (mediaItem == null) return const SizedBox.shrink();
+                      return IgnorePointer(
+                        ignoring: isPlayerExpandedVal,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: isPlayerExpandedVal ? 0.0 : 1.0,
+                          child: GlassContainer(
+                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.black.withValues(alpha: 0.85),
+                            opacity: 0.0,
+                            blur: 30,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              width: 1,
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                              child: MiniPlayer(),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    orElse: () => const SizedBox.shrink(),
+                  );
+                },
               ),
             ),
 
@@ -154,20 +170,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   Widget _buildFloatingNavBar(BuildContext context, WidgetRef ref, int selectedIndex) {
     return SizedBox(
-      height: 64,
+      height: 52, // Matched to MiniPlayer height
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(context, ref, FontAwesomeIcons.house, 0, selectedIndex),
-          _buildNavItem(context, ref, FontAwesomeIcons.magnifyingGlass, 1, selectedIndex),
-          _buildNavItem(context, ref, FontAwesomeIcons.compactDisc, 2, selectedIndex),
-          _buildNavItem(context, ref, FontAwesomeIcons.userGroup, 3, selectedIndex),
+          _buildNavItem(context, ref, FluentIcons.home_24_regular, FluentIcons.home_24_filled, 0, selectedIndex),
+          _buildNavItem(context, ref, FluentIcons.search_24_regular, FluentIcons.search_24_filled, 1, selectedIndex),
+          _buildNavItem(context, ref, FluentIcons.library_24_regular, FluentIcons.library_24_filled, 2, selectedIndex), // Library
+          _buildNavItem(context, ref, FluentIcons.people_24_regular, FluentIcons.people_24_filled, 3, selectedIndex), // Community/User
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, WidgetRef ref, IconData icon, int index, int selectedIndex) {
+  Widget _buildNavItem(BuildContext context, WidgetRef ref, IconData iconRegular, IconData iconFilled, int index, int selectedIndex) {
     final isSelected = selectedIndex == index;
     return GestureDetector(
       onTap: () {
@@ -187,11 +203,26 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       },
       child: Container(
         color: Colors.transparent, // Hit test behavior
-        padding: const EdgeInsets.all(12),
-        child: FaIcon(
-          icon,
-          color: isSelected ? Colors.white : Colors.grey.withValues(alpha: 0.6),
-          size: 20, // Adjusted size for Font Awesome
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8), // Reduced vertical padding to prevent overflow
+        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             Icon(
+               isSelected ? iconFilled : iconRegular,
+               color: isSelected ? Colors.white : Colors.grey.withValues(alpha: 0.6),
+               size: 26, // Spotify icons are decent size
+             ),
+             if (isSelected)
+               Container( // Spotify often has a label or indicator, but here we just keep it clean
+                 margin: const EdgeInsets.only(top: 4),
+                 height: 4, 
+                 width: 4,
+                 decoration: const BoxDecoration(
+                   color: Colors.white,
+                   shape: BoxShape.circle,
+                 ),
+               ),
+           ],
         ),
       ),
     );

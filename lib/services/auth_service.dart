@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/services/storage_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(ref.watch(storageServiceProvider));

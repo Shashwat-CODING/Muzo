@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:ytx/models/ytify_result.dart';
+import 'package:muzo/models/ytify_result.dart';
 
-import 'package:ytx/models/artist_details.dart';
+import 'package:muzo/models/artist_details.dart';
 
 class YtifyApiService {
   static const String _baseUrl = 'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/ytmusic-search';

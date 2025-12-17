@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-class GlassContainer extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:muzo/providers/settings_provider.dart';
+
+class GlassContainer extends ConsumerWidget {
   final Widget child;
   final double blur;
   final double opacity;
@@ -24,7 +27,30 @@ class GlassContainer extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
+
+    if (isLiteMode) {
+      return Container(
+        margin: margin,
+        child: ClipRRect(
+          borderRadius: borderRadius ?? BorderRadius.zero,
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E), // Solid dark color for lite mode
+              borderRadius: borderRadius,
+              border: border ?? Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1.0,
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: margin,
       child: ClipRRect(

@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/models/user_data.dart';
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/user_data.dart';
+import 'package:muzo/services/storage_service.dart';
 
 final musicApiServiceProvider = Provider<MusicApiService>((ref) {
   return MusicApiService(ref.watch(storageServiceProvider));
@@ -232,6 +233,26 @@ class MusicApiService {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to unsubscribe');
+    }
+  }
+  Future<List<YtifyResult>> getUpNext(String videoId) async {
+    try {
+      final uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task?videoId=$videoId');
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) {
+        debugPrint('UpNext API Error: ${response.statusCode}');
+        return [];
+      }
+
+      final data = jsonDecode(response.body);
+      if (data['success'] != true) return [];
+
+      final List<dynamic> list = data['upNext'];
+      return list.map((e) => YtifyResult.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('Error fetching Up Next: $e');
+      return [];
     }
   }
 }

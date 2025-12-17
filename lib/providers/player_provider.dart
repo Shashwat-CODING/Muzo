@@ -1,9 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:ytx/services/audio_handler.dart';
+import 'package:muzo/services/audio_handler.dart';
 
-import 'package:ytx/services/storage_service.dart';
+import 'package:muzo/services/storage_service.dart';
 
 final audioHandlerProvider = Provider<AudioHandler>((ref) {
   final storage = ref.watch(storageServiceProvider);
@@ -38,3 +39,7 @@ final durationProvider = StreamProvider<Duration?>((ref) {
 });
 
 final isPlayerExpandedProvider = StateProvider<bool>((ref) => false);
+
+final lofiModeNotifierProvider = Provider<ValueNotifier<bool>>((ref) {
+  return ref.watch(audioHandlerProvider).isLofiModeNotifier;
+});

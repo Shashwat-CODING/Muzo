@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:ytx/services/youtube_api_service.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/navigator_key.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/widgets/glass_snackbar.dart';
+import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/services/music_api_service.dart';
 
 class AudioHandler {
   final AudioPlayer _player = AudioPlayer();
   final YouTubeApiService _apiService = YouTubeApiService();
+  late final MusicApiService _musicApiService;
   final StorageService _storage;
   
   // Playlist for queue management
@@ -24,8 +27,37 @@ class AudioHandler {
   AudioPlayer get player => _player;
   ConcatenatingAudioSource get playlist => _playlist;
 
+  // Lofi Mode
+  final ValueNotifier<bool> isLofiModeNotifier = ValueNotifier(false);
+
+  // Platform channel for audio effects
+  static const platform = MethodChannel('com.shashwat.muzo/audio_effects');
+
   AudioHandler(this._storage) {
+    _musicApiService = MusicApiService(_storage);
     _init();
+  }
+
+  Future<void> toggleLofiMode() async {
+    isLofiModeNotifier.value = !isLofiModeNotifier.value;
+    final enable = isLofiModeNotifier.value;
+    
+    // Apply speed/pitch
+    if (enable) {
+      await _player.setSpeed(0.90);
+      await _player.setPitch(0.90);
+    } else {
+      await _player.setSpeed(1.0);
+      await _player.setPitch(1.0);
+    }
+
+    // Apply native reverb
+    if (Platform.isAndroid) {
+      final sessionId = await _player.androidAudioSessionId;
+      if (sessionId != null) {
+        await _applyReverb(sessionId, enable);
+      }
+    }
   }
 
   Future<void> _init() async {
@@ -35,6 +67,38 @@ class AudioHandler {
         isLoadingStream.value = false;
       }
     });
+
+
+    // Listen to session ID changes to re-apply reverb
+    _player.androidAudioSessionIdStream.listen((sessionId) {
+       if (sessionId != null && isLofiModeNotifier.value) {
+         _applyReverb(sessionId, true);
+       }
+    });
+
+    _player.sequenceStateStream.listen((state) {
+      if (state == null) return;
+      final sequence = state.sequence;
+      final index = state.currentIndex;
+      
+      if (sequence.isEmpty || index >= sequence.length - 1) {
+        if (_storage.isAutoQueueEnabled) {
+          _handleAutoQueue();
+        }
+      }
+    });
+  }
+  
+  Future<void> _applyReverb(int sessionId, bool enable) async {
+    if (!Platform.isAndroid) return;
+    try {
+      await platform.invokeMethod('enableReverb', {
+        'sessionId': sessionId,
+        'enable': enable,
+      });
+    } catch (e) {
+      debugPrint("Error toggling reverb: $e");
+    }
   }
 
   Future<void> playVideo(dynamic video) async {
@@ -62,66 +126,73 @@ class AudioHandler {
 
   Future<void> addToQueue(dynamic video) async {
     try {
+      final source = await _createAudioSource(video);
+      if (source != null) {
+        await _playlist.add(source);
+        
+        // If player is not set to this playlist (e.g. first item), set it
+        if (_player.audioSource != _playlist) {
+          await _player.setAudioSource(_playlist);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error adding to queue: $e');
+    }
+  }
+
+  Future<AudioSource?> _createAudioSource(dynamic video) async {
+    try {
       String videoId;
       String title;
       String artist;
       String artUri;
       String resultType = 'video';
-
       String? artistId;
+
+      Duration? duration;
+
       if (video is YtifyResult) {
-        if (video.videoId == null) return;
+        if (video.videoId == null) return null;
         videoId = video.videoId!;
         title = video.title;
         artist = video.artists?.map((a) => a.name).join(', ') ?? video.videoType ?? 'Unknown';
         artistId = video.artists?.firstOrNull?.id;
         artUri = video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
         resultType = video.resultType;
+        if (video.durationSeconds != null) {
+          duration = Duration(seconds: video.durationSeconds!);
+        }
       } else {
-        return;
+        return null;
       }
 
-      // Check if downloaded
       final downloadPath = _storage.getDownloadPath(videoId);
       Uri audioUri;
       
       if (downloadPath != null && await File(downloadPath).exists()) {
         audioUri = Uri.file(downloadPath);
       } else {
-        // We need to know if fallback was used. 
-        // Since getStreamUrl returns just the string, we can't know for sure without changing the return type.
-        // However, we can check if the URL looks like a fallback URL (e.g. from invidious or just different domain).
-        // But the fallback logic is inside apiService.
-        // A better approach is to have a callback or a separate method.
-        // For now, let's just pass the title and artist.
-        // To show the alert, we can check if the returned URL is NOT from googlevideo.com (primary) 
-        // but that might be flaky if primary uses other domains.
-        // Alternatively, we can add a callback to getStreamUrl? No, simpler to just check the domain.
-        // Primary URLs usually contain 'googlevideo.com'.
-        
         final streamUrl = await _apiService.getStreamUrl(
           videoId, 
           title: title, 
           artist: artist,
           onFallback: () => _showFallbackAlert(),
         );
-        if (streamUrl == null) return;
-        
+        if (streamUrl == null) return null;
         audioUri = Uri.parse(streamUrl);
-
-
       }
 
-      final audioSource = AudioSource.uri(
+      return AudioSource.uri(
         audioUri,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
         },
         tag: MediaItem(
           id: videoId,
-          album: "YTX Music",
+          album: "Muzo",
           title: title,
           artist: artist,
+          duration: duration,
           artUri: Uri.parse(artUri),
           extras: {
             'resultType': resultType,
@@ -129,16 +200,9 @@ class AudioHandler {
           },
         ),
       );
-
-      await _playlist.add(audioSource);
-      
-      // If player is not set to this playlist (e.g. first item), set it
-      if (_player.audioSource != _playlist) {
-        await _player.setAudioSource(_playlist);
-      }
-
     } catch (e) {
-      debugPrint('Error adding to queue: $e');
+      debugPrint('Error creating audio source: $e');
+      return null;
     }
   }
 
@@ -199,6 +263,7 @@ class AudioHandler {
       String artUri;
       String resultType = 'video';
       String? artistId;
+      Duration? duration;
 
       if (result.videoId == null) return;
       videoId = result.videoId!;
@@ -207,6 +272,9 @@ class AudioHandler {
       artistId = result.artists?.firstOrNull?.id;
       artUri = result.thumbnails.isNotEmpty ? result.thumbnails.last.url : '';
       resultType = result.resultType;
+      if (result.durationSeconds != null) {
+          duration = Duration(seconds: result.durationSeconds!);
+      }
 
       // Check if downloaded
       final downloadPath = _storage.getDownloadPath(videoId);
@@ -232,9 +300,10 @@ class AudioHandler {
         },
         tag: MediaItem(
           id: videoId,
-          album: "YTX Music",
+          album: "Muzo",
           title: title,
           artist: artist,
+          duration: duration,
           artUri: Uri.parse(artUri),
           extras: {
             'resultType': resultType,
@@ -306,6 +375,63 @@ class AudioHandler {
     final context = navigatorKey.currentContext;
     if (context != null) {
       showGlassSnackBar(context, 'Using fallback playback API');
+    }
+  }
+
+  bool _isFetchingAutoQueue = false;
+
+  Future<void> _handleAutoQueue() async {
+    if (_isFetchingAutoQueue) return;
+    
+    final currentSource = _player.sequenceState?.currentSource;
+    final tag = currentSource?.tag;
+    if (tag is! MediaItem) {
+      debugPrint('AutoQueue: Current item tag is not MediaItem');
+      return;
+    }
+
+    final videoId = tag.id;
+    debugPrint('AutoQueue: Fetching suggestions for $videoId');
+    
+    _isFetchingAutoQueue = true;
+    try {
+      final nextSongs = await _musicApiService.getUpNext(videoId);
+      debugPrint('AutoQueue: fetched ${nextSongs.length} songs');
+      
+      // Check if the current song is still the same as when we started
+      final currentTag = _player.sequenceState?.currentSource?.tag;
+      if (currentTag is! MediaItem || currentTag.id != videoId) {
+        debugPrint('AutoQueue: Current song changed, discarding results for $videoId');
+        return;
+      }
+
+      if (nextSongs.isNotEmpty) {
+        // Filter out current video
+        final filteredSongs = nextSongs.where((s) => s.videoId != videoId).toList();
+        
+        if (filteredSongs.isEmpty) return;
+
+        // Resolve sources in parallel
+        final futures = filteredSongs.map((song) => _createAudioSource(song));
+        final sources = await Future.wait(futures);
+        
+        // Check again before adding
+        final currentTagAfterFetch = _player.sequenceState?.currentSource?.tag;
+        if (currentTagAfterFetch is! MediaItem || currentTagAfterFetch.id != videoId) {
+             debugPrint('AutoQueue: Current song changed during source creation, discarding results for $videoId');
+             return;
+        }
+
+        final validSources = sources.whereType<AudioSource>().toList();
+        
+        if (validSources.isNotEmpty) {
+          await _playlist.addAll(validSources);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in auto queue: $e');
+    } finally {
+      _isFetchingAutoQueue = false;
     }
   }
 }

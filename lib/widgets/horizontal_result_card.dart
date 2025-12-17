@@ -1,12 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/providers/player_provider.dart';
-import 'package:ytx/screens/artist_screen.dart';
-import 'package:ytx/screens/playlist_screen.dart';
-import 'package:ytx/screens/channel_screen.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/screens/artist_screen.dart';
+import 'package:muzo/screens/playlist_screen.dart';
+import 'package:muzo/screens/channel_screen.dart';
 
 
 class HorizontalResultCard extends ConsumerWidget {
@@ -94,7 +95,7 @@ class HorizontalResultCard extends ConsumerWidget {
                       width: width,
                       height: isVideo ? width * 9 / 16 : width,
                       color: Colors.grey[900],
-                      child: const Icon(Icons.music_note, color: Colors.white),
+                      child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
                     ),
                   ),
                   if (isVideo && result.duration != null)

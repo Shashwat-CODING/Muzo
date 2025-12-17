@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import 'package:ytx/services/audio_handler.dart';
-import 'package:ytx/services/youtube_api_service.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/widgets/glass_snackbar.dart';
+import 'package:muzo/services/audio_handler.dart';
+import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/widgets/glass_snackbar.dart';
 
 class ShareService {
   final AudioHandler _audioHandler;

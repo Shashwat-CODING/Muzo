@@ -1,23 +1,24 @@
-import 'package:ytx/widgets/glass_menu_content.dart';
+import 'package:muzo/widgets/glass_menu_content.dart';
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/providers/navigation_provider.dart';
-import 'package:ytx/providers/explore_provider.dart';
-import 'package:ytx/screens/search_screen.dart';
-import 'package:ytx/widgets/result_tile.dart';
-import 'package:ytx/screens/library_screen.dart';
-import 'package:ytx/screens/subscribed_channels_screen.dart';
-import 'package:ytx/widgets/horizontal_result_card.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/providers/player_provider.dart';
+import 'package:muzo/providers/navigation_provider.dart';
+import 'package:muzo/providers/explore_provider.dart';
+import 'package:muzo/screens/search_screen.dart';
+import 'package:muzo/widgets/result_tile.dart';
+import 'package:muzo/screens/library_screen.dart';
+import 'package:muzo/screens/subscribed_channels_screen.dart';
+import 'package:muzo/widgets/horizontal_result_card.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/providers/player_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:ytx/screens/artist_screen.dart';
+import 'package:muzo/screens/artist_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:ytx/screens/settings_screen.dart';
-import 'package:ytx/widgets/glass_container.dart';
-import 'package:ytx/widgets/offline_indicator.dart';
+import 'package:muzo/screens/settings_screen.dart';
+import 'package:muzo/widgets/glass_container.dart';
+import 'package:muzo/widgets/offline_indicator.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -88,7 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 24),
                     Row(
                       children: [
-                        const Icon(Icons.history, color: Colors.white),
+                        const Icon(FluentIcons.history_24_regular, color: Colors.white),
                         const SizedBox(width: 8),
                         Text(
                           'Speed dial',
@@ -164,16 +165,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
           const Spacer(),
-          IconButton(
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SearchScreen()),
-              );
-            },
-            icon: const Icon(Icons.search, color: Colors.white),
-          ),
           const SizedBox(width: 8),
 
 
@@ -195,7 +186,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ListTile(
                       dense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(Icons.person, color: Colors.white, size: 20),
+                      leading: const Icon(FluentIcons.person_24_regular, color: Colors.white, size: 20),
                       title: const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 14)),
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -243,7 +234,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ListTile(
                       dense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(Icons.settings, color: Colors.white, size: 20),
+                      leading: const Icon(FluentIcons.settings_24_regular, color: Colors.white, size: 20),
                       title: const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 14)),
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -489,14 +480,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       height: 120,
                                       width: 120,
                                       color: Colors.grey[800],
-                                      child: const Icon(Icons.music_note, color: Colors.white),
+                                      child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
                                     ),
                                   )
                                 : Container(
                                     height: 120,
                                     width: 120,
                                     color: Colors.grey[800],
-                                    child: const Icon(Icons.music_note, color: Colors.white),
+                                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
                                   ),
                             ),
                             const SizedBox(height: 8),

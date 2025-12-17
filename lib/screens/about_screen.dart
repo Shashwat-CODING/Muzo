@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:ytx/widgets/global_background.dart';
+import 'package:muzo/widgets/global_background.dart';
 
 
 class AboutScreen extends StatelessWidget {
@@ -51,15 +52,14 @@ class AboutScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    CupertinoIcons.music_note_2,
-                    size: 60,
-                    color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Image.asset('assets/logo.png', fit: BoxFit.contain),
                   ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'YTX',
+                  'Muzo',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -93,7 +93,7 @@ class AboutScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    'YTX is a powerful YouTube music client designed for a premium listening experience. Enjoy ad-free music, background playback, offline downloads, and a beautiful user interface.',
+                    'Muzo is a powerful YouTube music client designed for a premium listening experience. Enjoy ad-free music, background playback, offline downloads, and a beautiful user interface.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.grey[400],
@@ -104,11 +104,11 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 48),
-                _buildInfoRow(CupertinoIcons.info, 'Version', '1.0.0'),
+                _buildInfoRow(FluentIcons.info_24_regular, 'Version', '1.2.0'),
                 const SizedBox(height: 16),
-                _buildInfoRow(CupertinoIcons.person, 'Developer', 'Shashwat'),
+                _buildInfoRow(FluentIcons.person_24_regular, 'Developer', 'Shashwat'),
                 const SizedBox(height: 16),
-                _buildInfoRow(CupertinoIcons.device_laptop, 'Platform', 'Flutter'),
+                _buildInfoRow(FluentIcons.laptop_24_regular, 'Platform', 'Flutter'),
                 const SizedBox(height: 40),
                 const SizedBox(height: 160),
               ],

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/services/youtube_api_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/youtube_api_service.dart';
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 

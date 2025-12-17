@@ -1,15 +1,17 @@
 import 'dart:ui';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/screens/playlist_details_screen.dart';
-import 'package:ytx/providers/player_provider.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/providers/download_provider.dart';
-import 'package:ytx/widgets/playlist_selection_dialog.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/screens/playlist_details_screen.dart';
+import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/providers/download_provider.dart';
+import 'package:muzo/widgets/playlist_selection_dialog.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:muzo/providers/settings_provider.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -21,6 +23,8 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void _showOptions(BuildContext context, YtifyResult item, String type, StorageService storage) {
+    final isLiteMode = ref.read(settingsProvider).isLiteMode;
+
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.5),
@@ -29,123 +33,140 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           color: Colors.transparent,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                width: 300,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        item.title,
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+            child: isLiteMode
+                ? Container(
+                    width: 300,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E), // Solid background
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: _buildOptionsContent(context, item, type, storage),
+                  )
+                : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      width: 300,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
+                      child: _buildOptionsContent(context, item, type, storage),
                     ),
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        item.artists?.map((a) => a.name).join(', ') ?? 'Unknown Artist',
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.play_arrow_rounded,
-                      label: 'Play',
-                      onTap: () {
-                        Navigator.pop(context);
-                        ref.read(audioHandlerProvider).playVideo(item);
-                      },
-                    ),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.playlist_play_rounded,
-                      label: 'Play Next',
-                      onTap: () {
-                        Navigator.pop(context);
-                        ref.read(audioHandlerProvider).playNext(item);
-                      },
-                    ),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.queue_music_rounded,
-                      label: 'Add to Queue',
-                      onTap: () {
-                        Navigator.pop(context);
-                        ref.read(audioHandlerProvider).addToQueue(item);
-                        // Show snackbar
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Added to queue'),
-                              backgroundColor: Color(0xFF1E1E1E),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.playlist_add_rounded,
-                      label: 'Add to Playlist',
-                      onTap: () {
-                        Navigator.pop(context);
-                        showCupertinoDialog(
-                          context: context,
-                          barrierDismissible: true,
-                          builder: (context) => PlaylistSelectionDialog(song: item),
-                        );
-                      },
-                    ),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Remove',
-                      color: Colors.red,
-                      onTap: () {
-                        Navigator.pop(context);
-                        if (type == 'favorites') {
-                          storage.toggleFavorite(item);
-                        } else if (type == 'history') {
-                          storage.removeFromHistory(item.videoId!);
-                        } else if (type == 'downloads') {
-                          ref.read(downloadProvider.notifier).deleteDownload(item.videoId!);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ),
+                  ),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildOptionsContent(BuildContext context, YtifyResult item, String type, StorageService storage) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            item.title,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            item.artists?.map((a) => a.name).join(', ') ?? 'Unknown Artist',
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.play_24_regular,
+          label: 'Play',
+          onTap: () {
+            Navigator.pop(context);
+            ref.read(audioHandlerProvider).playVideo(item);
+          },
+        ),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.text_bullet_list_ltr_24_regular,
+          label: 'Play Next',
+          onTap: () {
+            Navigator.pop(context);
+            ref.read(audioHandlerProvider).playNext(item);
+          },
+        ),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.list_24_regular,
+          label: 'Add to Queue',
+          onTap: () {
+            Navigator.pop(context);
+            ref.read(audioHandlerProvider).addToQueue(item);
+            // Show snackbar
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Added to queue'),
+                  backgroundColor: Color(0xFF1E1E1E),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          },
+        ),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.add_square_24_regular,
+          label: 'Add to Playlist',
+          onTap: () {
+            Navigator.pop(context);
+            showCupertinoDialog(
+              context: context,
+              barrierDismissible: true,
+              builder: (context) => PlaylistSelectionDialog(song: item),
+            );
+          },
+        ),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.delete_24_regular,
+          label: 'Remove',
+          color: Colors.red,
+          onTap: () {
+            Navigator.pop(context);
+            if (type == 'favorites') {
+              storage.toggleFavorite(item);
+            } else if (type == 'history') {
+              storage.removeFromHistory(item.videoId!);
+            } else if (type == 'downloads') {
+              ref.read(downloadProvider.notifier).deleteDownload(item.videoId!);
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+
+  }
+
   void _showPlaylistOptions(BuildContext context, String playlistName, StorageService storage) {
+    final isLiteMode = ref.read(settingsProvider).isLiteMode;
+
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.5),
@@ -154,61 +175,75 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           color: Colors.transparent,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                width: 300,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 24),
-                    const Icon(Icons.playlist_play_rounded, color: Colors.white, size: 60),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        playlistName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            child: isLiteMode
+                ? Container(
+                    width: 300,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E), // Solid background
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: _buildPlaylistOptionsContent(context, playlistName, storage),
+                  )
+                : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      width: 300,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
+                      child: _buildPlaylistOptionsContent(context, playlistName, storage),
                     ),
-                    const SizedBox(height: 24),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.play_arrow_rounded,
-                      label: 'Play All',
-                      onTap: () {
-                        Navigator.pop(context);
-                        final songs = storage.getPlaylistSongs(playlistName);
-                        if (songs.isNotEmpty) {
-                          ref.read(audioHandlerProvider).playAll(songs);
-                        }
-                      },
-                    ),
-                    Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-                    _buildDialogOption(
-                      icon: Icons.delete_outline_rounded,
-                      label: 'Delete Playlist',
-                      color: Colors.red,
-                      onTap: () {
-                        Navigator.pop(context);
-                        storage.deletePlaylist(playlistName);
-                        setState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ),
+                  ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPlaylistOptionsContent(BuildContext context, String playlistName, StorageService storage) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 24),
+        const Icon(FluentIcons.text_bullet_list_ltr_24_regular, color: Colors.white, size: 60),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            playlistName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.play_24_regular,
+          label: 'Play All',
+          onTap: () {
+            Navigator.pop(context);
+            final songs = storage.getPlaylistSongs(playlistName);
+            if (songs.isNotEmpty) {
+              ref.read(audioHandlerProvider).playAll(songs);
+            }
+          },
+        ),
+        Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+        _buildDialogOption(
+          icon: FluentIcons.delete_24_regular,
+          label: 'Delete Playlist',
+          color: Colors.red,
+          onTap: () {
+            Navigator.pop(context);
+            storage.deletePlaylist(playlistName);
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 
@@ -577,7 +612,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add, color: Colors.white),
+                      icon: const Icon(FluentIcons.add_24_regular, color: Colors.white),
                       onPressed: () {
                         _showCreatePlaylistDialog(context, storage);
                       },
@@ -607,7 +642,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               color: Colors.grey[800],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.playlist_play, color: Colors.white),
+                            child: const Icon(FluentIcons.text_bullet_list_ltr_24_regular, color: Colors.white),
                           ),
                           title: Text(name, style: const TextStyle(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text('${songs.length} songs', style: TextStyle(color: Colors.grey[400])),

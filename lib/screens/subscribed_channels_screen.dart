@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:ytx/services/storage_service.dart';
-import 'package:ytx/services/youtube_api_service.dart';
-import 'package:ytx/screens/channel_screen.dart';
-import 'package:ytx/widgets/result_tile.dart';
+import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/screens/channel_screen.dart';
+import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:ytx/models/ytify_result.dart';
+import 'package:muzo/models/ytify_result.dart';
 
 class SubscribedChannelsScreen extends ConsumerStatefulWidget {
   const SubscribedChannelsScreen({super.key});
@@ -53,7 +54,7 @@ class _SubscribedChannelsScreenState extends ConsumerState<SubscribedChannelsScr
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.subscriptions_outlined, size: 64, color: Colors.grey),
+                    Icon(FluentIcons.video_24_regular, size: 64, color: Colors.grey),
                     SizedBox(height: 16),
                     Text(
                       'No subscriptions yet',
@@ -127,9 +128,9 @@ class _SubscribedChannelsScreenState extends ConsumerState<SubscribedChannelsScr
                                             imageUrl: channel.thumbnails.last.url,
                                             fit: BoxFit.cover,
                                             errorWidget: (context, url, error) =>
-                                                const Icon(Icons.person, color: Colors.grey),
+                                                const Icon(FluentIcons.person_24_regular, color: Colors.grey),
                                           )
-                                        : const Icon(Icons.person, color: Colors.grey),
+                                        : const Icon(FluentIcons.person_24_regular, color: Colors.grey),
                                   ),
                                 ),
                                 const SizedBox(height: 8),

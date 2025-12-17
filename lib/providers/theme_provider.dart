@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:palette_generator/palette_generator.dart';
-import 'package:ytx/providers/player_provider.dart';
+import 'package:muzo/providers/player_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeData>((ref) {

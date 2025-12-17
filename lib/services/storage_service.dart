@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:ytx/models/ytify_result.dart';
-import 'package:ytx/models/user_data.dart';
-import 'package:ytx/services/ytify_service.dart';
-import 'package:ytx/services/music_api_service.dart';
+import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/user_data.dart';
+import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/services/music_api_service.dart';
 import 'package:http/http.dart' as http;
 
 final storageServiceProvider = Provider<StorageService>((ref) {
@@ -449,9 +449,9 @@ class StorageService {
       // import 'package:flutter/foundation.dart';
       // import 'package:flutter_riverpod/flutter_riverpod.dart';
       // import 'package:hive_flutter/hive_flutter.dart';
-      // import 'package:ytx/models/ytify_result.dart';
-      // import 'package:ytx/services/ytify_service.dart';
-      // import 'package:ytx/services/music_api_service.dart';
+      // import 'package:muzo/models/ytify_result.dart';
+      // import 'package:muzo/services/ytify_service.dart';
+      // import 'package:muzo/services/music_api_service.dart';
       
       // We can use a simple http get.
       // Actually, `YtifyApiService` might have a dio instance or similar.
@@ -481,6 +481,9 @@ class StorageService {
       debugPrint('Error fetching user avatar: $e');
     }
   }
+  // Auto Queue Setting
+  bool get isAutoQueueEnabled => _settingsBox.get('isAutoQueueEnabled', defaultValue: true);
+  Future<void> setAutoQueueEnabled(bool value) => _settingsBox.put('isAutoQueueEnabled', value);
 }
 
 
