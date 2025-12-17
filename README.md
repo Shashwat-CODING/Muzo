@@ -1,22 +1,37 @@
-# YTX - Advanced YouTube Music Client
-
+# Muzo - Premium Music Client
 <p align="center">
-  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="YTX Logo" width="150" height="150" />
+  <img src="assets/logo.png" alt="Muzo Logo" width="150" height="150" />
 </p>
 
-YTX is a feature-rich, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, and a modern, customizable UI.
+Muzo (formerly YTX) is a powerful, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized lyrics, and a modern, customizable UI.
 
-## 🚀 Features
+## 🚀 Key Features
 
-*   **Ad-Free Streaming**: Enjoy music without interruptions.
-*   **Background Playback**: Keep listening while using other apps or with the screen off.
-*   **Offline Downloads**: Download songs and videos for offline listening.
-*   **Share to Play**: Share links directly from YouTube or YouTube Music to YTX to play them instantly.
-*   **Auto-Queue**: Automatically queues related songs for endless playback.
-*   **Dynamic Theming**: UI adapts to the colors of the currently playing album art.
-*   **RapidAPI Fallback**: (Failure is very rare) User-configurable fallback system using RapidAPI to ensure playback reliability even if the primary API fails.
-*   **Sleek UI**: Modern, glassmorphic design with smooth animations.
-*   **Privacy Focused**: No login required, data stored locally.
+### 🎧 Immersive Audio Experience
+*   **Synced Lyrics**: Sing along with real-time synchronized lyrics that auto-scroll with the music.
+*   **Lofi Mode**: Instantly transform any track into a Lofi vibe with slowed speed (0.9x), pitch correction, and native reverb effects.
+*   **Background Playback**: Keep the music playing while using other apps or when your screen is off.
+*   **Audio Quality Control**: Choose between High, Medium, and Low audio quality to balance experience and data usage.
+*   **Native Audio Effects**: Leverages platform-specific audio effects for a rich sound experience.
+
+### 📚 Library & Discovery
+*   **Auto-Queue**: Never stop listening—automatically queues recommended songs for endless playback.
+*   **Smart Library**: Organize your music with **Favorites**, **History**, and custom **Playlists**.
+*   **Channel Subscriptions**: Subscribe to your favorite artists and YouTube channels to stay updated.
+*   **Offline Downloads**: Download songs and videos for offline listening anywhere, anytime.
+*   **Smart Search**: Quickly find songs, artists, albums, and playlists.
+
+### 🎨 Modern UI/UX
+*   **Sleek Glassmorphism**: A beautiful, modern interface with glassmorphic elements and smooth animations.
+*   **Dynamic Theming**: The UI automatically adapts its colors to match the currently playing album art.
+*   **Lite Mode**: Optimize performance on lower-end devices by disabling blur effects and complex animations.
+*   **Marquee Titles**: Auto-scrolling text for long song titles and artist names.
+
+### 🛡️ Privacy & Reliability
+*   **Ad-Free Streaming**: Enjoy music without interruptions or ads.
+*   **Privacy Focused**: No login required. All your data (favorites, playlists, history) is stored locally on your device.
+*   **RapidAPI Fallback**: A robust fallback system ensures playback reliability even if the primary API fails (user-configurable).
+*   **Share to Play**: Share links directly from YouTube or YouTube Music to Muzo to play them instantly.
 
 ## 📸 Screenshots
 
@@ -35,6 +50,7 @@ YTX is a feature-rich, privacy-focused YouTube Music client built with Flutter. 
 *   **Audio Engine**: [Just Audio](https://pub.dev/packages/just_audio) & [Audio Service](https://pub.dev/packages/audio_service)
 *   **Local Storage**: [Hive](https://docs.hivedb.dev/)
 *   **Networking**: [Dio](https://pub.dev/packages/dio) & [Http](https://pub.dev/packages/http)
+*   **UI Components**: [FluentUI System Icons](https://pub.dev/packages/fluentui_system_icons), [Sliding Up Panel](https://pub.dev/packages/sliding_up_panel)
 *   **API**: Custom YouTube Internal API & RapidAPI (Fallback)
 
 ## ⚙️ Setup & Installation
@@ -44,14 +60,14 @@ YTX is a feature-rich, privacy-focused YouTube Music client built with Flutter. 
 *   Flutter SDK (Latest Stable)
 *   Dart SDK
 *   Android Studio / VS Code
-*   Java JDK 11 or 17
+*   Java JDK 17
 
 ### Installation
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/Shashwat-CODING/YTX.git
-    cd YTX
+    git clone https://github.com/Shashwat-CODING/Muzo.git
+    cd Muzo
     ```
 
 2.  **Install dependencies**:
