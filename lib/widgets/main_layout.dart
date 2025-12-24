@@ -93,7 +93,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             Positioned(
               left: 16, // Aligned with Navbar
               right: 16, // Aligned with Navbar
-              bottom: MediaQuery.of(context).padding.bottom + 12 + 52 + 12, // NavBottom (12) + NavHeight (52) + Spacing (12)
+              bottom: MediaQuery.of(context).padding.bottom + 12 + 52 + 4, // NavBottom (12) + NavHeight (52) + Spacing (4)
               child: Consumer(
                 builder: (context, ref, _) {
                   final mediaItemAsync = ref.watch(currentMediaItemProvider);

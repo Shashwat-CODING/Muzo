@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/storage_service.dart';
+import 'package:muzoapi/youtube_stream_provider.dart';
 
 class YtifySearchResponse {
   final List<YtifyResult> results;
@@ -19,6 +20,17 @@ class YouTubeApiService {
   static const String _clientName = 'ANDROID';
   static const String _clientVersion = '19.17.34';
   static const int _clientId = 3;
+
+  final _ytHelper = InnerTube();
+
+  Future<StreamInfo?> getStreamManifest(String videoId) async {
+    try {
+      return await _ytHelper.player(videoId);
+    } catch (e) {
+      debugPrint('Error fetching stream manifest: $e');
+      return null;
+    }
+  }
 
   Future<String?> getStreamUrl(String videoId, {String? title, String? artist, VoidCallback? onFallback}) async {
     try {
@@ -195,7 +207,7 @@ class YouTubeApiService {
       if (filter == 'videos' || filter == 'channels') {
         uri = Uri.parse('https://ytify-backend.vercel.app/api/yt_search').replace(queryParameters: queryParams);
       } else {
-        uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/ytmusic-search').replace(queryParameters: queryParams);
+        uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task').replace(queryParameters: queryParams);
       }
 
       final response = await http.get(uri);

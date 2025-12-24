@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzoapi/youtube_stream_provider.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/navigator_key.dart';
 import 'package:muzo/services/storage_service.dart';
@@ -168,18 +169,72 @@ class AudioHandler {
 
       final downloadPath = _storage.getDownloadPath(videoId);
       Uri audioUri;
+      Map<String, dynamic> extras = {
+        'resultType': resultType,
+        'artistId': artistId,
+      };
       
       if (downloadPath != null && await File(downloadPath).exists()) {
         audioUri = Uri.file(downloadPath);
       } else {
-        final streamUrl = await _apiService.getStreamUrl(
-          videoId, 
-          title: title, 
-          artist: artist,
-          onFallback: () => _showFallbackAlert(),
-        );
-        if (streamUrl == null) return null;
-        audioUri = Uri.parse(streamUrl);
+        // Try getting manifest first for multi-language support
+        final manifest = await _apiService.getStreamManifest(videoId);
+        
+        if (manifest != null && manifest.audioStreams.isNotEmpty) {
+           // Process multi-language streams
+           final uniqueLanguages = <String, String>{}; // name -> url (best bitrate)
+           final languageBitrates = <String, int>{}; // name -> bitrate
+           
+           for (final stream in manifest.audioStreams) {
+             final name = stream.languageDisplayName ?? "Default";
+             final bitrate = stream.bitrate;
+             
+             if (!languageBitrates.containsKey(name) || bitrate > languageBitrates[name]!) {
+               languageBitrates[name] = bitrate;
+               uniqueLanguages[name] = stream.url;
+             }
+           }
+           
+           final availableLanguages = uniqueLanguages.entries.map((e) => {
+             'name': e.key,
+             'url': e.value,
+           }).toList();
+           
+           // Identify best default stream (English or Default or first highest bitrate)
+           // If "Default" exists, use it. Else use highest bitrate.
+           String bestUrl = manifest.audioStreams.first.url;
+           String currentLanguage = "Default";
+           int maxBitrate = -1;
+           
+           // Simple selection: Pick "Default" or highest bitrate overall
+           for (final stream in manifest.audioStreams) {
+             if (stream.bitrate > maxBitrate) {
+               maxBitrate = stream.bitrate;
+               bestUrl = stream.url;
+               currentLanguage = stream.languageDisplayName ?? "Default";
+             }
+           }
+           
+           // If we have "English" or "Original", maybe prefer that? 
+           // For now, let's just stick to the highest bitrate one found.
+           
+           audioUri = Uri.parse(bestUrl);
+           
+           if (availableLanguages.length > 1) {
+             extras['availableLanguages'] = availableLanguages;
+             extras['currentLanguage'] = currentLanguage;
+           }
+        } else {
+           // Fallback to old method
+           final streamUrl = await _apiService.getStreamUrl(
+             videoId, 
+             title: title, 
+             artist: artist,
+             onFallback: () => _showFallbackAlert(),
+           );
+           if (streamUrl == null) return null;
+           audioUri = Uri.parse(streamUrl);
+        }
       }
 
       return AudioSource.uri(
@@ -194,15 +249,66 @@ class AudioHandler {
           artist: artist,
           duration: duration,
           artUri: Uri.parse(artUri),
-          extras: {
-            'resultType': resultType,
-            'artistId': artistId,
-          },
+          extras: extras,
         ),
       );
     } catch (e) {
       debugPrint('Error creating audio source: $e');
       return null;
+    }
+  }
+
+  Future<void> setAudioLanguage(String url, String languageName) async {
+    try {
+      final currentSource = _player.sequenceState?.currentSource;
+      final currentPos = _player.position;
+      final playing = _player.playing;
+      
+      if (currentSource == null) return;
+      
+      // We need to preserve metadata but change URI
+      final oldTag = currentSource.tag as MediaItem;
+      final newExtras = Map<String, dynamic>.from(oldTag.extras ?? {});
+      newExtras['currentLanguage'] = languageName;
+
+      final newSource = AudioSource.uri(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
+        },
+        tag: oldTag.copyWith(extras: newExtras),
+      );
+      
+      final index = _player.currentIndex;
+      if (index != null && index < _playlist.length) {
+         // Optimization: If playlist has only 1 item, we can just set source directly
+         // This is smoother than remove/insert
+         if (_playlist.length == 1) {
+            await _player.setAudioSource(newSource, initialPosition: currentPos);
+            if (playing) {
+              _player.play();
+            }
+            return;
+         }
+
+         // Fallback for playlist: Pause, Insert, Seek, Remove, Play
+         await _player.pause();
+         
+         // Insert at current index (pushes current item down)
+         await _playlist.insert(index, newSource);
+         
+         // Seek to new source (which is now at index)
+         await _player.seek(currentPos, index: index);
+         
+         // Remove old source (which is now at index + 1)
+         await _playlist.removeAt(index + 1);
+         
+         if (playing) {
+           _player.play();
+         }
+      }
+    } catch (e) {
+      debugPrint("Error changing language: $e");
     }
   }
 

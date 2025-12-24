@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/services/youtube_api_service.dart';
@@ -71,13 +71,34 @@ class DownloadService {
         return false;
       }
 
+      // Get content length if possible for better progress tracking
+      int? totalBytes;
+      try {
+        final headResponse = await _dio.head(streamUrl);
+        if (headResponse.headers.value('content-length') != null) {
+          totalBytes = int.tryParse(headResponse.headers.value('content-length')!);
+        }
+      } catch (e) {
+        debugPrint('Error fetching content length: $e');
+      }
+
       // Download
       await _dio.download(
         streamUrl, 
         savePath,
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            final progress = (received / total * 100).toInt();
+        options: Options(
+          headers: {
+            "Range": totalBytes != null ? 'bytes=0-$totalBytes' : 'bytes=0-',
+          },
+        ),
+        onReceiveProgress: (count, total) {
+          int finalTotal = total;
+          if (finalTotal == -1 && totalBytes != null) {
+             finalTotal = totalBytes;
+          }
+
+          if (finalTotal != -1) {
+            final progress = ((count / finalTotal) * 100).toInt();
             NotificationService().showProgressNotification(
               id: notificationId,
               title: 'Downloading...',
@@ -85,7 +106,7 @@ class DownloadService {
               progress: progress,
               maxProgress: 100,
             );
-            onProgress?.call(received, total);
+            onProgress?.call(count, finalTotal);
           }
         },
         deleteOnError: true,
