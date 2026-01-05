@@ -72,151 +72,113 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
               slivers: [
+
                 SliverAppBar(
-                  expandedHeight: 280.0,
+                  expandedHeight: 340.0,
                   floating: false,
                   pinned: true,
-                  backgroundColor: Colors.transparent,
-                    flexibleSpace: FlexibleSpaceBar(
+                  backgroundColor: const Color(0xFF121212), // Match app theme or transparent
+                  flexibleSpace: FlexibleSpaceBar(
                     background: Stack(
                       fit: StackFit.expand,
                       children: [
-                        // Background Image (blurred or darkened)
+                        // Background Image
                         if (widget.thumbnailUrl != null)
-                          Image.network(
-                            widget.thumbnailUrl!,
+                          CachedNetworkImage(
+                            imageUrl: widget.thumbnailUrl!.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
                             fit: BoxFit.cover,
-                            color: Colors.black.withOpacity(0.8),
-                            colorBlendMode: BlendMode.darken,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(color: Colors.grey[900]),
+                            errorWidget: (context, url, error) => Container(color: Colors.grey[900]),
                           )
                         else
                           Container(color: Colors.grey[900]),
-
-                        // Content
-                        SafeArea(
-                          child: Center(
-                            child: SingleChildScrollView(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Channel Avatar
-                                    Container(
-                                      width: 80,
-                                      height: 80,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      child: ClipOval(
-                                        child: widget.thumbnailUrl != null
-                                            ? CachedNetworkImage(
-                                                imageUrl: widget.thumbnailUrl!,
-                                                fit: BoxFit.cover,
-                                                errorWidget: (context, url, error) =>
-                                                    const Icon(FluentIcons.person_24_regular, size: 40, color: Colors.grey),
-                                              )
-                                            : const Icon(FluentIcons.person_24_regular, size: 40, color: Colors.grey),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    // Channel Name
-                                    Text(
-                                      widget.title ?? 'Unknown Channel',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    // Stats
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        if (widget.subscriberCount != null)
-                                          Text(
-                                            widget.subscriberCount!,
-                                            style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                                          ),
-                                        if (widget.subscriberCount != null && widget.videoCount != null)
-                                          Text(
-                                            ' • ',
-                                            style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                                          ),
-                                        if (widget.videoCount != null)
-                                          Text(
-                                            widget.videoCount!,
-                                            style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    // Subscribe Button
-                                    Consumer(
-                                      builder: (context, ref, _) {
-                                        final storage = ref.watch(storageServiceProvider);
-                                        return ValueListenableBuilder<List<YtifyResult>>(
-                                          valueListenable: storage.subscriptionsListenable,
-                                          builder: (context, subscriptions, _) {
-                                            final isSubscribed = storage.isSubscribed(widget.channelId);
-                                            return SizedBox(
-                                              height: 36,
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  final channel = YtifyResult(
-                                                    title: widget.title ?? 'Unknown',
-                                                    thumbnails: widget.thumbnailUrl != null
-                                                        ? [YtifyThumbnail(url: widget.thumbnailUrl!, width: 0, height: 0)]
-                                                        : [],
-                                                    resultType: 'channel',
-                                                    isExplicit: false,
-                                                    browseId: widget.channelId,
-                                                    subscriberCount: widget.subscriberCount,
-                                                    videoCount: widget.videoCount,
-                                                    description: widget.description,
-                                                  );
-                                                  storage.toggleSubscription(channel);
-                                                },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: isSubscribed ? Colors.grey[800] : Colors.white,
-                                                  foregroundColor: isSubscribed ? Colors.white : Colors.black,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(18),
-                                                  ),
-                                                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                                                ),
-                                                child: Text(
-                                                  isSubscribed ? 'Subscribed' : 'Subscribe',
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
-                                    if (widget.description != null && widget.description!.isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        widget.description!,
-                                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
+                        
+                        // Gradient Overlay
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black87],
+                              stops: [0.6, 1.0],
                             ),
+                          ),
+                        ),
+
+                        // Content (Name & Stats)
+                        Positioned(
+                          bottom: 24,
+                          left: 20,
+                          right: 20,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.title ?? 'Unknown Artist',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (widget.subscriberCount != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${widget.subscriberCount} Subscribers',
+                                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final storage = ref.watch(storageServiceProvider);
+                                  return ValueListenableBuilder<List<YtifyResult>>(
+                                    valueListenable: storage.subscriptionsListenable,
+                                    builder: (context, subscriptions, _) {
+                                      final isSubscribed = storage.isSubscribed(widget.channelId);
+                                      return SizedBox(
+                                        height: 36,
+                                        child: OutlinedButton(
+                                          onPressed: () {
+                                            final channel = YtifyResult(
+                                              title: widget.title ?? 'Unknown',
+                                              thumbnails: widget.thumbnailUrl != null
+                                                  ? [YtifyThumbnail(url: widget.thumbnailUrl!.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'), width: 0, height: 0)]
+                                                  : [],
+                                              resultType: 'channel',
+                                              isExplicit: false,
+                                              browseId: widget.channelId,
+                                              subscriberCount: widget.subscriberCount,
+                                              videoCount: widget.videoCount,
+                                              description: widget.description,
+                                            );
+                                            storage.toggleSubscription(channel);
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            side: BorderSide(color: isSubscribed ? Colors.grey : Colors.white),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                                            backgroundColor: isSubscribed ? Colors.transparent : Colors.transparent,
+                                          ),
+                                          child: Text(
+                                            isSubscribed ? 'FOLLOWING' : 'FOLLOW',
+                                            style: TextStyle(
+                                              color: isSubscribed ? Colors.white : Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              letterSpacing: 1.0,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -224,26 +186,30 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                   ),
                 ),
 
-                // Play All Button
+                // Popular Header & Play Button
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          if (_videos.isNotEmpty) {
-                            ref.read(audioHandlerProvider).playAll(_videos);
-                          }
-                        },
-                        icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
-                        label: const Text('Play All', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Popular',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        IconButton(
+                          onPressed: () {
+                             if (_videos.isNotEmpty) {
+                               ref.read(audioHandlerProvider).playAll(_videos);
+                             }
+                          },
+                          icon: const Icon(FluentIcons.play_circle_24_filled, color: Color(0xFF1ED760), size: 40), // Spotify Green
+                        ),
+                      ],
                     ),
                   ),
                 ),

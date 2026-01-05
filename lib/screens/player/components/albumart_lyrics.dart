@@ -7,6 +7,9 @@ import 'dart:ui';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:muzo/screens/lyrics_screen.dart';
+import 'package:muzo/services/lyrics_service.dart';
+import 'package:muzo/widgets/lyrics_view.dart';
+import 'package:audio_service/audio_service.dart'; // Needed for MediaItem? No, usually exported or not needed if dynamic types used, but good to have if used explicitly. Ah, MediaItem is from audio_service.
 
 class AlbumArtNLyrics extends ConsumerStatefulWidget {
   final double playerArtImageSize;
@@ -18,11 +21,56 @@ class AlbumArtNLyrics extends ConsumerStatefulWidget {
 
 class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
   bool _isSwitchingLanguage = false;
+  bool _showLyrics = false;
+  bool _isLoadingLyrics = false;
+  Lyrics? _lyrics;
+  String? _lastFetchedTitle;
+
+  Future<void> _fetchLyrics(MediaItem mediaItem) async {
+    if (_lyrics != null && _lastFetchedTitle == mediaItem.title) return;
+    if (_isLoadingLyrics) return; // Prevent concurrent fetches
+
+    setState(() {
+      _isLoadingLyrics = true;
+    });
+
+    try {
+      final lyrics = await ref.read(lyricsServiceProvider).fetchLyrics(
+        mediaItem.title,
+        mediaItem.artist ?? '',
+        mediaItem.duration?.inSeconds ?? 0,
+      );
+      if (mounted) {
+        setState(() {
+          _lyrics = lyrics;
+          _lastFetchedTitle = mediaItem.title;
+          _isLoadingLyrics = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingLyrics = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final mediaItemAsync = ref.watch(currentMediaItemProvider);
     final isLiteMode = ref.watch(settingsProvider).isLiteMode;
+    final audioHandler = ref.watch(audioHandlerProvider);
+
+    // Reset lyrics if song changes (optional, but good UX to clear old lyrics)
+    // Listen for media changes to auto-update lyrics
+    ref.listen(currentMediaItemProvider, (previous, next) {
+      next.whenData((mediaItem) {
+        if (mediaItem != null && mediaItem.title != _lastFetchedTitle && _showLyrics) {
+           _fetchLyrics(mediaItem);
+        }
+      });
+    });
 
     final safeSize = widget.playerArtImageSize.clamp(10.0, double.infinity);
 
@@ -58,7 +106,30 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                 loading: () => Container(color: Colors.grey[900]),
                 error: (_, __) => Container(color: Colors.grey[900], child: const Icon(Icons.error)),
               ),
-              // Lyrics Button Overlay
+              
+              // Lyrics Overlay
+              if (_showLyrics)
+                Positioned.fill(
+                  child: Container(
+                     color: Colors.black.withValues(alpha: 0.7), // Semi-transparent overlay
+                     child: _isLoadingLyrics
+                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                        : _lyrics == null
+                            ? Center(
+                                child: Text("No lyrics found", style: TextStyle(color: Colors.white.withOpacity(0.7))),
+                              )
+                            : LyricsView(
+                                lyrics: _lyrics!,
+                                onClose: () => setState(() => _showLyrics = false),
+                                positionStream: audioHandler.player.positionStream,
+                                totalDuration: audioHandler.player.duration ?? Duration.zero,
+                                isEmbedded: true,
+                              ),
+                  ),
+                ),
+
+              // Lyrics Button Overlay (Hide if lyrics are shown)
+              if (!_showLyrics)
               Positioned(
                 bottom: 12,
                 right: 12,
@@ -78,16 +149,10 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                             onTap: () {
                                final mediaItem = mediaItemAsync.value;
                                if (mediaItem != null) {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => LyricsScreen(
-                                        title: mediaItem.title,
-                                        artist: mediaItem.artist ?? '',
-                                        thumbnailUrl: mediaItem.artUri?.toString(),
-                                        durationSeconds: mediaItem.duration?.inSeconds ?? 0,
-                                      ),
-                                    ),
-                                  );
+                                  setState(() {
+                                    _showLyrics = true;
+                                  });
+                                  _fetchLyrics(mediaItem);
                                }
                             },
                             child: Padding(
@@ -126,16 +191,10 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                               onTap: () {
                                  final mediaItem = mediaItemAsync.value;
                                  if (mediaItem != null) {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => LyricsScreen(
-                                          title: mediaItem.title,
-                                          artist: mediaItem.artist ?? '',
-                                          thumbnailUrl: mediaItem.artUri?.toString(),
-                                          durationSeconds: mediaItem.duration?.inSeconds ?? 0,
-                                        ),
-                                      ),
-                                    );
+                                    setState(() {
+                                      _showLyrics = true;
+                                    });
+                                    _fetchLyrics(mediaItem);
                                  }
                               },
                               child: Padding(
@@ -338,5 +397,3 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
     );
   }
 }
-
-

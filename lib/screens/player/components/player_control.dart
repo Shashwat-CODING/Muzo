@@ -9,6 +9,7 @@ import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/models/ytify_result.dart'; 
 import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/providers/theme_provider.dart';
 
 class PlayerControlWidget extends ConsumerWidget {
   const PlayerControlWidget({super.key});
@@ -108,18 +109,28 @@ class PlayerControlWidget extends ConsumerWidget {
           builder: (context, snapshot) {
             final position = snapshot.data ?? Duration.zero;
             final duration = player.duration ?? Duration.zero;
-            return ProgressBar(
-              thumbRadius: 7,
-              barHeight: 4.5,
-              baseBarColor: Colors.white24,
-              bufferedBarColor: Colors.white38,
-              progressBarColor: Colors.white,
-              thumbColor: Colors.white,
-              timeLabelTextStyle: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),
-              progress: position,
-              total: duration,
-              onSeek: (duration) {
-                player.seek(duration);
+            
+            return Consumer(
+              builder: (context, ref, child) {
+                 final thumbColor = Colors.white;
+                 final progressBarColor = Colors.white;
+                 final baseBarColor = Colors.white.withOpacity(0.24);
+                 final bufferedBarColor = Colors.white.withOpacity(0.38);
+
+                 return ProgressBar(
+                  thumbRadius: 7,
+                  barHeight: 4.5,
+                  baseBarColor: baseBarColor,
+                  bufferedBarColor: bufferedBarColor,
+                  progressBarColor: progressBarColor,
+                  thumbColor: thumbColor,
+                  timeLabelTextStyle: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),
+                  progress: position,
+                  total: duration,
+                  onSeek: (duration) {
+                    player.seek(duration);
+                  },
+                );
               },
             );
           }

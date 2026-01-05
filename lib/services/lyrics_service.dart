@@ -53,33 +53,121 @@ class LyricsService {
   static const String _baseUrl = 'https://lrclib.net/api';
 
   Future<Lyrics?> fetchLyrics(String trackName, String artistName, int duration) async {
+    final cleanTrack = _cleanTitle(trackName);
+    final cleanArtist = _cleanTitle(artistName);
+
     try {
+      // 1. Try exact match with cleaned metadata
       final uri = Uri.parse('$_baseUrl/get').replace(queryParameters: {
-        'track_name': trackName,
-        'artist_name': artistName,
+        'track_name': cleanTrack,
+        'artist_name': cleanArtist,
       });
 
-      debugPrint('LyricsService: Requesting $uri');
+      debugPrint('LyricsService: Requesting GET $uri');
 
       final response = await http.get(uri);
+      debugPrint('LyricsService: GET Response ${response.statusCode}');
       
-      debugPrint('LyricsService: Response Code: ${response.statusCode}');
-      debugPrint('LyricsService: Response Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['plainLyrics'] == null && data['syncedLyrics'] == null) {
-          return null;
+        if (data['plainLyrics'] != null || data['syncedLyrics'] != null) {
+          debugPrint('LyricsService: Found exact match via GET');
+          return Lyrics.fromJson(data);
         }
-        return Lyrics.fromJson(data);
+      } else if (response.statusCode == 404) {
+         // Fallback to search
+         debugPrint('LyricsService: GET failed (404), falling back to SEARCH');
+         return _searchLyrics(cleanTrack, cleanArtist, duration);
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('LyricsService: Error in GET: $e');
+      // Last resort try search on error too
+      return _searchLyrics(cleanTrack, cleanArtist, duration);
+    }
+  }
+  
+  Future<Lyrics?> _searchLyrics(String track, String artist, int duration) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/search').replace(queryParameters: {
+         'track_name': track,
+         'artist_name': artist,
+      });
+      debugPrint('LyricsService: Searching $uri');
+      
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> list = json.decode(response.body);
+        debugPrint('LyricsService: Search returned ${list.length} results');
+        
+        if (list.isEmpty) return null;
+        
+        // Find best match based on duration
+        Lyrics? bestMatch;
+        int minDiff = 1000000;
+        
+        for (var item in list) {
+             final l = Lyrics.fromJson(item);
+             final diff = (l.duration - duration).abs();
+             
+             // Check if it has lyrics
+             if (l.plainLyrics.isEmpty && l.syncedLyrics.isEmpty) continue;
+             
+             // Allow up to 3 seconds difference for "perfect" match, otherwise find closest
+             if (diff < minDiff) {
+               minDiff = diff;
+               bestMatch = l;
+             }
+        }
+        
+        // Only return if within acceptable range (e.g. 5 seconds), otherwise it might be wrong song
+        if (minDiff <= 5 && bestMatch != null) {
+          debugPrint('LyricsService: Found best match "${bestMatch.trackName}" with diff ${minDiff}s');
+          return bestMatch;
+        } else {
+          debugPrint('LyricsService: No match within duration tolerance (Best diff: ${minDiff}s)');
+        }
       } else {
-        // Try searching if direct get fails? Or just return null as per "user choice response of api"
-        // The user specifically asked to use `get` endpoint with specific parameters.
-        return null;
+        debugPrint('LyricsService: Search failed with status ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('LyricsService: Error: $e');
-      return null;
+      debugPrint('LyricsService: Search Error: $e');
+    }
+    return null;
+  }
+
+  String _cleanTitle(String text) {
+    debugPrint('LyricsService: Cleaning title: "$text"');
+    if (text.isEmpty) return text;
+    
+    try {
+      // Remove common patterns
+      var clean = text;
+      
+      // Remove (Official Video), [Official Audio], etc.
+      // Using standard Dart RegExp constructor for case insensitivity
+      final videoPattern = RegExp(
+        r'\s*[\(\[](official|video|audio|lyrics|lyric|hd|hq|4k|mv|music video|full audio)[\)\]]',
+        caseSensitive: false,
+      );
+      clean = clean.replaceAll(videoPattern, '');
+      
+      // Remove "ft.", "feat."
+      final featPattern = RegExp(r'\s+(ft\.|feat\.|featuring)\s+', caseSensitive: false);
+      if (featPattern.hasMatch(clean)) {
+        clean = clean.split(featPattern).first;
+      }
+      
+      // Remove " - Topic" from artist strings
+      clean = clean.replaceAll(' - Topic', '');
+      
+      final result = clean.trim();
+      debugPrint('LyricsService: Cleaned title: "$result"');
+      return result;
+    } catch (e) {
+      debugPrint('LyricsService: Error cleaning title "$text": $e');
+      return text; // Return original if cleaning fails
     }
   }
 }

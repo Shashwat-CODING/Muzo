@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/services/storage_service.dart';
@@ -65,5 +66,62 @@ class AuthService {
 
   Future<void> logout() async {
     await _storage.clearUserSession();
+  }
+
+  Future<String?> refreshToken() async {
+    final currentToken = _storage.authToken;
+    if (currentToken == null) return null;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/refresh'),
+        headers: {
+          'Authorization': 'Bearer $currentToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final newToken = data['token'];
+        final user = data['user'];
+        
+        await _storage.setAuthToken(newToken);
+        if (user != null) {
+          await _storage.setUserInfo(user['username'], user['email']);
+        }
+        return newToken;
+      } else {
+        debugPrint('Token refresh failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error refreshing token: $e');
+      return null;
+    }
+  }
+
+  Future<bool> verifyToken() async {
+    final currentToken = _storage.authToken;
+    if (currentToken == null) return false;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/verify'),
+        headers: {
+          'Authorization': 'Bearer $currentToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['valid'] == true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error verifying token: $e');
+      return false;
+    }
   }
 }

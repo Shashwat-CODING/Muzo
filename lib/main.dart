@@ -29,15 +29,18 @@ Future<void> main() async {
   // Enable edge-to-edge
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
-    androidNotificationChannelName: 'Audio playback',
-    androidNotificationOngoing: true,
-  );
-
   final container = ProviderContainer();
-  await container.read(storageServiceProvider).init();
-  await NotificationService().init();
+
+  // Parallelize initialization
+  await Future.wait([
+    JustAudioBackground.init(
+      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+      androidNotificationChannelName: 'Audio playback',
+      androidNotificationOngoing: true,
+    ),
+    container.read(storageServiceProvider).init(),
+    NotificationService().init(),
+  ]);
 
   runApp(UncontrolledProviderScope(container: container, child: const MyApp()));
 }

@@ -45,8 +45,10 @@ class AudioHandler {
     
     // Apply speed/pitch
     if (enable) {
-      await _player.setSpeed(0.90);
-      await _player.setPitch(0.90);
+      final speed = _storage.lofiSpeed;
+      final pitch = _storage.lofiPitch;
+      await _player.setSpeed(speed);
+      await _player.setPitch(pitch);
     } else {
       await _player.setSpeed(1.0);
       await _player.setPitch(1.0);
@@ -86,6 +88,14 @@ class AudioHandler {
         if (_storage.isAutoQueueEnabled) {
           _handleAutoQueue();
         }
+      }
+    });
+
+    // Listen to settings changes for real-time Lofi updates
+    _storage.settingsListenable.addListener(() {
+      if (isLofiModeNotifier.value) {
+        _player.setSpeed(_storage.lofiSpeed);
+        _player.setPitch(_storage.lofiPitch);
       }
     });
   }

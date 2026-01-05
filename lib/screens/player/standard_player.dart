@@ -1,14 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'components/albumart_lyrics.dart';
-import 'components/backgroud_image.dart';
 import 'components/player_control.dart';
 import '../../widgets/song_options_menu.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/providers/settings_provider.dart';
+import 'package:muzo/providers/theme_provider.dart';
 
 class StandardPlayer extends ConsumerWidget {
   const StandardPlayer({super.key});
@@ -25,75 +26,46 @@ class StandardPlayer extends ConsumerWidget {
         ? spaceAvailableForArtImage
         : playerArtImageSize;
 
+    // Dynamic Background with Blurred Image
+    final mediaItem = mediaItemAsync.value;
+    final artUri = mediaItem?.artUri;
+
     return Stack(
       children: [
-        // Background Image
-        const BackgroudImage(cacheHeight: 200),
-
-        // Blur Effect
-        if (!isLiteMode)
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: 65 + MediaQuery.of(context).padding.bottom + 120,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black,
-                          Colors.black,
-                          Colors.black.withValues(alpha: 0.4),
-                          Colors.black.withValues(alpha: 0),
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        stops: const [0, 0.5, 0.8, 1],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.9), // Darker overlay for lite mode
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 65 + MediaQuery.of(context).padding.bottom + 120,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.black,
-                        Colors.black,
-                        Colors.black.withValues(alpha: 0.4),
-                        Colors.black.withValues(alpha: 0),
-                      ],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      stops: const [0, 0.5, 0.8, 1],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        Stack(
+          children: [
+             if (artUri != null)
+               SizedBox.expand(
+                 child: ImageFiltered(
+                   imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                   child: ColorFiltered(
+                     colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+                     child: CachedNetworkImage(
+                       imageUrl: artUri.toString(),
+                       fit: BoxFit.cover,
+                       height: MediaQuery.of(context).size.height,
+                       placeholder: (context, url) => Container(color: Colors.black),
+                       errorWidget: (context, url, error) => Container(color: Colors.black),
+                     ),
+                   ),
+                 ),
+               ),
+             
+             // Gradient Overlay for readability
+             Container(
+               decoration: BoxDecoration(
+                 gradient: LinearGradient(
+                   begin: Alignment.topCenter,
+                   end: Alignment.bottomCenter,
+                   colors: [
+                     Colors.black.withOpacity(0.3),
+                     Colors.black.withOpacity(0.8),
+                   ],
+                 ),
+               ),
+             ),
+          ],
+        ),
 
         // Player Content
         Padding(

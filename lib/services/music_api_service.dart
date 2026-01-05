@@ -4,17 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/models/user_data.dart';
+import 'package:muzo/services/auth_service.dart';
 import 'package:muzo/services/storage_service.dart';
 
 final musicApiServiceProvider = Provider<MusicApiService>((ref) {
-  return MusicApiService(ref.watch(storageServiceProvider));
+  final storage = ref.watch(storageServiceProvider);
+  return MusicApiService(storage);
 });
 
 class MusicApiService {
   final StorageService _storage;
-  static const String _baseUrl = 'https://mowttvwofyojqsowpsga.supabase.co/functions/v1/express/api';
+  late final AuthService _auth;
 
-  MusicApiService(this._storage);
+  MusicApiService(this._storage) {
+    _auth = AuthService(_storage);
+  }
+
+  static const String _baseUrl = 'https://mowttvwofyojqsowpsga.supabase.co/functions/v1/express/api';
 
   Map<String, String> get _headers {
     final token = _storage.authToken;
@@ -24,13 +30,30 @@ class MusicApiService {
     };
   }
 
+  Future<http.Response> _retryWithRefresh(
+    Future<http.Response> Function() request,
+  ) async {
+    var response = await request();
+
+    if (response.statusCode == 403) {
+      debugPrint('Received 403, attempting token refresh...');
+      final newToken = await _auth.refreshToken();
+      if (newToken != null) {
+        debugPrint('Token refreshed, retrying request...');
+        response = await request();
+      }
+    }
+
+    return response;
+  }
+
   // --- User Data ---
 
   Future<UserData> getUserData() async {
-    final response = await http.get(
+    final response = await _retryWithRefresh(() => http.get(
       Uri.parse('$_baseUrl/user/data'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -43,10 +66,10 @@ class MusicApiService {
   // --- History ---
 
   Future<List<YtifyResult>> getHistory() async {
-    final response = await http.get(
+    final response = await _retryWithRefresh(() => http.get(
       Uri.parse('$_baseUrl/history'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -58,11 +81,11 @@ class MusicApiService {
   }
 
   Future<void> addToHistory(YtifyResult song) async {
-    final response = await http.post(
+    final response = await _retryWithRefresh(() => http.post(
       Uri.parse('$_baseUrl/history'),
       headers: _headers,
       body: jsonEncode(song.toJson()),
-    );
+    ));
 
     if (response.statusCode != 201) {
       throw Exception('Failed to add to history');
@@ -70,10 +93,10 @@ class MusicApiService {
   }
 
   Future<void> removeFromHistory(String videoId) async {
-    final response = await http.delete(
+    final response = await _retryWithRefresh(() => http.delete(
       Uri.parse('$_baseUrl/history/$videoId'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove from history');
@@ -81,10 +104,10 @@ class MusicApiService {
   }
 
   Future<void> clearHistory() async {
-    final response = await http.delete(
+    final response = await _retryWithRefresh(() => http.delete(
       Uri.parse('$_baseUrl/history'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to clear history');
@@ -94,10 +117,10 @@ class MusicApiService {
   // --- Favorites ---
 
   Future<List<YtifyResult>> getFavorites() async {
-    final response = await http.get(
+    final response = await _retryWithRefresh(() => http.get(
       Uri.parse('$_baseUrl/favorites'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -109,11 +132,11 @@ class MusicApiService {
   }
 
   Future<void> addToFavorites(YtifyResult song) async {
-    final response = await http.post(
+    final response = await _retryWithRefresh(() => http.post(
       Uri.parse('$_baseUrl/favorites'),
       headers: _headers,
       body: jsonEncode(song.toJson()),
-    );
+    ));
 
     if (response.statusCode != 201) {
       throw Exception('Failed to add to favorites');
@@ -121,10 +144,10 @@ class MusicApiService {
   }
 
   Future<void> removeFromFavorites(String videoId) async {
-    final response = await http.delete(
+    final response = await _retryWithRefresh(() => http.delete(
       Uri.parse('$_baseUrl/favorites/$videoId'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove from favorites');
@@ -134,10 +157,10 @@ class MusicApiService {
   // --- Playlists ---
 
   Future<List<Map<String, dynamic>>> getPlaylists() async {
-    final response = await http.get(
+    final response = await _retryWithRefresh(() => http.get(
       Uri.parse('$_baseUrl/playlists'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -148,10 +171,10 @@ class MusicApiService {
   }
 
   Future<List<YtifyResult>> getPlaylistSongs(String playlistName) async {
-    final response = await http.get(
+    final response = await _retryWithRefresh(() => http.get(
       Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -163,11 +186,11 @@ class MusicApiService {
   }
 
   Future<void> addToPlaylist(String playlistName, YtifyResult song) async {
-    final response = await http.post(
+    final response = await _retryWithRefresh(() => http.post(
       Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
       headers: _headers,
       body: jsonEncode(song.toJson()),
-    );
+    ));
 
     if (response.statusCode != 201) {
       throw Exception('Failed to add to playlist');
@@ -175,10 +198,10 @@ class MusicApiService {
   }
 
   Future<void> deletePlaylist(String playlistName) async {
-    final response = await http.delete(
+    final response = await _retryWithRefresh(() => http.delete(
       Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to delete playlist');
@@ -186,10 +209,10 @@ class MusicApiService {
   }
   
   Future<void> removeSongFromPlaylist(String playlistName, String videoId) async {
-    final response = await http.delete(
+    final response = await _retryWithRefresh(() => http.delete(
       Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}/songs/$videoId'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove song from playlist');
@@ -199,10 +222,10 @@ class MusicApiService {
   // --- Subscriptions ---
 
   Future<List<YtifyResult>> getSubscriptions() async {
-    final response = await http.get(
+    final response = await _retryWithRefresh(() => http.get(
       Uri.parse('$_baseUrl/subscriptions'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -214,11 +237,11 @@ class MusicApiService {
   }
 
   Future<void> addSubscription(YtifyResult channel) async {
-    final response = await http.post(
+    final response = await _retryWithRefresh(() => http.post(
       Uri.parse('$_baseUrl/subscriptions'),
       headers: _headers,
       body: jsonEncode(channel.toJson()),
-    );
+    ));
 
     if (response.statusCode != 201) {
       throw Exception('Failed to subscribe');
@@ -226,10 +249,10 @@ class MusicApiService {
   }
 
   Future<void> removeSubscription(String browseId) async {
-    final response = await http.delete(
+    final response = await _retryWithRefresh(() => http.delete(
       Uri.parse('$_baseUrl/subscriptions/$browseId'),
       headers: _headers,
-    );
+    ));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to unsubscribe');

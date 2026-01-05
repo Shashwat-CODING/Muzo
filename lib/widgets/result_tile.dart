@@ -87,14 +87,17 @@ class ResultTile extends ConsumerWidget {
           child: Row(
             children: [
               // Calculate width based on result type
+              // Calculate width based on result type
               Builder(
                 builder: (context) {
                   final isVideo = result.resultType == 'video';
-                  final width = isVideo ? 100.0 : 56.0;
+                  // Default width guess for placeholders
+                  final defaultWidth = isVideo ? 100.0 : 56.0;
                   final height = 56.0;
                   return Container(
+                    height: height,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.2),
@@ -104,28 +107,27 @@ class ResultTile extends ConsumerWidget {
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       child: imageUrl.isNotEmpty
                           ? CachedNetworkImage(
-                              imageUrl: imageUrl,
+                              imageUrl: imageUrl.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
                               height: height,
-                              width: width,
-                              fit: BoxFit.cover,
+                              fit: BoxFit.fitHeight,
                               placeholder: (context, url) => Container(
                                 height: height,
-                                width: width,
+                                width: defaultWidth,
                                 color: Colors.grey[900],
                               ),
                               errorWidget: (context, url, error) => Container(
                                 height: height,
-                                width: width,
+                                width: defaultWidth,
                                 color: Colors.grey[900],
                                 child: const Icon(FluentIcons.error_circle_24_regular, size: 20),
                               ),
                             )
                           : Container(
                               height: height,
-                              width: width,
+                              width: defaultWidth,
                               color: Colors.grey[900],
                               child: const Icon(FluentIcons.music_note_2_24_regular),
                             ),

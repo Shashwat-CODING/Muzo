@@ -81,20 +81,52 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
           : CustomScrollView(
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 200.0,
+                  expandedHeight: 340.0,
                   floating: false,
                   pinned: true,
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: const Color(0xFF121212),
                   flexibleSpace: FlexibleSpaceBar(
-                    title: Text(displayName),
-                    background: displayThumbnail != null
-                        ? CachedNetworkImage(
-                            imageUrl: displayThumbnail,
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (displayThumbnail != null)
+                          CachedNetworkImage(
+                            imageUrl: displayThumbnail.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
                             fit: BoxFit.cover,
-                            color: Colors.black.withOpacity(0.5),
-                            colorBlendMode: BlendMode.darken,
+                            errorWidget: (context, url, error) => Container(color: Colors.grey[900]),
                           )
-                        : Container(color: Colors.grey[900]),
+                        else
+                          Container(color: Colors.grey[900]),
+                        
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black87],
+                              stops: [0.6, 1.0],
+                            ),
+                          ),
+                        ),
+
+                        Positioned(
+                          bottom: 24,
+                          left: 20,
+                          right: 20,
+                          child: Text(
+                            displayName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 42,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 if (_artistDetails?.featuredOnPlaylists.isNotEmpty ?? false) ...[
@@ -197,36 +229,44 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
         );
       },
       child: Container(
-        width: 140,
         margin: const EdgeInsets.only(right: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: playlist.thumbnail,
-                width: 140,
-                height: 140,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[900],
-                  child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+        child: IntrinsicWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: playlist.thumbnail.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
+                  height: 140,
+                  fit: BoxFit.fitHeight,
+                  placeholder: (context, url) => Container(
+                    height: 140,
+                    width: 140,
+                    color: Colors.grey[900],
+                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 140,
+                    width: 140,
+                    color: Colors.grey[900],
+                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              playlist.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 8),
+              Text(
+                playlist.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -253,7 +293,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
           children: [
             ClipOval(
               child: CachedNetworkImage(
-                imageUrl: artist.thumbnail,
+                imageUrl: artist.thumbnail.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
                 width: 120,
                 height: 120,
                 fit: BoxFit.cover,

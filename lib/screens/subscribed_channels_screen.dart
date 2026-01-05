@@ -23,7 +23,24 @@ class _SubscribedChannelsScreenState extends ConsumerState<SubscribedChannelsScr
   @override
   void initState() {
     super.initState();
+    // Defer accessing storage to avoid initialization order issues if needed, 
+    // but ref.read is usually fine.
+    // Ideally use postFrameCallback or ref.read.
+    final storage = ref.read(storageServiceProvider);
+    storage.subscriptionsListenable.addListener(_onSubscriptionsChanged);
     _loadFeed();
+  }
+
+  @override
+  void dispose() {
+    final storage = ref.read(storageServiceProvider);
+    storage.subscriptionsListenable.removeListener(_onSubscriptionsChanged);
+    super.dispose();
+  }
+
+  void _onSubscriptionsChanged() {
+    _loadFeed();
+    if (mounted) setState(() {});
   }
 
   void _loadFeed() {
@@ -40,17 +57,13 @@ class _SubscribedChannelsScreenState extends ConsumerState<SubscribedChannelsScr
   @override
   Widget build(BuildContext context) {
     final storage = ref.watch(storageServiceProvider);
+    final subscriptions = storage.getSubscriptions();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: ValueListenableBuilder<List<YtifyResult>>(
-          valueListenable: storage.subscriptionsListenable,
-          builder: (context, subscriptions, _) {
-            final subscriptions = storage.getSubscriptions();
-
-            if (subscriptions.isEmpty) {
-              return const Center(
+        child: subscriptions.isEmpty
+            ? const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -62,16 +75,9 @@ class _SubscribedChannelsScreenState extends ConsumerState<SubscribedChannelsScr
                     ),
                   ],
                 ),
-              );
-            }
-
-            // Reload feed if subscriptions changed (simple check: count)
-            // Ideally we should check if IDs changed, but for now this is okay-ish
-            // Or we can rely on pull-to-refresh.
-            // Let's just keep the initial load for now to avoid loops.
-
-            return CustomScrollView(
-              slivers: [
+              )
+            : CustomScrollView(
+                slivers: [
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
@@ -200,9 +206,8 @@ class _SubscribedChannelsScreenState extends ConsumerState<SubscribedChannelsScr
                 ),
                 const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
               ],
-            );
-          },
-        ),
+            )
+
       ),
     );
   }

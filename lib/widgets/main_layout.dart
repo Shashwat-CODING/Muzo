@@ -13,6 +13,7 @@ import 'package:muzo/widgets/sync_progress_dialog.dart';
 import 'package:muzo/widgets/glass_container.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/providers/theme_provider.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   final Widget child;
@@ -54,80 +55,88 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
     return GlobalBackground(
       child: Scaffold(
-        backgroundColor: Colors.transparent,
         body: Stack(
           children: [
             // Main Content (Navigator)
             widget.child,
 
-            // Bottom Navigation Bar (Floating)
+            // Bottom Navigation Bar (Docked)
             Positioned(
-              left: 16,
-              right: 16,
-              bottom: MediaQuery.of(context).padding.bottom + 12,
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: IgnorePointer(
                 ignoring: isPlayerExpanded,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 200),
                   opacity: isPlayerExpanded ? 0.0 : 1.0,
-                  child: GlassContainer( 
-                    borderRadius: BorderRadius.circular(16), // Match MiniPlayer radius (16)
-                    color: Colors.black.withValues(alpha: 0.85),
-                    opacity: 0.0,
-                    blur: 30,
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 1,
+                  child: Container(
+                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.8), // Little dark top
+                          Colors.black.withValues(alpha: 1.0), // More dark bottom
+                        ],
+                      ),
                     ),
-                    child: SafeArea(
-                      top: false,
-                      bottom: false,
-                      child: _buildFloatingNavBar(context, ref, selectedIndex),
-                    ),
+                    height: 60 + MediaQuery.of(context).padding.bottom,
+                    child: _buildFloatingNavBar(context, ref, selectedIndex),
                   ),
                 ),
               ),
             ),
 
-            // MiniPlayer (Floating above Navbar) - Placed AFTER Navbar to ensure z-index top
+            // MiniPlayer (Floating above Navbar, ~95% Width)
             Positioned(
-              left: 16, // Aligned with Navbar
-              right: 16, // Aligned with Navbar
-              bottom: MediaQuery.of(context).padding.bottom + 12 + 52 + 4, // NavBottom (12) + NavHeight (52) + Spacing (4)
-              child: Consumer(
-                builder: (context, ref, _) {
-                  final mediaItemAsync = ref.watch(currentMediaItemProvider);
-                  // Check if player is expanded to hide miniplayer during transition
-                  final isPlayerExpandedVal = ref.watch(isPlayerExpandedProvider);
-                  
-                  return mediaItemAsync.maybeWhen(
-                    data: (mediaItem) {
-                      if (mediaItem == null) return const SizedBox.shrink();
-                      return IgnorePointer(
-                        ignoring: isPlayerExpandedVal,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: isPlayerExpandedVal ? 0.0 : 1.0,
-                          child: GlassContainer(
-                            borderRadius: BorderRadius.circular(16),
-                            color: Colors.black.withValues(alpha: 0.85),
-                            opacity: 0.0,
-                            blur: 30,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              width: 1,
+              left: 0,
+              right: 0,
+              bottom: 60 + MediaQuery.of(context).padding.bottom, // Directly above navbar (60 + safe area)
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: FractionallySizedBox(
+                  widthFactor: 0.96, // Slightly wider to match Spotify "floating" look close to edges
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final mediaItemAsync = ref.watch(currentMediaItemProvider);
+                      final palette = ref.watch(currentPaletteProvider).asData?.value;
+                      // Check if player is expanded to hide miniplayer during transition
+                      final isPlayerExpandedVal = ref.watch(isPlayerExpandedProvider);
+                      
+                      Color miniPlayerColor = const Color(0xff404040).withValues(alpha: 1.0); // Opaque default
+                      if (palette != null) {
+                        miniPlayerColor = (palette.darkVibrantColor?.color ?? 
+                                           palette.darkMutedColor?.color ?? 
+                                           palette.dominantColor?.color ?? 
+                                           const Color(0xff404040)).withValues(alpha: 1.0);
+                      }
+
+                      return mediaItemAsync.maybeWhen(
+                        data: (mediaItem) {
+                          if (mediaItem == null) return const SizedBox.shrink();
+                          return IgnorePointer(
+                            ignoring: isPlayerExpandedVal,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: isPlayerExpandedVal ? 0.0 : 1.0,
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 0), // No gap
+                                decoration: BoxDecoration(
+                                  color: miniPlayerColor,
+                                  borderRadius: BorderRadius.circular(6), // Slightly rounded corners
+                                ),
+                                child: const MiniPlayer(),
+                              ),
                             ),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
-                              child: MiniPlayer(),
-                            ),
-                          ),
-                        ),
+                          );
+                        },
+                        orElse: () => const SizedBox.shrink(),
                       );
                     },
-                    orElse: () => const SizedBox.shrink(),
-                  );
-                },
+                  ),
+                ),
               ),
             ),
 
@@ -170,22 +179,23 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   Widget _buildFloatingNavBar(BuildContext context, WidgetRef ref, int selectedIndex) {
     return SizedBox(
-      height: 52, // Matched to MiniPlayer height
+      height: 60,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround, // Space Around for even distribution
         children: [
-          _buildNavItem(context, ref, FluentIcons.home_24_regular, FluentIcons.home_24_filled, 0, selectedIndex),
-          _buildNavItem(context, ref, FluentIcons.search_24_regular, FluentIcons.search_24_filled, 1, selectedIndex),
-          _buildNavItem(context, ref, FluentIcons.library_24_regular, FluentIcons.library_24_filled, 2, selectedIndex), // Library
-          _buildNavItem(context, ref, FluentIcons.people_24_regular, FluentIcons.people_24_filled, 3, selectedIndex), // Community/User
+          _buildNavItem(context, ref, FluentIcons.home_24_regular, FluentIcons.home_24_filled, "Home", 0, selectedIndex),
+          _buildNavItem(context, ref, FluentIcons.search_24_regular, FluentIcons.search_24_filled, "Search", 1, selectedIndex),
+          _buildNavItem(context, ref, FluentIcons.library_24_regular, FluentIcons.library_24_filled, "Library", 2, selectedIndex),
+          _buildNavItem(context, ref, FluentIcons.person_24_regular, FluentIcons.person_24_filled, "Channels", 3, selectedIndex),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, WidgetRef ref, IconData iconRegular, IconData iconFilled, int index, int selectedIndex) {
+  Widget _buildNavItem(BuildContext context, WidgetRef ref, IconData iconRegular, IconData iconFilled, String label, int index, int selectedIndex) {
     final isSelected = selectedIndex == index;
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         HapticFeedback.lightImpact();
         if (index == 0 || index == 1 || index == 2 || index == 3) {
@@ -201,27 +211,27 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
            }
         }
       },
-      child: Container(
-        color: Colors.transparent, // Hit test behavior
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8), // Reduced vertical padding to prevent overflow
+      child: SizedBox(
+        width: 64, // Fixed width for touch target
         child: Column(
-           mainAxisSize: MainAxisSize.min,
+           mainAxisAlignment: MainAxisAlignment.center,
+           mainAxisSize: MainAxisSize.max,
            children: [
              Icon(
                isSelected ? iconFilled : iconRegular,
-               color: isSelected ? Colors.white : Colors.grey.withValues(alpha: 0.6),
-               size: 26, // Spotify icons are decent size
+               color: isSelected ? Colors.white : const Color(0xffb3b3b3),
+               size: 26,
              ),
-             if (isSelected)
-               Container( // Spotify often has a label or indicator, but here we just keep it clean
-                 margin: const EdgeInsets.only(top: 4),
-                 height: 4, 
-                 width: 4,
-                 decoration: const BoxDecoration(
-                   color: Colors.white,
-                   shape: BoxShape.circle,
-                 ),
+             const SizedBox(height: 4),
+             Text(
+               label,
+               maxLines: 1,
+               style: TextStyle(
+                 color: isSelected ? Colors.white : const Color(0xffb3b3b3),
+                 fontSize: 10,
+                 fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
                ),
+             ),
            ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:muzo/widgets/glass_menu_content.dart';
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -19,6 +20,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muzo/screens/settings_screen.dart';
 import 'package:muzo/widgets/glass_container.dart';
 import 'package:muzo/widgets/offline_indicator.dart';
+import 'package:muzo/services/update_service.dart';
+import 'package:muzo/providers/home_provider.dart';
+import 'package:muzo/widgets/home_section_widget.dart';
+import 'package:muzo/widgets/rect_home_item.dart';
+import 'package:muzo/widgets/home_item_widget.dart';
+import 'package:muzo/services/ytm_home.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -36,6 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final storage = ref.read(storageServiceProvider);
       storage.refreshAll();
       storage.fetchAndCacheUserAvatar();
+      UpdateService().checkForUpdates(context);
     });
   }
 
@@ -63,63 +71,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildExploreTab(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
     
+    final homeSectionsAsync = ref.watch(homeSectionsProvider);
+
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
         color: Colors.white,
         backgroundColor: const Color(0xFF1E1E1E),
         onRefresh: () async {
+          // Force refresh (bypass cache)
+          await ref.read(homeSectionsProvider.notifier).refresh();
           await storage.refreshAll();
         },
         child: CustomScrollView(
           slivers: [
-            // Greeting Section
+            // Header Section
             SliverToBoxAdapter(
-              child: _buildGreeting(context, ref),
+              child: _buildHeader(context, ref),
             ),
+            
+            // Recents Grid
+            _buildRecentsGrid(context, ref),
+            
+            // Your Playlists Section
+            // Moved to bottom as per request
+            // _buildYourPlaylistsSection(context, ref),
 
-            // Speed Dial Section
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const OfflineIndicator(),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Icon(FluentIcons.history_24_regular, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Speed dial',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                        ),
-                        const Spacer(),
-                        // const Icon(Icons.chevron_right, color: Colors.white),
-                      ],
+            // Dynamic Sections from YTM
+            homeSectionsAsync.when(
+              data: (sections) {
+                if (sections.isEmpty) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text("No content available", style: TextStyle(color: Colors.grey)),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                  ],
+                  );
+                }
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      return HomeSectionWidget(section: sections[index]);
+                    },
+                    childCount: sections.length,
+                  ),
+                );
+              },
+              loading: () => const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 50.0),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (err, stack) => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(child: Text('Error loading home: $err', style: const TextStyle(color: Colors.red))),
                 ),
               ),
             ),
             
-            _buildSpeedDial(context, ref),
-
-            // Favorites Section
-            SliverToBoxAdapter(
-              child: _buildFavoritesSection(context, ref),
-            ),
-
-            // Artists Section
-            SliverToBoxAdapter(
-              child: _buildArtistsSection(context, ref),
-            ),
+            // Your Playlists Section (At Bottom)
+            _buildYourPlaylistsSection(context, ref),
             
             const SliverPadding(padding: EdgeInsets.only(bottom: 200)),
           ],
@@ -128,48 +143,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildGreeting(BuildContext context, WidgetRef ref) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
-    final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Good morning';
-    } else if (hour < 17) {
-      greeting = 'Good afternoon';
-    } else {
-      greeting = 'Good evening';
-    }
-
     final username = storage.username ?? 'User';
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                greeting,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-              ),
-              Text(
-                username,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey[400],
-                    ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          const SizedBox(width: 8),
-
-
-// ... (existing imports)
-
           PopupMenuButton<String>(
             onOpened: () => HapticFeedback.lightImpact(),
             offset: const Offset(0, 50),
@@ -278,73 +259,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip(context, 'All', true),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(context, 'Music', false),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(context, 'Podcasts', false),
+                  const SizedBox(width: 16), // End padding for chips
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSpeedDial(BuildContext context, WidgetRef ref) {
+  Widget _buildFilterChip(BuildContext context, String label, bool isSelected) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF1ED760) : const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.black : Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentsGrid(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
     return ValueListenableBuilder<List<YtifyResult>>(
       valueListenable: storage.historyListenable,
       builder: (context, history, _) {
-        // Filter for songs only, remove duplicates, and take top 8
-        final uniqueHistory = <String>{};
-        final speedDialItems = history
-            .where((item) => item.resultType != 'video')
-            .where((item) => uniqueHistory.add(item.videoId!))
-            .take(8)
-            .toList();
+        if (history.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
 
-        if (speedDialItems.isEmpty) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text('Play some music to see it here!', style: TextStyle(color: Colors.grey)),
-            ),
-          );
+        // Deduplicate history items by videoId
+        final uniqueItems = <String, YtifyResult>{};
+        for (var item in history) {
+          if (item.videoId != null && !uniqueItems.containsKey(item.videoId)) {
+            uniqueItems[item.videoId!] = item;
+          }
         }
+        
+        // Take top 6 unique items
+        final recentItems = uniqueItems.values.take(6).toList();
 
         return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+              crossAxisCount: 2,
               mainAxisSpacing: 8.0,
               crossAxisSpacing: 8.0,
-              childAspectRatio: 1.0, // Square items
+              childAspectRatio: 3, // Wide rectangular aspect ratio
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                if (index < speedDialItems.length) {
-                  final item = speedDialItems[index];
-                  return GestureDetector(
-                    onTap: () {
-                       HapticFeedback.lightImpact();
-                       ref.read(audioHandlerProvider).playVideo(item);
-                    },
-                    child: _buildSpeedDialItem(context, ref, item),
-                  );
-                } else {
-                  // Library Item (9th item or last item)
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      ref.read(navigationIndexProvider.notifier).state = 2; // Switch to Library tab
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: const DecorationImage(
-                          image: CachedNetworkImageProvider('https://cdn.dribbble.com/userupload/5195818/file/original-192782f93efd6f758f26c5a471163ecc.jpg?resize=752x752&vertical=center'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  );
-                }
+                return RectHomeItem(item: recentItems[index]);
               },
-              childCount: speedDialItems.length + 1,
+              childCount: recentItems.length,
             ),
           ),
         );
@@ -352,278 +337,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildSpeedDialItem(BuildContext context, WidgetRef ref, YtifyResult item) {
-     final imageUrl = item.thumbnails.isNotEmpty ? item.thumbnails.last.url : '';
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-         Expanded(
-           child: Container(
-             decoration: BoxDecoration(
-               borderRadius: BorderRadius.circular(12),
-               color: Colors.grey[900],
-               boxShadow: [
-                 BoxShadow(
-                   color: Colors.black.withOpacity(0.0),
-                   blurRadius: 8,
-                   offset: const Offset(0, 4),
-                 ),
-               ],
-               image: imageUrl.isNotEmpty
-                   ? DecorationImage(
-                       image: CachedNetworkImageProvider(imageUrl),
-                       fit: BoxFit.cover,
-                     )
-                   : null,
-             ),
-             child: Stack(
-               children: [
-                 Positioned.fill(
-                   child: Container(
-                     decoration: BoxDecoration(
-                       borderRadius: BorderRadius.circular(12),
-                       gradient: LinearGradient(
-                         begin: Alignment.topCenter,
-                         end: Alignment.bottomCenter,
-                         colors: [
-                           Colors.transparent,
-                           Colors.black.withOpacity(0.8),
-                         ],
-                         stops: const [0.6, 1.0],
-                       ),
-                     ),
-                   ),
-                 ),
-                 Positioned(
-                   bottom: 8,
-                   left: 8,
-                   right: 8,
-                   child: Text(
-                     item.title,
-                     maxLines: 2,
-                     overflow: TextOverflow.ellipsis,
-                     style: const TextStyle(
-                       color: Colors.white,
-                       fontWeight: FontWeight.bold,
-                       fontSize: 12,
-                       shadows: [
-                         Shadow(
-                           color: Colors.black,
-                           blurRadius: 4,
-                           offset: Offset(0, 2),
-                         ),
-                       ],
-                     ),
-                     textAlign: TextAlign.left,
-                   ),
-                 ),
-               ],
-             ),
-           ),
-         ),
-       ],
-     );
-  }
-
-  Widget _buildFavoritesSection(BuildContext context, WidgetRef ref) {
+  Widget _buildYourPlaylistsSection(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
-    return ValueListenableBuilder<List<YtifyResult>>(
-      valueListenable: storage.favoritesListenable,
-      builder: (context, favorites, _) {
-        if (favorites.isEmpty) return const SizedBox.shrink();
+    return SliverToBoxAdapter(
+      child: ValueListenableBuilder<Map<String, List<YtifyResult>>>(
+        valueListenable: storage.playlistsListenable,
+        builder: (context, playlists, _) {
+          if (playlists.isEmpty) return const SizedBox.shrink();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Favorites',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+          final playlistNames = playlists.keys.toList();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                child: Text(
+                  "Your Playlists",
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                 ),
               ),
-            ),
-            SizedBox(
-              height: 160,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: favorites.length,
-                itemBuilder: (context, index) {
-                  final item = favorites[index];
-                  final imageUrl = item.thumbnails.isNotEmpty ? item.thumbnails.last.url : '';
-                  
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        ref.read(audioHandlerProvider).playVideo(item);
-                      },
-                      child: SizedBox(
-                        width: 120,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: imageUrl.isNotEmpty 
-                                ? CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    height: 120,
-                                    width: 120,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (context, url, error) => Container(
-                                      height: 120,
-                                      width: 120,
-                                      color: Colors.grey[800],
-                                      child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
-                                    ),
-                                  )
-                                : Container(
-                                    height: 120,
-                                    width: 120,
-                                    color: Colors.grey[800],
-                                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
-                                  ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
+              SizedBox(
+                height: 240, 
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: playlistNames.length,
+                  itemBuilder: (context, index) {
+                    final name = playlistNames[index];
+                    final songs = playlists[name] ?? [];
+                    final firstSong = songs.isNotEmpty ? songs.first : null;
+                    final imageUrl = firstSong?.thumbnails.isNotEmpty == true ? firstSong!.thumbnails.last.url : '';
+                    
+                    // Construct a YtifyResult-like object or just use HomeItemWidget if adaptable
+                    // HomeItemWidget takes HomeItem. Let's make a HomeItem.
+                    final homeItem = HomeItem(
+                        title: name,
+                        subtitle: '${songs.length} songs',
+                        thumbnails: imageUrl.isNotEmpty ? [{'url': imageUrl, 'width': 500, 'height': 500}] : [],
+                        type: 'playlist',
+                        playlistId: name, 
+                    );
+
+                    return HomeItemWidget(item: homeItem);
+                  },
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildArtistsSection(BuildContext context, WidgetRef ref) {
-    final storage = ref.watch(storageServiceProvider);
-    
-    final history = storage.getHistory();
-    final favorites = storage.getFavorites();
-    
-    final uniqueArtists = <String, YtifyArtist>{};
-    final seenNames = <String>{};
 
-    for (var item in [...favorites, ...history]) {
-      if (item.artists != null) {
-        for (var artist in item.artists!) {
-          if (artist.id != null && artist.name.isNotEmpty) {
-             if (!uniqueArtists.containsKey(artist.id) && !seenNames.contains(artist.name)) {
-               uniqueArtists[artist.id!] = artist;
-               seenNames.add(artist.name);
-             }
-          }
-        }
-      }
-    }
-    
-    final artistList = uniqueArtists.values.toList();
 
-    if (artistList.isEmpty) return const SizedBox.shrink();
 
-    return ValueListenableBuilder(
-      valueListenable: storage.artistImagesListenable,
-      builder: (context, box, _) {
-        final validArtists = artistList.where((artist) {
-          final img = storage.getArtistImage(artist.id!);
-          return img != 'INVALID_ARTIST';
-        }).toList();
-
-        if (validArtists.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Artists',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: validArtists.length,
-                itemBuilder: (context, index) {
-                  final artist = validArtists[index];
-                  final cachedImage = storage.getArtistImage(artist.id!);
-                  
-                  if (cachedImage == null) {
-                    // Trigger fetch in background
-                    storage.fetchAndCacheArtistImage(artist.id!);
-                  }
-
-                  final imageUrl = cachedImage ?? '';
-
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      if (artist.id != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ArtistScreen(
-                              browseId: artist.id!,
-                              artistName: artist.name,
-                              thumbnailUrl: imageUrl,
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey[800],
-                            backgroundImage: imageUrl.isNotEmpty ? CachedNetworkImageProvider(imageUrl) : null,
-                            child: imageUrl.isEmpty 
-                                ? Text(
-                                    artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
-                                    style: const TextStyle(color: Colors.white, fontSize: 32),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            artist.name,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

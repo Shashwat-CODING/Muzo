@@ -177,43 +177,15 @@ class SongOptionsMenu extends ConsumerWidget {
                       await downloadService.deleteDownload(result.videoId!);
                       if (context.mounted) showGlassSnackBar(context, 'Removed from downloads');
                     } else {
-                      // Show downloading alert
-                      bool isDialogVisible = true;
+                      // Show downloading snackbar
                       if (context.mounted) {
-                          showAppAlertDialog(
-                            context: context,
-                            title: 'Downloading',
-                            content: const Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Please wait while the song is being downloaded...'),
-                                SizedBox(height: 16),
-                                CupertinoActivityIndicator(),
-                              ],
-                            ),
-                            actions: [
-                                CupertinoDialogAction(
-                                  onPressed: () {
-                                    // Use navigator key to safely pop the dialog from the root navigator
-                                    if (navigatorKey.currentState != null && navigatorKey.currentState!.canPop()) {
-                                       navigatorKey.currentState!.pop();
-                                    }
-                                  },
-                                  child: const Text('Hide'),
-                                ),
-                            ],
-                          ).then((_) => isDialogVisible = false);
+                        showGlassSnackBar(context, 'Downloading...');
                       }
                       
                       // Use provider to start download and track progress
                       final success = await ref.read(downloadProvider.notifier).startDownload(result);
                       
-                      // Close the downloading alert if it's still visible
                       if (context.mounted) {
-                        if (isDialogVisible) {
-                          Navigator.of(context, rootNavigator: true).pop();
-                        }
-                        
                         if (success) {
                           showGlassSnackBar(context, 'Download complete');
                         } else {

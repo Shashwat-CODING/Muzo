@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/models/user_data.dart';
 import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/services/ytm_home.dart';
 import 'package:muzo/services/music_api_service.dart';
 import 'package:http/http.dart' as http;
 
@@ -16,6 +17,8 @@ class StorageService {
   static const String _downloadsBoxName = 'downloads';
   static const String _artistImagesBoxName = 'artist_images';
   static const String _userAvatarBoxName = 'user_avatar';
+  static const String _historyBoxName = 'history_cache';
+  static const String _homeBoxName = 'home_cache';
 
   MusicApiService? _api;
   
@@ -33,7 +36,22 @@ class StorageService {
     await Hive.openBox(_downloadsBoxName);
     await Hive.openBox(_artistImagesBoxName);
     await Hive.openBox(_userAvatarBoxName);
+    await Hive.openBox(_historyBoxName);
+    await Hive.openBox(_homeBoxName);
     
+    // Load cached history
+    final historyBox = Hive.box(_historyBoxName);
+    final cachedHistory = historyBox.get('list');
+    if (cachedHistory != null) {
+      try {
+        _historyNotifier.value = (cachedHistory as List)
+            .map((e) => YtifyResult.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading cached history: $e');
+      }
+    }
+
     _api = MusicApiService(this);
     debugPrint('StorageService initialized with API');
   }
@@ -54,6 +72,7 @@ class StorageService {
       
       // Update History
       _historyNotifier.value = userData.history;
+      _saveHistoryToCache(userData.history);
       
       // Update Favorites
       _favoritesNotifier.value = userData.favorites;
@@ -93,6 +112,7 @@ class StorageService {
     current.removeWhere((item) => item.videoId == result.videoId);
     current.insert(0, result);
     _historyNotifier.value = current;
+    _saveHistoryToCache(current);
 
     if (_api == null) {
       debugPrint('Error: API not initialized when adding to history');
@@ -119,6 +139,7 @@ class StorageService {
     final current = List<YtifyResult>.from(_historyNotifier.value);
     current.removeWhere((item) => item.videoId == videoId);
     _historyNotifier.value = current;
+    _saveHistoryToCache(current);
     
     try {
       await _api!.removeFromHistory(videoId);
@@ -141,6 +162,7 @@ class StorageService {
     try {
       await _api!.clearHistory();
       _historyNotifier.value = [];
+      _saveHistoryToCache([]);
     } catch (e) {
       errorNotifier.value = 'Failed to clear history: $e';
     } finally {
@@ -484,6 +506,48 @@ class StorageService {
   // Auto Queue Setting
   bool get isAutoQueueEnabled => _settingsBox.get('isAutoQueueEnabled', defaultValue: true);
   Future<void> setAutoQueueEnabled(bool value) => _settingsBox.put('isAutoQueueEnabled', value);
+
+  // Lofi Settings
+  double get lofiSpeed => _settingsBox.get('lofiSpeed', defaultValue: 0.85);
+  Future<void> setLofiSpeed(double value) => _settingsBox.put('lofiSpeed', value);
+
+  double get lofiPitch => _settingsBox.get('lofiPitch', defaultValue: 0.85);
+  Future<void> setLofiPitch(double value) => _settingsBox.put('lofiPitch', value);
+
+  // Cache Helpers
+  Future<void> _saveHistoryToCache(List<YtifyResult> history) async {
+    try {
+      final box = Hive.box(_historyBoxName);
+      await box.put('list', history.map((e) => e.toJson()).toList());
+    } catch (e) {
+      debugPrint('Error saving history cache: $e');
+    }
+  }
+
+  // Home Screen Cache
+  Box get _homeBox => Hive.box(_homeBoxName);
+
+  List<HomeSection> getHomeCache() {
+    final cached = _homeBox.get('sections');
+    if (cached != null) {
+      try {
+        return (cached as List)
+            .map((e) => HomeSection.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading home cache: $e');
+      }
+    }
+    return [];
+  }
+
+  Future<void> setHomeCache(List<HomeSection> sections) async {
+    try {
+      await _homeBox.put('sections', sections.map((e) => e.toJson()).toList());
+    } catch (e) {
+      debugPrint('Error saving home cache: $e');
+    }
+  }
 }
 
 

@@ -34,6 +34,16 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               _buildSection('Appearance', [
                  ListTile(
+                  title: const Text('App Theme', style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    settingsState.themeType.name.toUpperCase(), 
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12)
+                  ),
+                  trailing: const Icon(FluentIcons.paint_brush_24_regular, color: Colors.white),
+                  onTap: () => _showThemeDialog(context, ref, settingsState.themeType),
+                ),
+                 const Divider(height: 1, color: Colors.white10),
+                 ListTile(
                   title: const Text('Lite Mode', style: TextStyle(color: Colors.white)),
                   subtitle: Text('Disable blur and effects for better performance', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
                   trailing: Switch(
@@ -65,6 +75,15 @@ class SettingsScreen extends ConsumerWidget {
                       final countryCode = storage.rapidApiCountryCode;
                       
                       return _buildSection('Playback', [
+                        ListTile(
+                          title: const Text('Lofi Mode Settings', style: TextStyle(color: Colors.white)),
+                          subtitle: const Text('Adjust Speed and Pitch', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          trailing: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+                          onTap: () {
+                            _showLofiSettingsDialog(context, storage);
+                          },
+                        ),
+                        const Divider(height: 1, color: Colors.white10),
                         ListTile(
                           title: const Text('Auto Queue', style: TextStyle(color: Colors.white)),
                           subtitle: Text('Automatically add recommended songs to queue', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
@@ -351,6 +370,113 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
             },
             child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLofiSettingsDialog(BuildContext context, StorageService storage) {
+    // We need state for sliders
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: const Text('Lofi Mode Settings', style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Playback Speed', style: TextStyle(color: Colors.white70)),
+                Row(
+                  children: [
+                    Text('${storage.lofiSpeed.toStringAsFixed(2)}x', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Expanded(
+                      child: Slider(
+                        value: storage.lofiSpeed,
+                        min: 0.5,
+                        max: 1.5,
+                        divisions: 20,
+                        activeColor: Colors.white,
+                        inactiveColor: Colors.grey[800],
+                        onChanged: (value) {
+                          setState(() {
+                             storage.setLofiSpeed(value);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('Playback Pitch', style: TextStyle(color: Colors.white70)),
+                Row(
+                  children: [
+                    Text('${storage.lofiPitch.toStringAsFixed(2)}x', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Expanded(
+                      child: Slider(
+                        value: storage.lofiPitch,
+                        min: 0.5,
+                        max: 1.5,
+                        divisions: 20,
+                        activeColor: Colors.white,
+                        inactiveColor: Colors.grey[800],
+                        onChanged: (value) {
+                          setState(() {
+                             storage.setLofiPitch(value);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
+  void _showThemeDialog(BuildContext context, WidgetRef ref, ThemeType currentTheme) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('Select Theme', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemeType.values.map((theme) {
+            final isSelected = theme == currentTheme;
+            return ListTile(
+              title: Text(
+                theme.name.toUpperCase(),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              trailing: isSelected
+                  ? const Icon(FluentIcons.checkmark_24_regular, color: Colors.white)
+                  : null,
+              onTap: () {
+                ref.read(settingsProvider.notifier).setThemeType(theme);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
         ],
       ),

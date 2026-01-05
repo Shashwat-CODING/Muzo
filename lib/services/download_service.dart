@@ -84,30 +84,24 @@ class DownloadService {
 
       // Download
       await _dio.download(
-        streamUrl, 
+        streamUrl,
         savePath,
         options: Options(
           headers: {
-            "Range": totalBytes != null ? 'bytes=0-$totalBytes' : 'bytes=0-',
+            "Range": 'bytes=0-${totalBytes ?? ""}',
           },
         ),
         onReceiveProgress: (count, total) {
-          int finalTotal = total;
-          if (finalTotal == -1 && totalBytes != null) {
-             finalTotal = totalBytes;
-          }
-
-          if (finalTotal != -1) {
-            final progress = ((count / finalTotal) * 100).toInt();
-            NotificationService().showProgressNotification(
-              id: notificationId,
-              title: 'Downloading...',
-              body: result.title,
-              progress: progress,
-              maxProgress: 100,
-            );
-            onProgress?.call(count, finalTotal);
-          }
+          final progress = ((count / total) * 100).toInt();
+          
+          NotificationService().showProgressNotification(
+            id: notificationId,
+            title: 'Downloading...',
+            body: result.title,
+            progress: progress,
+            maxProgress: 100,
+          );
+          onProgress?.call(count, total);
         },
         deleteOnError: true,
       );
