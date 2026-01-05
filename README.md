@@ -3,15 +3,16 @@
   <img src="assets/logo.png" alt="Muzo Logo" width="150" height="150" />
 </p>
 
-Muzo (formerly YTX) is a powerful, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized lyrics, and a modern, customizable UI.
+Muzo (formerly Muzo) is a powerful, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized lyrics, and a modern, customizable UI.
 
 ## 🚀 Key Features
 
 ### 🎧 Immersive Audio Experience
 *   **Synced Lyrics**: Sing along with real-time synchronized lyrics that auto-scroll with the music.
 *   **Lofi Mode**: Instantly transform any track into a Lofi vibe with slowed speed (0.9x), pitch correction, and native reverb effects.
+*   **Multi-Language Audio**: Automatically detects and lets you switch between available audio languages for supported tracks.
 *   **Background Playback**: Keep the music playing while using other apps or when your screen is off.
-*   **Audio Quality Control**: Choose between High, Medium, and Low audio quality to balance experience and data usage.
+*   **Audio Quality Control**: Choose between High, Medium, and Low audio quality.
 *   **Native Audio Effects**: Leverages platform-specific audio effects for a rich sound experience.
 
 ### 📚 Library & Discovery
@@ -23,11 +24,14 @@ Muzo (formerly YTX) is a powerful, privacy-focused YouTube Music client built wi
 
 ### 🎨 Modern UI/UX
 *   **Sleek Glassmorphism**: A beautiful, modern interface with glassmorphic elements and smooth animations.
+*   **Immersive Player**: Features a dynamic blurred album art background for a premium visual experience.
+*   **Unified Dark Theme**: Optimized text colors and contrast for a consistent, eye-friendly dark mode.
 *   **Dynamic Theming**: The UI automatically adapts its colors to match the currently playing album art.
-*   **Lite Mode**: Optimize performance on lower-end devices by disabling blur effects and complex animations.
+*   **Smooth Transitions**: Fluid zoom and slide animations when navigating between screens.
 *   **Marquee Titles**: Auto-scrolling text for long song titles and artist names.
 
 ### 🛡️ Privacy & Reliability
+*   **Zero-Wait Launch**: App initializes instantly with parallel background loading.
 *   **Ad-Free Streaming**: Enjoy music without interruptions or ads.
 *   **Privacy Focused**: No login required. All your data (favorites, playlists, history) is stored locally on your device.
 *   **RapidAPI Fallback**: A robust fallback system ensures playback reliability even if the primary API fails (user-configurable).
