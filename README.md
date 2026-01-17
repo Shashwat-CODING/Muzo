@@ -1,9 +1,9 @@
 # Muzo - Premium Music Client
 <p align="center">
-  <img src="assets/logo.png" alt="Muzo Logo" width="150" height="150" />
+  <img src="assets/banner.png" alt="Muzo Banner" width="100%" />
 </p>
 
-[**📚 Documentation: DeepWiki**](https://deepwiki.com/Shashwat-CODING/Muzo/)
+## [**📚 Documentation: DeepWiki**](https://deepwiki.com/Shashwat-CODING/Muzo/)
 
 Muzo is a powerful, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized lyrics, and a modern, customizable UI. Now with native **macOS** support!
 
