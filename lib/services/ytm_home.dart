@@ -3,13 +3,15 @@ import 'package:dio/dio.dart';
 
 const String domain = "https://music.youtube.com/";
 const String baseUrl = '${domain}youtubei/v1/';
-const String fixedParams = '?prettyPrint=false&alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
-const String userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
+const String fixedParams =
+    '?prettyPrint=false&alt=json&key=AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
+const String userAgent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
 
 class YouTubeMusicHomeService {
   final Dio _dio = Dio();
   String? _visitorId;
-  
+
   final Map<String, String> _headers = {
     'user-agent': userAgent,
     'accept': '*/*',
@@ -22,9 +24,11 @@ class YouTubeMusicHomeService {
 
   Map<String, dynamic> _getContext() {
     final date = DateTime.now();
-    final clientVersion = "1.${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}.01.00";
-    final signatureTimestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 86400;
-    
+    final clientVersion =
+        "1.${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}.01.00";
+    final signatureTimestamp =
+        (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 86400;
+
     return {
       'context': {
         'client': {
@@ -32,7 +36,7 @@ class YouTubeMusicHomeService {
           'clientVersion': clientVersion,
           'hl': 'en',
         },
-        'user': {}
+        'user': {},
       },
       'playbackContext': {
         'contentPlaybackContext': {'signatureTimestamp': signatureTimestamp},
@@ -50,10 +54,13 @@ class YouTubeMusicHomeService {
 
   Future<String?> _generateVisitorId() async {
     try {
-      final response = await _dio.get(domain, options: Options(headers: _headers));
+      final response = await _dio.get(
+        domain,
+        options: Options(headers: _headers),
+      );
       final reg = RegExp(r'ytcfg\.set\s*\(\s*({.+?})\s*\)\s*;');
       final matches = reg.firstMatch(response.data.toString());
-      
+
       if (matches != null) {
         final ytcfg = json.decode(matches.group(1).toString());
         return ytcfg['VISITOR_DATA']?.toString();
@@ -64,14 +71,17 @@ class YouTubeMusicHomeService {
     }
   }
 
-  Future<Response> _sendRequest(String action, Map<dynamic, dynamic> data) async {
+  Future<Response> _sendRequest(
+    String action,
+    Map<dynamic, dynamic> data,
+  ) async {
     try {
       final response = await _dio.post(
         '$baseUrl$action$fixedParams',
         options: Options(headers: _headers),
         data: data,
       );
-      
+
       if (response.statusCode == 200) {
         return response;
       }
@@ -85,7 +95,7 @@ class YouTubeMusicHomeService {
   Future<List<HomeSection>> getHome({int limit = 4}) async {
     final data = Map<String, dynamic>.from(_getContext());
     data['browseId'] = 'FEmusic_home';
-    
+
     final response = await _sendRequest('browse', data);
     final results = _nav(response.data, [
       'contents',
@@ -95,38 +105,50 @@ class YouTubeMusicHomeService {
       'tabRenderer',
       'content',
       'sectionListRenderer',
-      'contents'
+      'contents',
     ]);
-    
+
     if (results == null) return [];
-    
+
     return _parseHomeSections(results);
   }
 
   List<HomeSection> _parseHomeSections(List<dynamic> sections) {
     final List<HomeSection> homeSections = [];
-    
+
     for (var section in sections) {
       if (section.containsKey('musicCarouselShelfRenderer')) {
         final shelf = section['musicCarouselShelfRenderer'];
-        final title = _nav(shelf, ['header', 'musicCarouselShelfBasicHeaderRenderer', 'title', 'runs', 0, 'text']);
+        final title = _nav(shelf, [
+          'header',
+          'musicCarouselShelfBasicHeaderRenderer',
+          'title',
+          'runs',
+          0,
+          'text',
+        ]);
         final contents = shelf['contents'] ?? [];
-        
-        final items = contents.map<HomeItem?>((item) {
-          if (item.containsKey('musicTwoRowItemRenderer')) {
-            return _parseMusicItem(item['musicTwoRowItemRenderer']);
-          } else if (item.containsKey('musicResponsiveListItemRenderer')) {
-            return _parseResponsiveItem(item['musicResponsiveListItemRenderer']);
-          }
-          return null;
-        }).whereType<HomeItem>().toList();
-        
+
+        final items = contents
+            .map<HomeItem?>((item) {
+              if (item.containsKey('musicTwoRowItemRenderer')) {
+                return _parseMusicItem(item['musicTwoRowItemRenderer']);
+              } else if (item.containsKey('musicResponsiveListItemRenderer')) {
+                return _parseResponsiveItem(
+                  item['musicResponsiveListItemRenderer'],
+                );
+              }
+              return null;
+            })
+            .whereType<HomeItem>()
+            .toList();
+
         if (title != null && items.isNotEmpty) {
           homeSections.add(HomeSection(title: title, items: items));
         }
       }
     }
-    
+
     return homeSections;
   }
 
@@ -134,23 +156,49 @@ class YouTubeMusicHomeService {
     try {
       final title = _nav(data, ['title', 'runs', 0, 'text']);
       final subtitle = _nav(data, ['subtitle', 'runs', 0, 'text']);
-      final thumbnails = _nav(data, ['thumbnailRenderer', 'musicThumbnailRenderer', 'thumbnail', 'thumbnails']);
-      final browseId = _nav(data, ['title', 'runs', 0, 'navigationEndpoint', 'browseEndpoint', 'browseId']);
-      final videoId = _nav(data, ['navigationEndpoint', 'watchEndpoint', 'videoId']);
-      final playlistId = _nav(data, ['navigationEndpoint', 'watchEndpoint', 'playlistId']) ??
-                         _nav(data, ['navigationEndpoint', 'watchPlaylistEndpoint', 'playlistId']);
-      
+      final thumbnails = _nav(data, [
+        'thumbnailRenderer',
+        'musicThumbnailRenderer',
+        'thumbnail',
+        'thumbnails',
+      ]);
+      final browseId = _nav(data, [
+        'title',
+        'runs',
+        0,
+        'navigationEndpoint',
+        'browseEndpoint',
+        'browseId',
+      ]);
+      final videoId = _nav(data, [
+        'navigationEndpoint',
+        'watchEndpoint',
+        'videoId',
+      ]);
+      final playlistId =
+          _nav(data, ['navigationEndpoint', 'watchEndpoint', 'playlistId']) ??
+          _nav(data, [
+            'navigationEndpoint',
+            'watchPlaylistEndpoint',
+            'playlistId',
+          ]);
+
       String? type;
       if (browseId != null) {
-        if (browseId.startsWith('MPRE')) type = 'album';
-        else if (browseId.startsWith('UC')) type = 'artist';
-        else if (browseId.startsWith('VL')) type = 'playlist';
+        if (browseId.startsWith('MPRE')) {
+          type = 'album';
+        } else if (browseId.startsWith('UC'))
+          type = 'artist';
+        else if (browseId.startsWith('VL'))
+          type = 'playlist';
       }
-      
+
       return HomeItem(
         title: title ?? 'Unknown',
         subtitle: subtitle,
-        thumbnails: thumbnails is List ? List<Map<String, dynamic>>.from(thumbnails) : [],
+        thumbnails: thumbnails is List
+            ? List<Map<String, dynamic>>.from(thumbnails)
+            : [],
         browseId: browseId,
         videoId: videoId,
         playlistId: playlistId,
@@ -165,11 +213,47 @@ class YouTubeMusicHomeService {
     try {
       final title = _getFlexColumnText(data, 0);
       final subtitle = _getFlexColumnText(data, 1);
-      final thumbnails = _nav(data, ['thumbnail', 'musicThumbnailRenderer', 'thumbnail', 'thumbnails']);
-      final videoId = _nav(data, ['flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer', 'text', 'runs', 0, 'navigationEndpoint', 'watchEndpoint', 'videoId']);
-      final playlistId = _nav(data, ['flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer', 'text', 'runs', 0, 'navigationEndpoint', 'watchEndpoint', 'playlistId']) ??
-                         _nav(data, ['flexColumns', 0, 'musicResponsiveListItemFlexColumnRenderer', 'text', 'runs', 0, 'navigationEndpoint', 'watchPlaylistEndpoint', 'playlistId']);
-      
+      final thumbnails = _nav(data, [
+        'thumbnail',
+        'musicThumbnailRenderer',
+        'thumbnail',
+        'thumbnails',
+      ]);
+      final videoId = _nav(data, [
+        'flexColumns',
+        0,
+        'musicResponsiveListItemFlexColumnRenderer',
+        'text',
+        'runs',
+        0,
+        'navigationEndpoint',
+        'watchEndpoint',
+        'videoId',
+      ]);
+      final playlistId =
+          _nav(data, [
+            'flexColumns',
+            0,
+            'musicResponsiveListItemFlexColumnRenderer',
+            'text',
+            'runs',
+            0,
+            'navigationEndpoint',
+            'watchEndpoint',
+            'playlistId',
+          ]) ??
+          _nav(data, [
+            'flexColumns',
+            0,
+            'musicResponsiveListItemFlexColumnRenderer',
+            'text',
+            'runs',
+            0,
+            'navigationEndpoint',
+            'watchPlaylistEndpoint',
+            'playlistId',
+          ]);
+
       String type = 'song';
       if (videoId == null && playlistId != null) {
         type = 'playlist';
@@ -178,7 +262,9 @@ class YouTubeMusicHomeService {
       return HomeItem(
         title: title ?? 'Unknown',
         subtitle: subtitle,
-        thumbnails: thumbnails is List ? List<Map<String, dynamic>>.from(thumbnails) : [],
+        thumbnails: thumbnails is List
+            ? List<Map<String, dynamic>>.from(thumbnails)
+            : [],
         videoId: videoId,
         playlistId: playlistId,
         type: type,
@@ -192,13 +278,13 @@ class YouTubeMusicHomeService {
     try {
       final flexColumns = data['flexColumns'];
       if (flexColumns == null || flexColumns.length <= index) return null;
-      
+
       return _nav(flexColumns[index], [
         'musicResponsiveListItemFlexColumnRenderer',
         'text',
         'runs',
         0,
-        'text'
+        'text',
       ]);
     } catch (e) {
       return null;
@@ -238,8 +324,9 @@ class HomeSection {
   factory HomeSection.fromJson(Map<String, dynamic> json) {
     return HomeSection(
       title: json['title'] ?? '',
-      items: (json['items'] as List?)
-              ?.map((item) => HomeItem.fromJson(item))
+      items:
+          (json['items'] as List?)
+              ?.map((item) => HomeItem.fromJson(Map<String, dynamic>.from(item)))
               .toList() ??
           [],
     );
@@ -290,7 +377,8 @@ class HomeItem {
     return HomeItem(
       title: json['title'] ?? '',
       subtitle: json['subtitle'],
-      thumbnails: (json['thumbnails'] as List?)
+      thumbnails:
+          (json['thumbnails'] as List?)
               ?.map((e) => Map<String, dynamic>.from(e))
               .toList() ??
           [],
@@ -303,11 +391,11 @@ class HomeItem {
 }
 
 // Usage Example:
-// 
+//
 // final service = YouTubeMusicHomeService();
 // await service.initialize();
 // final homeSections = await service.getHome(limit: 10);
-// 
+//
 // for (var section in homeSections) {
 //   print('Section: ${section.title}');
 //   for (var item in section.items) {

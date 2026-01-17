@@ -86,7 +86,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                           )
                         else
                           Container(color: Colors.grey[900]),
-                        
+
                         // Gradient for better text visibility
                         const DecoratedBox(
                           decoration: BoxDecoration(
@@ -102,7 +102,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Play All Button and Info
                 SliverToBoxAdapter(
                   child: Padding(
@@ -123,16 +123,30 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () {
-                              if (_playlistDetails != null && _playlistDetails!.tracks.isNotEmpty) {
-                                ref.read(audioHandlerProvider).playAll(_playlistDetails!.tracks);
+                              if (_playlistDetails != null &&
+                                  _playlistDetails!.tracks.isNotEmpty) {
+                                ref
+                                    .read(audioHandlerProvider)
+                                    .playAll(_playlistDetails!.tracks);
                               }
                             },
-                            icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
-                            label: const Text('Play All', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                            icon: const Icon(
+                              FluentIcons.play_24_filled,
+                              color: Colors.black,
+                            ),
+                            label: const Text(
+                              'Play All',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(32),
+                              ),
                             ),
                           ),
                         ),
@@ -141,26 +155,27 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                   ),
                 ),
 
-                if (_playlistDetails != null && _playlistDetails!.tracks.isNotEmpty)
+                if (_playlistDetails != null &&
+                    _playlistDetails!.tracks.isNotEmpty)
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final track = _playlistDetails!.tracks[index];
-                        return ResultTile(result: track);
-                      },
-                      childCount: _playlistDetails!.tracks.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final track = _playlistDetails!.tracks[index];
+                      return ResultTile(result: track);
+                    }, childCount: _playlistDetails!.tracks.length),
                   )
                 else
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(
-                        child: Text('No tracks found', style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          'No tracks found',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                     ),
                   ),
-                  
+
                 const SliverPadding(padding: EdgeInsets.only(bottom: 50)),
               ],
             ),

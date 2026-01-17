@@ -13,10 +13,12 @@ class PlaylistSelectionDialog extends ConsumerStatefulWidget {
   const PlaylistSelectionDialog({super.key, required this.song});
 
   @override
-  ConsumerState<PlaylistSelectionDialog> createState() => _PlaylistSelectionDialogState();
+  ConsumerState<PlaylistSelectionDialog> createState() =>
+      _PlaylistSelectionDialogState();
 }
 
-class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialog> {
+class _PlaylistSelectionDialogState
+    extends ConsumerState<PlaylistSelectionDialog> {
   @override
   Widget build(BuildContext context) {
     final storage = ref.watch(storageServiceProvider);
@@ -29,7 +31,10 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
         child: playlists.isEmpty
             ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: Text('No playlists created yet.', style: TextStyle(color: CupertinoColors.systemGrey)),
+                child: Text(
+                  'No playlists created yet.',
+                  style: TextStyle(color: CupertinoColors.systemGrey),
+                ),
               )
             : Material(
                 color: Colors.transparent,
@@ -38,8 +43,10 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
                     maxHeight: MediaQuery.of(context).size.height * 0.5,
                   ),
                   child: SizedBox(
-                    height: playlists.length * 56.0 > MediaQuery.of(context).size.height * 0.5 
-                        ? MediaQuery.of(context).size.height * 0.5 
+                    height:
+                        playlists.length * 56.0 >
+                            MediaQuery.of(context).size.height * 0.5
+                        ? MediaQuery.of(context).size.height * 0.5
                         : playlists.length * 56.0,
                     child: ListView.builder(
                       padding: EdgeInsets.zero,
@@ -47,8 +54,16 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
                       itemBuilder: (context, index) {
                         final name = playlists[index];
                         return ListTile(
-                          leading: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
-                          title: Text(name, style: const TextStyle(color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          leading: const Icon(
+                            FluentIcons.music_note_2_24_regular,
+                            color: Colors.white,
+                          ),
+                          title: Text(
+                            name,
+                            style: const TextStyle(color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           onTap: () {
                             storage.addToPlaylist(name, widget.song);
                             Navigator.pop(context);
@@ -62,16 +77,19 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
               ),
       ),
       actions: [
-        CupertinoDialogAction(
+        TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
         ),
-        CupertinoDialogAction(
+        TextButton(
           onPressed: () {
             Navigator.pop(context);
             _showCreatePlaylistDialog(context, storage);
           },
-          child: const Text('New Playlist'),
+          child: const Text(
+            'New Playlist',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -96,12 +114,11 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
         ),
       ),
       actions: [
-        CupertinoDialogAction(
+        TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
         ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
+        TextButton(
           onPressed: () {
             if (controller.text.isNotEmpty) {
               storage.createPlaylist(controller.text);
@@ -111,7 +128,10 @@ class _PlaylistSelectionDialogState extends ConsumerState<PlaylistSelectionDialo
               showGlassSnackBar(context, 'Added to ${controller.text}');
             }
           },
-          child: const Text('Create'),
+          child: const Text(
+            'Create',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );

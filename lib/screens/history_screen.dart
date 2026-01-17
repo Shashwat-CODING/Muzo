@@ -5,6 +5,7 @@ import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/widgets/app_alert_dialog.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -25,15 +26,21 @@ class HistoryScreen extends ConsumerWidget {
               pinned: false,
               title: Text(
                 'History',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               iconTheme: IconThemeData(color: Colors.white),
             ),
-            
+
             // Header / Clear Button
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     Text(
@@ -47,34 +54,47 @@ class HistoryScreen extends ConsumerWidget {
                     const Spacer(),
                     TextButton.icon(
                       onPressed: () {
-                        showDialog(
+                        showAppAlertDialog(
                           context: context,
-                          builder: (context) => AlertDialog(
-                            backgroundColor: const Color(0xFF1E1E1E),
-                            title: const Text('Clear History', style: TextStyle(color: Colors.white)),
-                            content: const Text(
-                              'Are you sure you want to clear your listening history?',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  storage.clearHistory();
-                                  showGlassSnackBar(context, 'History cleared');
-                                },
-                                child: const Text('Clear', style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
+                          title: 'Clear History',
+                          content: const Text(
+                            'Are you sure you want to clear your listening history?',
+                            style: TextStyle(color: Colors.white70),
                           ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                storage.clearHistory();
+                                showGlassSnackBar(context, 'History cleared');
+                              },
+                              child: const Text(
+                                'Clear',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         );
                       },
-                      icon: const Icon(FluentIcons.delete_24_regular, size: 16, color: Colors.grey),
-                      label: const Text('Clear', style: TextStyle(color: Colors.grey)),
+                      icon: const Icon(
+                        FluentIcons.delete_24_regular,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      label: const Text(
+                        'Clear',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         minimumSize: Size.zero,
@@ -99,18 +119,18 @@ class HistoryScreen extends ConsumerWidget {
                     ),
                   );
                 }
-                
+
                 return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      return ResultTile(result: history[index]);
-                    },
-                    childCount: history.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return ResultTile(
+                      result: history[index],
+                      fromHistory: true,
+                    );
+                  }, childCount: history.length),
                 );
               },
             ),
-            
+
             const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
           ],
         ),

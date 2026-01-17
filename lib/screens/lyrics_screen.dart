@@ -5,6 +5,7 @@ import 'package:muzo/services/lyrics_service.dart';
 import 'package:muzo/widgets/lyrics_view.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/providers/settings_provider.dart';
+import 'package:muzo/providers/theme_provider.dart';
 import 'dart:ui';
 
 class LyricsScreen extends ConsumerStatefulWidget {
@@ -37,11 +38,9 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
 
   Future<void> _fetchLyrics() async {
     try {
-      final lyrics = await ref.read(lyricsServiceProvider).fetchLyrics(
-        widget.title, 
-        widget.artist, 
-        widget.durationSeconds
-      );
+      final lyrics = await ref
+          .read(lyricsServiceProvider)
+          .fetchLyrics(widget.title, widget.artist, widget.durationSeconds);
       if (mounted) {
         setState(() {
           _lyrics = lyrics;
@@ -61,13 +60,16 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
   Widget build(BuildContext context) {
     final audioHandler = ref.watch(audioHandlerProvider);
     final isLiteMode = ref.watch(settingsProvider).isLiteMode;
-    
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(FluentIcons.chevron_down_24_regular, color: Colors.white),
+          icon: const Icon(
+            FluentIcons.chevron_down_24_regular,
+            color: Colors.white,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
@@ -75,17 +77,17 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
             const Text(
               "Lyrics",
               style: TextStyle(
-                color: Colors.white, 
-                fontSize: 16, 
-                fontWeight: FontWeight.bold
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
             ),
-             Text(
+            Text(
               "${widget.title} • ${widget.artist}",
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7), 
-                fontSize: 12, 
-                fontWeight: FontWeight.normal
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -98,39 +100,53 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
         children: [
           // Background Blur
           Positioned.fill(
-             child: widget.thumbnailUrl != null
-                 ? Image.network(
-                     widget.thumbnailUrl!,
-                     fit: BoxFit.cover,
-                     errorBuilder: (_, __, ___) => Container(color: Colors.black),
-                   )
-                 : Container(color: Colors.black),
+            child: widget.thumbnailUrl != null
+                ? Image.network(
+                    widget.thumbnailUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        Container(color: Colors.black),
+                  )
+                : Container(color: Colors.black),
           ),
           Positioned.fill(
-            child: isLiteMode 
-              ? Container(
-                  color: Colors.black.withValues(alpha: 0.85),
-                ) 
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.7),
+            child: isLiteMode
+                ? Container(color: Colors.black.withValues(alpha: 0.85))
+                : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.7),
+                    ),
                   ),
-                ),
           ),
 
           // Content
           SafeArea(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: Colors.white))
-              : _lyrics == null
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                : _lyrics == null
                 ? _buildNotFound()
                 : LyricsView(
                     lyrics: _lyrics!,
                     onClose: () {},
                     positionStream: audioHandler.player.positionStream,
-                    totalDuration: audioHandler.player.duration ?? Duration.zero,
+                    totalDuration:
+                        audioHandler.player.duration ?? Duration.zero,
                     isEmbedded: false,
+                    accentColor: () {
+                      final palette = ref
+                          .watch(currentPaletteProvider)
+                          .asData
+                          ?.value;
+                      if (palette != null) {
+                        return (palette.darkVibrantColor?.color ??
+                            palette.darkMutedColor?.color ??
+                            palette.dominantColor?.color);
+                      }
+                      return null;
+                    }(),
                   ),
           ),
         ],
@@ -143,7 +159,11 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(FluentIcons.text_quote_24_regular, size: 64, color: Colors.white.withOpacity(0.3)),
+          Icon(
+            FluentIcons.text_quote_24_regular,
+            size: 64,
+            color: Colors.white.withOpacity(0.3),
+          ),
           const SizedBox(height: 24),
           const Text(
             "Lyrics not found",

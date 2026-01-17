@@ -13,7 +13,10 @@ class DownloadService {
   final YouTubeApiService _apiService = YouTubeApiService();
   final StorageService _storage = StorageService();
 
-  Future<bool> downloadSong(YtifyResult result, {Function(int, int)? onProgress}) async {
+  Future<bool> downloadSong(
+    YtifyResult result, {
+    Function(int, int)? onProgress,
+  }) async {
     final notificationId = result.videoId.hashCode;
     try {
       if (result.videoId == null) return false;
@@ -58,7 +61,10 @@ class DownloadService {
       final streamUrl = await _apiService.getStreamUrl(
         result.videoId!,
         title: result.title,
-        artist: result.artists?.map((a) => a.name).join(', ') ?? result.videoType ?? 'Unknown',
+        artist:
+            result.artists?.map((a) => a.name).join(', ') ??
+            result.videoType ??
+            'Unknown',
       );
       if (streamUrl == null) {
         debugPrint('Failed to get stream URL');
@@ -76,7 +82,9 @@ class DownloadService {
       try {
         final headResponse = await _dio.head(streamUrl);
         if (headResponse.headers.value('content-length') != null) {
-          totalBytes = int.tryParse(headResponse.headers.value('content-length')!);
+          totalBytes = int.tryParse(
+            headResponse.headers.value('content-length')!,
+          );
         }
       } catch (e) {
         debugPrint('Error fetching content length: $e');
@@ -86,14 +94,10 @@ class DownloadService {
       await _dio.download(
         streamUrl,
         savePath,
-        options: Options(
-          headers: {
-            "Range": 'bytes=0-${totalBytes ?? ""}',
-          },
-        ),
+        options: Options(headers: {"Range": 'bytes=0-${totalBytes ?? ""}'}),
         onReceiveProgress: (count, total) {
           final progress = ((count / total) * 100).toInt();
-          
+
           NotificationService().showProgressNotification(
             id: notificationId,
             title: 'Downloading...',
@@ -140,7 +144,7 @@ class DownloadService {
 
   Future<bool> _requestPermission() async {
     if (Platform.isAndroid) {
-      // On Android 10+ (API 29+), scoped storage is used, so WRITE_EXTERNAL_STORAGE 
+      // On Android 10+ (API 29+), scoped storage is used, so WRITE_EXTERNAL_STORAGE
       // is not needed for app-specific directories (getApplicationDocumentsDirectory).
       // However, for older versions, it might be needed.
       // Since we are targeting modern Android, we might skip this or check version.
@@ -149,7 +153,7 @@ class DownloadService {
     }
     return true;
   }
-  
+
   Future<void> deleteDownload(String videoId) async {
     final path = _storage.getDownloadPath(videoId);
     if (path != null) {

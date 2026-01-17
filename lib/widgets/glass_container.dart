@@ -40,10 +40,12 @@ class GlassContainer extends ConsumerWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E), // Solid dark color for lite mode
               borderRadius: borderRadius,
-              border: border ?? Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1.0,
-              ),
+              border:
+                  border ??
+                  Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1.0,
+                  ),
             ),
             child: child,
           ),
@@ -62,10 +64,12 @@ class GlassContainer extends ConsumerWidget {
             decoration: BoxDecoration(
               color: color.withValues(alpha: opacity),
               borderRadius: borderRadius,
-              border: border ?? Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1.0,
-              ),
+              border:
+                  border ??
+                  Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1.0,
+                  ),
             ),
             child: child,
           ),

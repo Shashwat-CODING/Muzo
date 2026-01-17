@@ -1,31 +1,25 @@
-import 'dart:ui';
 import 'package:muzo/widgets/glass_menu_content.dart';
+import 'package:muzo/widgets/fade_indexed_stack.dart';
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/navigation_provider.dart';
-import 'package:muzo/providers/explore_provider.dart';
 import 'package:muzo/screens/search_screen.dart';
-import 'package:muzo/widgets/result_tile.dart';
 import 'package:muzo/screens/library_screen.dart';
 import 'package:muzo/screens/subscribed_channels_screen.dart';
-import 'package:muzo/widgets/horizontal_result_card.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzo/providers/player_provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:muzo/screens/artist_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muzo/screens/settings_screen.dart';
 import 'package:muzo/widgets/glass_container.dart';
-import 'package:muzo/widgets/offline_indicator.dart';
 import 'package:muzo/services/update_service.dart';
 import 'package:muzo/providers/home_provider.dart';
 import 'package:muzo/widgets/home_section_widget.dart';
 import 'package:muzo/widgets/rect_home_item.dart';
 import 'package:muzo/widgets/home_item_widget.dart';
 import 'package:muzo/services/ytm_home.dart';
+import 'package:muzo/widgets/skeleton_loader.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Trigger initial data load after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final storage = ref.read(storageServiceProvider);
-      storage.refreshAll();
+      storage.refreshAll(silent: true);
       storage.fetchAndCacheUserAvatar();
       UpdateService().checkForUpdates(context);
     });
@@ -53,7 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: IndexedStack(
+      body: FadeIndexedStack(
         index: selectedIndex,
         children: [
           _buildExploreTab(context, ref),
@@ -61,7 +55,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const LibraryScreen(),
           const SubscribedChannelsScreen(),
           // Placeholder for Settings (index 4)
-          const SizedBox.shrink(), 
+          const SizedBox.shrink(),
           const SizedBox.shrink(), // Placeholder for About (index 5)
         ],
       ),
@@ -70,8 +64,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildExploreTab(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
-    
-    final homeSectionsAsync = ref.watch(homeSectionsProvider);
+
+    final homeSectionsAsync = ref.watch(filteredHomeSectionsProvider);
 
     return SafeArea(
       bottom: false,
@@ -86,13 +80,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: CustomScrollView(
           slivers: [
             // Header Section
-            SliverToBoxAdapter(
-              child: _buildHeader(context, ref),
-            ),
-            
+            SliverToBoxAdapter(child: _buildHeader(context, ref)),
+
             // Recents Grid
             _buildRecentsGrid(context, ref),
-            
+
             // Your Playlists Section
             // Moved to bottom as per request
             // _buildYourPlaylistsSection(context, ref),
@@ -105,37 +97,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Center(
                       child: Padding(
                         padding: EdgeInsets.all(32.0),
-                        child: Text("No content available", style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          "No content available",
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                     ),
                   );
                 }
                 return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      return HomeSectionWidget(section: sections[index]);
-                    },
-                    childCount: sections.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return HomeSectionWidget(section: sections[index]);
+                  }, childCount: sections.length),
                 );
               },
               loading: () => const SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.only(top: 50.0),
-                  child: Center(child: CircularProgressIndicator()),
+                  padding: EdgeInsets.only(top: 20.0),
+                  child: HomeSkeletonList(),
                 ),
               ),
               error: (err, stack) => SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Center(child: Text('Error loading home: $err', style: const TextStyle(color: Colors.red))),
+                  child: Center(
+                    child: Text(
+                      'Error loading home: $err',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
                 ),
               ),
             ),
-            
+
             // Your Playlists Section (At Bottom)
             _buildYourPlaylistsSection(context, ref),
-            
+
             const SliverPadding(padding: EdgeInsets.only(bottom: 200)),
           ],
         ),
@@ -148,7 +145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final username = storage.username ?? 'User';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       child: Row(
         children: [
           PopupMenuButton<String>(
@@ -157,7 +154,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             color: Colors.transparent,
             elevation: 0,
             surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               PopupMenuItem<String>(
                 enabled: false,
@@ -166,9 +165,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     ListTile(
                       dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(FluentIcons.person_24_regular, color: Colors.white, size: 20),
-                      title: const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      leading: const Icon(
+                        FluentIcons.person_24_regular,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      title: const Text(
+                        'Account Info',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
                       onTap: () {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
@@ -196,7 +204,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 16),
-                                  Text('Username: $username', style: const TextStyle(color: Colors.white70)),
+                                  Text(
+                                    'Username: $username',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
                                   const SizedBox(height: 24),
                                   Align(
                                     alignment: Alignment.centerRight,
@@ -214,15 +227,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     ListTile(
                       dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(FluentIcons.settings_24_regular, color: Colors.white, size: 20),
-                      title: const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      leading: const Icon(
+                        FluentIcons.settings_24_regular,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      title: const Text(
+                        'Settings',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
                       onTap: () {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
                         );
                       },
                     ),
@@ -265,12 +289,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip(context, 'All', true),
+                  _buildFilterChip(context, ref, 'All'),
                   const SizedBox(width: 8),
-                  _buildFilterChip(context, 'Music', false),
+                  _buildFilterChip(context, ref, 'Songs'),
                   const SizedBox(width: 8),
-                  _buildFilterChip(context, 'Podcasts', false),
-                  const SizedBox(width: 16), // End padding for chips
+                  _buildFilterChip(context, ref, 'Albums'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip(context, ref, 'Playlists'),
+                  const SizedBox(width: 16),
                 ],
               ),
             ),
@@ -280,19 +306,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildFilterChip(BuildContext context, String label, bool isSelected) {
+  Widget _buildFilterChip(BuildContext context, WidgetRef ref, String label) {
+    final currentFilter = ref.watch(homeFilterProvider);
+    final isSelected = label == currentFilter;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF1ED760) : const Color(0xFF2A2A2A),
+        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.transparent, width: 0),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.black : Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            ref.read(homeFilterProvider.notifier).state = label;
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.black : Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -303,34 +344,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return ValueListenableBuilder<List<YtifyResult>>(
       valueListenable: storage.historyListenable,
       builder: (context, history, _) {
-        if (history.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+        if (history.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
 
         // Deduplicate history items by videoId
         final uniqueItems = <String, YtifyResult>{};
         for (var item in history) {
           if (item.videoId != null && !uniqueItems.containsKey(item.videoId)) {
-            uniqueItems[item.videoId!] = item;
+            // Only show songs, exclude videos
+            if (item.resultType != 'video') {
+              uniqueItems[item.videoId!] = item;
+            }
           }
         }
-        
+
         // Take top 6 unique items
         final recentItems = uniqueItems.values.take(6).toList();
 
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 260,
+              mainAxisExtent: 60,
               mainAxisSpacing: 8.0,
               crossAxisSpacing: 8.0,
-              childAspectRatio: 3, // Wide rectangular aspect ratio
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return RectHomeItem(item: recentItems[index]);
-              },
-              childCount: recentItems.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              return RectHomeItem(item: recentItems[index]);
+            }, childCount: recentItems.length),
           ),
         );
       },
@@ -350,19 +393,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Padding(
+              Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                 child: Text(
                   "Your Playlists",
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
               SizedBox(
-                height: 240, 
+                height: 240,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -371,16 +414,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     final name = playlistNames[index];
                     final songs = playlists[name] ?? [];
                     final firstSong = songs.isNotEmpty ? songs.first : null;
-                    final imageUrl = firstSong?.thumbnails.isNotEmpty == true ? firstSong!.thumbnails.last.url : '';
-                    
+                    final imageUrl = firstSong?.thumbnails.isNotEmpty == true
+                        ? firstSong!.thumbnails.last.url
+                        : '';
+
                     // Construct a YtifyResult-like object or just use HomeItemWidget if adaptable
                     // HomeItemWidget takes HomeItem. Let's make a HomeItem.
                     final homeItem = HomeItem(
-                        title: name,
-                        subtitle: '${songs.length} songs',
-                        thumbnails: imageUrl.isNotEmpty ? [{'url': imageUrl, 'width': 500, 'height': 500}] : [],
-                        type: 'playlist',
-                        playlistId: name, 
+                      title: name,
+                      subtitle: '${songs.length} songs',
+                      thumbnails: imageUrl.isNotEmpty
+                          ? [
+                              {'url': imageUrl, 'width': 500, 'height': 500},
+                            ]
+                          : [],
+                      type: 'playlist',
+                      playlistId: name,
                     );
 
                     return HomeItemWidget(item: homeItem);
@@ -393,8 +442,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
-
-
-
 }

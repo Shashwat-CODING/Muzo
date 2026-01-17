@@ -7,10 +7,7 @@ class DownloadState {
   final Map<String, double> progressMap;
   final Map<String, YtifyResult> activeDownloads;
 
-  DownloadState({
-    this.progressMap = const {},
-    this.activeDownloads = const {},
-  });
+  DownloadState({this.progressMap = const {}, this.activeDownloads = const {}});
 
   DownloadState copyWith({
     Map<String, double>? progressMap,
@@ -23,9 +20,11 @@ class DownloadState {
   }
 }
 
-final downloadProvider = StateNotifierProvider<DownloadNotifier, DownloadState>((ref) {
-  return DownloadNotifier(ref);
-});
+final downloadProvider = StateNotifierProvider<DownloadNotifier, DownloadState>(
+  (ref) {
+    return DownloadNotifier(ref);
+  },
+);
 
 class DownloadNotifier extends StateNotifier<DownloadState> {
   final Ref ref;
@@ -35,7 +34,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
 
   Future<bool> startDownload(YtifyResult result) async {
     if (result.videoId == null) return false;
-    
+
     // Add to active downloads
     state = state.copyWith(
       activeDownloads: {...state.activeDownloads, result.videoId!: result},
@@ -57,7 +56,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
     // Remove from active downloads
     final newActive = Map<String, YtifyResult>.from(state.activeDownloads);
     newActive.remove(result.videoId);
-    
+
     final newProgress = Map<String, double>.from(state.progressMap);
     newProgress.remove(result.videoId);
 
@@ -68,16 +67,17 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
 
     return success;
   }
+
   Future<void> deleteDownload(String videoId) async {
     final storage = ref.read(storageServiceProvider);
-    
+
     // Check if it's an active download
     if (state.activeDownloads.containsKey(videoId)) {
       // TODO: Cancel active download (requires DownloadService update)
       // For now, just remove from state
       final newActive = Map<String, YtifyResult>.from(state.activeDownloads);
       newActive.remove(videoId);
-      
+
       final newProgress = Map<String, double>.from(state.progressMap);
       newProgress.remove(videoId);
 
@@ -93,7 +93,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
       // TODO: Delete file from file system
       // final file = File(path);
       // if (await file.exists()) await file.delete();
-      
+
       await storage.removeDownload(videoId);
     }
   }

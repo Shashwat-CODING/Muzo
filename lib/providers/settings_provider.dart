@@ -3,7 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 enum AudioQuality { high, medium, low }
 
-enum ThemeType { dynamic, system, dark, light }
+enum ThemeType { dynamic, dark }
 
 class SettingsState {
   final AudioQuality audioQuality;
@@ -30,7 +30,14 @@ class SettingsState {
 }
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  SettingsNotifier() : super(SettingsState(audioQuality: AudioQuality.high, isLiteMode: false, themeType: ThemeType.dynamic)) {
+  SettingsNotifier()
+    : super(
+        SettingsState(
+          audioQuality: AudioQuality.high,
+          isLiteMode: false,
+          themeType: ThemeType.dynamic,
+        ),
+      ) {
     _loadSettings();
   }
 
@@ -39,11 +46,17 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final qualityIndex = box.get('audioQuality', defaultValue: 0);
     final isLiteMode = box.get('isLiteMode', defaultValue: false);
     final themeTypeIndex = box.get('themeModeType', defaultValue: 0);
-    
+
+    // Migration logic: If saved index is out of bounds (legacy light/system), default to dynamic (0)
+    final validThemeIndex =
+        (themeTypeIndex >= 0 && themeTypeIndex < ThemeType.values.length)
+        ? themeTypeIndex
+        : 0;
+
     state = SettingsState(
       audioQuality: AudioQuality.values[qualityIndex],
       isLiteMode: isLiteMode,
-      themeType: ThemeType.values[themeTypeIndex],
+      themeType: ThemeType.values[validThemeIndex],
     );
   }
 
@@ -58,7 +71,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final box = await Hive.openBox('settings');
     await box.put('isLiteMode', isLiteMode);
   }
-  
+
   Future<void> setThemeType(ThemeType themeType) async {
     state = state.copyWith(themeType: themeType);
     final box = await Hive.openBox('settings');
@@ -66,6 +79,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 }
 
-final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
-  return SettingsNotifier();
-});
+final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
+  (ref) {
+    return SettingsNotifier();
+  },
+);

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/providers/settings_provider.dart';
-import 'package:muzo/providers/theme_provider.dart';
 
 class GlobalBackground extends ConsumerWidget {
   final Widget child;
@@ -11,7 +9,6 @@ class GlobalBackground extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaItemAsync = ref.watch(currentMediaItemProvider);
     final isLiteMode = ref.watch(settingsProvider).isLiteMode;
 
     if (isLiteMode) {

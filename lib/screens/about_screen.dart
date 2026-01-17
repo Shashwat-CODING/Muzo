@@ -1,8 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:muzo/widgets/global_background.dart';
-
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -37,10 +35,7 @@ class AboutScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [
-                        Colors.blue.shade400,
-                        Colors.purple.shade400,
-                      ],
+                      colors: [Colors.blue.shade400, Colors.purple.shade400],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -70,7 +65,10 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -106,9 +104,17 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(height: 48),
                 _buildInfoRow(FluentIcons.info_24_regular, 'Version', '1.2.0'),
                 const SizedBox(height: 16),
-                _buildInfoRow(FluentIcons.person_24_regular, 'Developer', 'Shashwat'),
+                _buildInfoRow(
+                  FluentIcons.person_24_regular,
+                  'Developer',
+                  'Shashwat',
+                ),
                 const SizedBox(height: 16),
-                _buildInfoRow(FluentIcons.laptop_24_regular, 'Platform', 'Flutter'),
+                _buildInfoRow(
+                  FluentIcons.laptop_24_regular,
+                  'Platform',
+                  'Flutter',
+                ),
                 const SizedBox(height: 40),
                 const SizedBox(height: 160),
               ],

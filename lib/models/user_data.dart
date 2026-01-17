@@ -21,19 +21,23 @@ class UserData {
     return UserData(
       user: User.fromJson(json['user'] ?? {}),
       stats: Stats.fromJson(json['stats'] ?? {}),
-      history: (json['history'] as List?)
+      history:
+          (json['history'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
-      favorites: (json['favorites'] as List?)
+      favorites:
+          (json['favorites'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
-      subscriptions: (json['subscriptions'] as List?)
+      subscriptions:
+          (json['subscriptions'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
-      playlists: (json['playlists'] as List?)
+      playlists:
+          (json['playlists'] as List?)
               ?.map((e) => Playlist.fromJson(e))
               .toList() ??
           [],
@@ -46,11 +50,7 @@ class User {
   final String username;
   final String email;
 
-  User({
-    required this.id,
-    required this.username,
-    required this.email,
-  });
+  User({required this.id, required this.username, required this.email});
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -108,10 +108,19 @@ class Playlist {
       name: json['name'] ?? '',
       createdAt: json['created_at'] ?? '',
       songCount: json['song_count'] ?? 0,
-      songs: (json['songs'] as List?)
+      songs:
+          (json['songs'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'created_at': createdAt,
+    'song_count': songCount,
+    'songs': songs.map((e) => e.toJson()).toList(),
+  };
 }

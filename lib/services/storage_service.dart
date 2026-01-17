@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:muzo/models/ytify_result.dart';
-import 'package:muzo/models/user_data.dart';
 import 'package:muzo/services/ytify_service.dart';
 import 'package:muzo/services/ytm_home.dart';
 import 'package:muzo/services/music_api_service.dart';
@@ -19,14 +18,20 @@ class StorageService {
   static const String _userAvatarBoxName = 'user_avatar';
   static const String _historyBoxName = 'history_cache';
   static const String _homeBoxName = 'home_cache';
+  static const String _favoritesBoxName = 'favorites_cache';
+  static const String _subscriptionsBoxName = 'subscriptions_cache';
+  static const String _playlistsBoxName = 'playlists_cache';
 
   MusicApiService? _api;
-  
+
   // In-memory state with Notifiers
   final ValueNotifier<List<YtifyResult>> _historyNotifier = ValueNotifier([]);
   final ValueNotifier<List<YtifyResult>> _favoritesNotifier = ValueNotifier([]);
-  final ValueNotifier<List<YtifyResult>> _subscriptionsNotifier = ValueNotifier([]);
-  final ValueNotifier<Map<String, List<YtifyResult>>> _playlistsNotifier = ValueNotifier({});
+  final ValueNotifier<List<YtifyResult>> _subscriptionsNotifier = ValueNotifier(
+    [],
+  );
+  final ValueNotifier<Map<String, List<YtifyResult>>> _playlistsNotifier =
+      ValueNotifier({});
   final ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier(null);
 
@@ -38,7 +43,7 @@ class StorageService {
     await Hive.openBox(_userAvatarBoxName);
     await Hive.openBox(_historyBoxName);
     await Hive.openBox(_homeBoxName);
-    
+
     // Load cached history
     final historyBox = Hive.box(_historyBoxName);
     final cachedHistory = historyBox.get('list');
@@ -52,44 +57,93 @@ class StorageService {
       }
     }
 
+    // Load cached favorites
+    await Hive.openBox(_favoritesBoxName);
+    final favoritesBox = Hive.box(_favoritesBoxName);
+    final cachedFavorites = favoritesBox.get('list');
+    if (cachedFavorites != null) {
+      try {
+        _favoritesNotifier.value = (cachedFavorites as List)
+            .map((e) => YtifyResult.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading cached favorites: $e');
+      }
+    }
+
+    // Load cached subscriptions
+    await Hive.openBox(_subscriptionsBoxName);
+    final subscriptionsBox = Hive.box(_subscriptionsBoxName);
+    final cachedSubscriptions = subscriptionsBox.get('list');
+    if (cachedSubscriptions != null) {
+      try {
+        _subscriptionsNotifier.value = (cachedSubscriptions as List)
+            .map((e) => YtifyResult.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading cached subscriptions: $e');
+      }
+    }
+
+    // Load cached playlists
+    await Hive.openBox(_playlistsBoxName);
+    final playlistsBox = Hive.box(_playlistsBoxName);
+    final cachedPlaylists = playlistsBox.get('map');
+    if (cachedPlaylists != null) {
+      try {
+        final Map<String, List<YtifyResult>> playlistMap = {};
+        final rawMap = Map<String, dynamic>.from(cachedPlaylists);
+        rawMap.forEach((key, value) {
+          playlistMap[key] = (value as List)
+              .map((e) => YtifyResult.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        });
+        _playlistsNotifier.value = playlistMap;
+      } catch (e) {
+        debugPrint('Error loading cached playlists: $e');
+      }
+    }
+
     _api = MusicApiService(this);
     debugPrint('StorageService initialized with API');
   }
 
-  Future<void> refreshAll() async {
+  Future<void> refreshAll({bool silent = false}) async {
     if (_api == null) {
       debugPrint('Error: API not initialized during refreshAll');
       return;
     }
-    
-    isLoadingNotifier.value = true;
-    
+
+    if (!silent) isLoadingNotifier.value = true;
+
     try {
       final userData = await _api!.getUserData();
-      
+
       // Update User Info
       await setUserInfo(userData.user.username, userData.user.email);
-      
+
       // Update History
       _historyNotifier.value = userData.history;
       _saveHistoryToCache(userData.history);
-      
+
       // Update Favorites
       _favoritesNotifier.value = userData.favorites;
-      
+      _saveFavoritesToCache(userData.favorites);
+
       // Update Subscriptions
       _subscriptionsNotifier.value = userData.subscriptions;
-      
+      _saveSubscriptionsToCache(userData.subscriptions);
+
       // Update Playlists
       final Map<String, List<YtifyResult>> playlistMap = {};
       for (var p in userData.playlists) {
         playlistMap[p.name] = p.songs;
       }
       _playlistsNotifier.value = playlistMap;
-      
+      _savePlaylistsToCache(playlistMap);
     } catch (e) {
       debugPrint('Error refreshing data: $e');
-      // Fallback to individual calls if consolidated fails? 
+      // Fallback to individual calls if consolidated fails?
       // Or just log error. The requirement implies replacing it.
       // We can keep individual calls as fallback if we wanted resilience, but let's stick to the plan.
     } finally {
@@ -99,11 +153,14 @@ class StorageService {
 
   // Listenables for UI
   ValueListenable<List<YtifyResult>> get historyListenable => _historyNotifier;
-  ValueListenable<List<YtifyResult>> get favoritesListenable => _favoritesNotifier;
-  ValueListenable<List<YtifyResult>> get subscriptionsListenable => _subscriptionsNotifier;
+  ValueListenable<List<YtifyResult>> get favoritesListenable =>
+      _favoritesNotifier;
+  ValueListenable<List<YtifyResult>> get subscriptionsListenable =>
+      _subscriptionsNotifier;
   // For playlists, the UI expects a Box listenable usually, but we'll adapt.
   // We expose the map notifier.
-  ValueListenable<Map<String, List<YtifyResult>>> get playlistsListenable => _playlistsNotifier;
+  ValueListenable<Map<String, List<YtifyResult>>> get playlistsListenable =>
+      _playlistsNotifier;
 
   // History
   Future<void> addToHistory(YtifyResult result) async {
@@ -140,14 +197,14 @@ class StorageService {
     current.removeWhere((item) => item.videoId == videoId);
     _historyNotifier.value = current;
     _saveHistoryToCache(current);
-    
+
     try {
       await _api!.removeFromHistory(videoId);
     } catch (e) {
       errorNotifier.value = 'Failed to remove from history: $e';
-      // Revert optimistic update? 
-      // For history, maybe not strictly necessary to revert as it's less critical, 
-      // but strictly speaking we should. 
+      // Revert optimistic update?
+      // For history, maybe not strictly necessary to revert as it's less critical,
+      // but strictly speaking we should.
       // However, fetching the item back is hard without knowing what it was exactly (we removed it).
       // We could keep a reference to the removed item.
     } finally {
@@ -157,7 +214,7 @@ class StorageService {
 
   Future<void> clearHistory() async {
     if (_api == null) return;
-    
+
     isLoadingNotifier.value = true;
     try {
       await _api!.clearHistory();
@@ -177,12 +234,14 @@ class StorageService {
 
   Future<void> createPlaylist(String name) async {
     // Optimistic
-    final current = Map<String, List<YtifyResult>>.from(_playlistsNotifier.value);
+    final current = Map<String, List<YtifyResult>>.from(
+      _playlistsNotifier.value,
+    );
     if (!current.containsKey(name)) {
       current[name] = [];
       _playlistsNotifier.value = current;
-      
-      // API: Add a song to create? Or just create? 
+
+      // API: Add a song to create? Or just create?
       // The API docs say "3. Add Song to Playlist ... If the playlist doesn't exist, it will be created automatically".
       // There is no "Create empty playlist" endpoint explicitly.
       // So we can't really create an empty playlist on the backend until we add a song.
@@ -192,11 +251,13 @@ class StorageService {
 
   Future<void> deletePlaylist(String name) async {
     if (_api == null) return;
-    
+
     isLoadingNotifier.value = true;
     try {
       await _api!.deletePlaylist(name);
-      final current = Map<String, List<YtifyResult>>.from(_playlistsNotifier.value);
+      final current = Map<String, List<YtifyResult>>.from(
+        _playlistsNotifier.value,
+      );
       current.remove(name);
       _playlistsNotifier.value = current;
     } catch (e) {
@@ -211,12 +272,14 @@ class StorageService {
   }
 
   Future<void> addToPlaylist(String name, YtifyResult result) async {
-    final current = Map<String, List<YtifyResult>>.from(_playlistsNotifier.value);
+    final current = Map<String, List<YtifyResult>>.from(
+      _playlistsNotifier.value,
+    );
     final songs = List<YtifyResult>.from(current[name] ?? []);
-    
+
     if (!songs.any((s) => s.videoId == result.videoId)) {
       if (_api == null) return;
-      
+
       isLoadingNotifier.value = true;
       try {
         await _api!.addToPlaylist(name, result);
@@ -232,14 +295,16 @@ class StorageService {
   }
 
   Future<void> removeFromPlaylist(String name, String videoId) async {
-    final current = Map<String, List<YtifyResult>>.from(_playlistsNotifier.value);
+    final current = Map<String, List<YtifyResult>>.from(
+      _playlistsNotifier.value,
+    );
     final songs = List<YtifyResult>.from(current[name] ?? []);
-    
+
     // Optimistic
     songs.removeWhere((s) => s.videoId == videoId);
     current[name] = songs;
     _playlistsNotifier.value = current;
-    
+
     if (_api == null) return;
 
     isLoadingNotifier.value = true;
@@ -251,7 +316,7 @@ class StorageService {
       isLoadingNotifier.value = false;
     }
   }
-  
+
   // Favorites
   List<YtifyResult> getFavorites() {
     return _favoritesNotifier.value;
@@ -263,11 +328,11 @@ class StorageService {
 
   Future<void> toggleFavorite(YtifyResult result) async {
     if (_api == null) return;
-    
+
     isLoadingNotifier.value = true;
     final current = List<YtifyResult>.from(_favoritesNotifier.value);
     final index = current.indexWhere((s) => s.videoId == result.videoId);
-    
+
     try {
       if (index != -1) {
         // Remove
@@ -294,7 +359,7 @@ class StorageService {
   List<Map<String, dynamic>> getDownloads() {
     final dynamic data = _downloadsBox.get('list');
     if (data == null) return [];
-    
+
     try {
       final List<dynamic> jsonList = data;
       return jsonList.map((json) => Map<String, dynamic>.from(json)).toList();
@@ -310,7 +375,10 @@ class StorageService {
 
   String? getDownloadPath(String videoId) {
     final downloads = getDownloads();
-    final item = downloads.firstWhere((d) => d['videoId'] == videoId, orElse: () => {});
+    final item = downloads.firstWhere(
+      (d) => d['videoId'] == videoId,
+      orElse: () => {},
+    );
     return item.isNotEmpty ? item['path'] : null;
   }
 
@@ -344,11 +412,11 @@ class StorageService {
 
   Future<void> toggleSubscription(YtifyResult channel) async {
     if (_api == null) return;
-    
+
     isLoadingNotifier.value = true;
     final current = List<YtifyResult>.from(_subscriptionsNotifier.value);
     final index = current.indexWhere((s) => s.browseId == channel.browseId);
-    
+
     try {
       if (index != -1) {
         // Unsubscribe
@@ -370,7 +438,8 @@ class StorageService {
 
   // Artist Images (Local Cache)
   Box get _artistImagesBox => Hive.box(_artistImagesBoxName);
-  ValueListenable<Box> get artistImagesListenable => _artistImagesBox.listenable();
+  ValueListenable<Box> get artistImagesListenable =>
+      _artistImagesBox.listenable();
 
   String? getArtistImage(String artistId) {
     return _artistImagesBox.get(artistId);
@@ -389,7 +458,7 @@ class StorageService {
     _fetchingArtists.add(artistId);
 
     try {
-      final apiService = YtifyApiService(); 
+      final apiService = YtifyApiService();
       final details = await apiService.getArtistDetails(artistId);
       if (details != null && details.artistAvatar.isNotEmpty) {
         await setArtistImage(artistId, details.artistAvatar);
@@ -417,8 +486,10 @@ class StorageService {
     }
   }
 
-  String get rapidApiCountryCode => _settingsBox.get('rapidApiCountryCode', defaultValue: 'IN');
-  Future<void> setRapidApiCountryCode(String code) => _settingsBox.put('rapidApiCountryCode', code);
+  String get rapidApiCountryCode =>
+      _settingsBox.get('rapidApiCountryCode', defaultValue: 'IN');
+  Future<void> setRapidApiCountryCode(String code) =>
+      _settingsBox.put('rapidApiCountryCode', code);
 
   // User Info
   String? get username => _settingsBox.get('username');
@@ -464,7 +535,7 @@ class StorageService {
       // SvgPicture.network does caching by default if configured, but maybe not persistent across restarts if not configured right.
       // However, the user specifically asked to "cache avtar image".
       // Let's download the SVG content and store it as a string.
-      
+
       // We need to import http. But wait, adding imports might be messy with replace_file_content if not careful.
       // Let's check imports first.
       // The file imports:
@@ -474,26 +545,26 @@ class StorageService {
       // import 'package:muzo/models/ytify_result.dart';
       // import 'package:muzo/services/ytify_service.dart';
       // import 'package:muzo/services/music_api_service.dart';
-      
+
       // We can use a simple http get.
       // Actually, `YtifyApiService` might have a dio instance or similar.
-      // Let's just store the URL and let `CachedNetworkImage` handle it? 
+      // Let's just store the URL and let `CachedNetworkImage` handle it?
       // No, the current implementation uses `SvgPicture.network`.
       // `flutter_svg` supports caching but maybe the user wants it offline.
       // Storing the SVG string is a good way.
-      
+
       // I'll add the method to fetch and store. I will need to add `import 'package:http/http.dart' as http;` to the top of the file.
       // But I can't add imports easily with this tool call if I'm targeting the bottom.
       // I'll do this in two steps. First add the methods, then add the import.
-      
+
       // Actually, I can just use the URL for now and let the UI handle it, but the user asked to "cache" it.
       // If I store the SVG string, I can use `SvgPicture.string`.
-      
+
       // Let's assume I'll add the import in a separate call.
-      
+
       final url = 'https://api.dicebear.com/9.x/rings/svg?seed=$user';
       final response = await http.get(Uri.parse(url));
-      
+
       if (response.statusCode == 200) {
         await _userAvatarBox.put('avatar_svg', response.body);
       } else {
@@ -503,16 +574,21 @@ class StorageService {
       debugPrint('Error fetching user avatar: $e');
     }
   }
+
   // Auto Queue Setting
-  bool get isAutoQueueEnabled => _settingsBox.get('isAutoQueueEnabled', defaultValue: true);
-  Future<void> setAutoQueueEnabled(bool value) => _settingsBox.put('isAutoQueueEnabled', value);
+  bool get isAutoQueueEnabled =>
+      _settingsBox.get('isAutoQueueEnabled', defaultValue: true);
+  Future<void> setAutoQueueEnabled(bool value) =>
+      _settingsBox.put('isAutoQueueEnabled', value);
 
   // Lofi Settings
   double get lofiSpeed => _settingsBox.get('lofiSpeed', defaultValue: 0.85);
-  Future<void> setLofiSpeed(double value) => _settingsBox.put('lofiSpeed', value);
+  Future<void> setLofiSpeed(double value) =>
+      _settingsBox.put('lofiSpeed', value);
 
   double get lofiPitch => _settingsBox.get('lofiPitch', defaultValue: 0.85);
-  Future<void> setLofiPitch(double value) => _settingsBox.put('lofiPitch', value);
+  Future<void> setLofiPitch(double value) =>
+      _settingsBox.put('lofiPitch', value);
 
   // Cache Helpers
   Future<void> _saveHistoryToCache(List<YtifyResult> history) async {
@@ -521,6 +597,41 @@ class StorageService {
       await box.put('list', history.map((e) => e.toJson()).toList());
     } catch (e) {
       debugPrint('Error saving history cache: $e');
+    }
+  }
+
+  Future<void> _saveFavoritesToCache(List<YtifyResult> favorites) async {
+    try {
+      final box = Hive.box(_favoritesBoxName);
+      await box.put('list', favorites.map((e) => e.toJson()).toList());
+    } catch (e) {
+      debugPrint('Error saving favorites cache: $e');
+    }
+  }
+
+  Future<void> _saveSubscriptionsToCache(
+    List<YtifyResult> subscriptions,
+  ) async {
+    try {
+      final box = Hive.box(_subscriptionsBoxName);
+      await box.put('list', subscriptions.map((e) => e.toJson()).toList());
+    } catch (e) {
+      debugPrint('Error saving subscriptions cache: $e');
+    }
+  }
+
+  Future<void> _savePlaylistsToCache(
+    Map<String, List<YtifyResult>> playlists,
+  ) async {
+    try {
+      final box = Hive.box(_playlistsBoxName);
+      final Map<String, dynamic> jsonMap = {};
+      playlists.forEach((key, value) {
+        jsonMap[key] = value.map((e) => e.toJson()).toList();
+      });
+      await box.put('map', jsonMap);
+    } catch (e) {
+      debugPrint('Error saving playlists cache: $e');
     }
   }
 
@@ -549,5 +660,3 @@ class StorageService {
     }
   }
 }
-
-

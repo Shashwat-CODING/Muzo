@@ -10,7 +10,7 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
 class AuthService {
   final StorageService _storage;
-  static const String _baseUrl = 'https://mowttvwofyojqsowpsga.supabase.co/functions/v1/express/api/auth';
+  static const String _baseUrl = 'https://veltrixcode-ytify.hf.space/api/auth';
 
   AuthService(this._storage);
 
@@ -32,7 +32,7 @@ class AuthService {
       final data = jsonDecode(response.body);
       final token = data['token'];
       final user = data['user'];
-      
+
       await _storage.setAuthToken(token);
       await _storage.setUserInfo(user['username'], user['email']);
     } else {
@@ -45,17 +45,14 @@ class AuthService {
     final response = await http.post(
       Uri.parse('$_baseUrl/login'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
+      body: jsonEncode({'email': email, 'password': password}),
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final token = data['token'];
       final user = data['user'];
-      
+
       await _storage.setAuthToken(token);
       await _storage.setUserInfo(user['username'], user['email']);
     } else {
@@ -85,7 +82,7 @@ class AuthService {
         final data = jsonDecode(response.body);
         final newToken = data['token'];
         final user = data['user'];
-        
+
         await _storage.setAuthToken(newToken);
         if (user != null) {
           await _storage.setUserInfo(user['username'], user['email']);
@@ -108,9 +105,7 @@ class AuthService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/verify'),
-        headers: {
-          'Authorization': 'Bearer $currentToken',
-        },
+        headers: {'Authorization': 'Bearer $currentToken'},
       );
 
       if (response.statusCode == 200) {

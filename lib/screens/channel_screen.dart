@@ -72,12 +72,13 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
               slivers: [
-
                 SliverAppBar(
                   expandedHeight: 340.0,
                   floating: false,
                   pinned: true,
-                  backgroundColor: const Color(0xFF121212), // Match app theme or transparent
+                  backgroundColor: const Color(
+                    0xFF121212,
+                  ), // Match app theme or transparent
                   flexibleSpace: FlexibleSpaceBar(
                     background: Stack(
                       fit: StackFit.expand,
@@ -85,13 +86,17 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                         // Background Image
                         if (widget.thumbnailUrl != null)
                           CachedNetworkImage(
-                            imageUrl: widget.thumbnailUrl!.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
+                            imageUrl: widget.thumbnailUrl!.replaceAll(
+                              RegExp(r'=[sw]\d+(-h\d+)?'),
+                              '=s800',
+                            ),
                             fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(color: Colors.grey[900]),
+                            errorWidget: (context, url, error) =>
+                                Container(color: Colors.grey[900]),
                           )
                         else
                           Container(color: Colors.grey[900]),
-                        
+
                         // Gradient Overlay
                         const DecoratedBox(
                           decoration: BoxDecoration(
@@ -128,45 +133,85 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   '${widget.subscriberCount} Subscribers',
-                                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ],
                               const SizedBox(height: 16),
                               Consumer(
                                 builder: (context, ref, _) {
-                                  final storage = ref.watch(storageServiceProvider);
-                                  return ValueListenableBuilder<List<YtifyResult>>(
-                                    valueListenable: storage.subscriptionsListenable,
+                                  final storage = ref.watch(
+                                    storageServiceProvider,
+                                  );
+                                  return ValueListenableBuilder<
+                                    List<YtifyResult>
+                                  >(
+                                    valueListenable:
+                                        storage.subscriptionsListenable,
                                     builder: (context, subscriptions, _) {
-                                      final isSubscribed = storage.isSubscribed(widget.channelId);
+                                      final isSubscribed = storage.isSubscribed(
+                                        widget.channelId,
+                                      );
                                       return SizedBox(
                                         height: 36,
                                         child: OutlinedButton(
                                           onPressed: () {
                                             final channel = YtifyResult(
                                               title: widget.title ?? 'Unknown',
-                                              thumbnails: widget.thumbnailUrl != null
-                                                  ? [YtifyThumbnail(url: widget.thumbnailUrl!.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'), width: 0, height: 0)]
+                                              thumbnails:
+                                                  widget.thumbnailUrl != null
+                                                  ? [
+                                                      YtifyThumbnail(
+                                                        url: widget
+                                                            .thumbnailUrl!
+                                                            .replaceAll(
+                                                              RegExp(
+                                                                r'=[sw]\d+(-h\d+)?',
+                                                              ),
+                                                              '=s800',
+                                                            ),
+                                                        width: 0,
+                                                        height: 0,
+                                                      ),
+                                                    ]
                                                   : [],
                                               resultType: 'channel',
                                               isExplicit: false,
                                               browseId: widget.channelId,
-                                              subscriberCount: widget.subscriberCount,
+                                              subscriberCount:
+                                                  widget.subscriberCount,
                                               videoCount: widget.videoCount,
                                               description: widget.description,
                                             );
                                             storage.toggleSubscription(channel);
                                           },
                                           style: OutlinedButton.styleFrom(
-                                            side: BorderSide(color: isSubscribed ? Colors.grey : Colors.white),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                                            backgroundColor: isSubscribed ? Colors.transparent : Colors.transparent,
+                                            side: BorderSide(
+                                              color: isSubscribed
+                                                  ? Colors.grey
+                                                  : Colors.white,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                            ),
+                                            backgroundColor: isSubscribed
+                                                ? Colors.transparent
+                                                : Colors.transparent,
                                           ),
                                           child: Text(
-                                            isSubscribed ? 'FOLLOWING' : 'FOLLOW',
+                                            isSubscribed
+                                                ? 'FOLLOWING'
+                                                : 'FOLLOW',
                                             style: TextStyle(
-                                              color: isSubscribed ? Colors.white : Colors.white,
+                                              color: isSubscribed
+                                                  ? Colors.white
+                                                  : Colors.white,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 12,
                                               letterSpacing: 1.0,
@@ -203,11 +248,15 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                         ),
                         IconButton(
                           onPressed: () {
-                             if (_videos.isNotEmpty) {
-                               ref.read(audioHandlerProvider).playAll(_videos);
-                             }
+                            if (_videos.isNotEmpty) {
+                              ref.read(audioHandlerProvider).playAll(_videos);
+                            }
                           },
-                          icon: const Icon(FluentIcons.play_circle_24_filled, color: Color(0xFF1ED760), size: 40), // Spotify Green
+                          icon: const Icon(
+                            FluentIcons.play_circle_24_filled,
+                            color: Color(0xFF1ED760),
+                            size: 40,
+                          ), // Spotify Green
                         ),
                       ],
                     ),
@@ -217,24 +266,24 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                 // Videos List
                 if (_videos.isNotEmpty)
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final video = _videos[index];
-                        return ResultTile(result: video);
-                      },
-                      childCount: _videos.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final video = _videos[index];
+                      return ResultTile(result: video);
+                    }, childCount: _videos.length),
                   )
                 else
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(
-                        child: Text('No videos found', style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          'No videos found',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                     ),
                   ),
-                  
+
                 const SliverPadding(padding: EdgeInsets.only(bottom: 50)),
               ],
             ),

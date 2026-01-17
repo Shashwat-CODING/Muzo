@@ -11,11 +11,12 @@ class OfflineIndicator extends StatelessWidget {
       stream: Connectivity().onConnectivityChanged,
       builder: (context, snapshot) {
         final results = snapshot.data;
-        final isOffline = results != null && 
-                         results.isNotEmpty && 
-                         !results.contains(ConnectivityResult.mobile) && 
-                         !results.contains(ConnectivityResult.wifi) && 
-                         !results.contains(ConnectivityResult.ethernet);
+        final isOffline =
+            results != null &&
+            results.isNotEmpty &&
+            !results.contains(ConnectivityResult.mobile) &&
+            !results.contains(ConnectivityResult.wifi) &&
+            !results.contains(ConnectivityResult.ethernet);
 
         if (!isOffline) return const SizedBox.shrink();
 

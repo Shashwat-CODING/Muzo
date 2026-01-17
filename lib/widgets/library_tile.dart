@@ -47,17 +47,22 @@ class LibraryTile extends StatelessWidget {
                 shape: isRound ? BoxShape.circle : BoxShape.rectangle,
                 borderRadius: isRound ? null : BorderRadius.circular(4),
                 color: Colors.grey[850], // Placeholder color
-                border: isLoading ? Border.all(color: const Color(0xFF1ED760), width: 2) : null,
+                border: isLoading
+                    ? Border.all(color: const Color(0xFF1ED760), width: 2)
+                    : null,
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(isRound ? 56 : (isLoading ? 2 : 4)), // Adjust radius if border present
+                borderRadius: BorderRadius.circular(
+                  isRound ? 56 : (isLoading ? 2 : 4),
+                ), // Adjust radius if border present
                 child: imageUrl != null && imageUrl!.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: imageUrl!,
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Center(
                           child: Icon(
-                            placeholderIcon ?? FluentIcons.music_note_2_24_regular,
+                            placeholderIcon ??
+                                FluentIcons.music_note_2_24_regular,
                             color: Colors.grey,
                             size: 24,
                           ),
@@ -65,7 +70,8 @@ class LibraryTile extends StatelessWidget {
                       )
                     : Center(
                         child: Icon(
-                          placeholderIcon ?? FluentIcons.music_note_2_24_regular,
+                          placeholderIcon ??
+                              FluentIcons.music_note_2_24_regular,
                           color: Colors.grey,
                           size: 24,
                         ),
@@ -89,21 +95,22 @@ class LibraryTile extends StatelessWidget {
           ? Row(
               children: [
                 if (isPinned) ...[
-                   Transform.rotate(
-                     angle: 0.7,
-                     child: const Icon(FluentIcons.pin_12_filled, color: Color(0xFF1ED760), size: 12)
-                   ),
-                   const SizedBox(width: 4),
+                  Transform.rotate(
+                    angle: 0.7,
+                    child: const Icon(
+                      FluentIcons.pin_12_filled,
+                      color: Color(0xFF1ED760),
+                      size: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                 ],
                 Expanded(
                   child: Text(
                     subtitle!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 13),
                   ),
                 ),
               ],

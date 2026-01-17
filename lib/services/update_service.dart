@@ -5,27 +5,25 @@ import 'package:url_launcher/url_launcher.dart';
 
 class UpdateService {
   // Current app version - Update this when releasing a new version
-  static const String currentAppVersion = '1.2.1';
-  
+  static const String currentAppVersion = '2.0.1';
+
   static const String _repoOwner = 'Shashwat-CODING';
   static const String _repoName = 'Muzo';
 
   Future<void> checkForUpdates(BuildContext context) async {
     try {
       final response = await http.get(
-        Uri.parse('https://api.github.com/repos/$_repoOwner/$_repoName/releases/latest'),
+        Uri.parse(
+          'https://api.github.com/repos/$_repoOwner/$_repoName/releases/latest',
+        ),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final String latestVersion = data['tag_name'] ?? '';
         final String htmlUrl = data['html_url'] ?? '';
-        
-        // Simple version comparison (assumes format like v1.2.0 or 1.2.0)
-        String cleanLatest = latestVersion.replaceAll('v', '');
-        String cleanCurrent = currentAppVersion.replaceAll('v', '');
 
-        if (_isNewerVersion(cleanLatest, cleanCurrent)) {
+        if (_isNewerVersion(latestVersion, currentAppVersion)) {
           if (context.mounted) {
             _showUpdateDialog(context, latestVersion, htmlUrl);
           }
@@ -37,18 +35,36 @@ class UpdateService {
   }
 
   bool _isNewerVersion(String latest, String current) {
-    List<String> latestParts = latest.split('.');
-    List<String> currentParts = current.split('.');
+    try {
+      final latestClean = latest.trim().toLowerCase().replaceAll('v', '');
+      final currentClean = current.trim().toLowerCase().replaceAll('v', '');
 
-    for (int i = 0; i < latestParts.length && i < currentParts.length; i++) {
-      int l = int.tryParse(latestParts[i]) ?? 0;
-      int c = int.tryParse(currentParts[i]) ?? 0;
-      
-      if (l > c) return true;
-      if (l < c) return false;
+      if (latestClean == currentClean) return false;
+
+      List<String> latestParts = latestClean.split('.');
+      List<String> currentParts = currentClean.split('.');
+
+      int maxLength = latestParts.length > currentParts.length
+          ? latestParts.length
+          : currentParts.length;
+
+      for (int i = 0; i < maxLength; i++) {
+        int l = i < latestParts.length
+            ? int.tryParse(latestParts[i].replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0
+            : 0;
+        int c = i < currentParts.length
+            ? int.tryParse(currentParts[i].replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0
+            : 0;
+
+        if (l > c) return true;
+        if (l < c) return false;
+      }
+    } catch (e) {
+      debugPrint('Error comparing versions: $e');
     }
-    
-    return latestParts.length > currentParts.length;
+    return false;
   }
 
   void _showUpdateDialog(BuildContext context, String version, String url) {
@@ -56,7 +72,9 @@ class UpdateService {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Update Available'),
-        content: Text('A new version of Muzo ($version) is available. Would you like to update?'),
+        content: Text(
+          'A new version of Muzo ($version) is available. Would you like to update?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

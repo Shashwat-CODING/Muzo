@@ -17,7 +17,8 @@ class BackgroudImage extends ConsumerWidget {
           child: CachedNetworkImage(
             imageUrl: mediaItem!.artUri.toString(),
             fit: BoxFit.cover,
-            errorWidget: (context, url, error) => Container(color: Colors.black),
+            errorWidget: (context, url, error) =>
+                Container(color: Colors.black),
           ),
         );
       },

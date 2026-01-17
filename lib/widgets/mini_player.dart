@@ -45,7 +45,10 @@ class MiniPlayer extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4.0,
+                  vertical: 2.0,
+                ),
                 child: Row(
                   children: [
                     const SizedBox(width: 8),
@@ -53,12 +56,15 @@ class MiniPlayer extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(6),
                       child: CachedNetworkImage(
                         imageUrl: mediaItem.artUri.toString(),
-                        height: 48, 
-                        width: 48,
+                        height: 42,
+                        width: 42,
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
                           color: Colors.grey[800],
-                          child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+                          child: const Icon(
+                            FluentIcons.music_note_2_24_regular,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -101,7 +107,9 @@ class MiniPlayer extends ConsumerWidget {
                             final isFav = storage.isFavorite(mediaItem.id);
                             return IconButton(
                               icon: Icon(
-                                isFav ? FluentIcons.heart_24_filled : FluentIcons.heart_24_regular,
+                                isFav
+                                    ? FluentIcons.heart_24_filled
+                                    : FluentIcons.heart_24_regular,
                                 color: isFav ? Colors.red : Colors.white,
                                 size: 24,
                               ),
@@ -110,8 +118,19 @@ class MiniPlayer extends ConsumerWidget {
                                 final result = YtifyResult(
                                   videoId: mediaItem.id,
                                   title: mediaItem.title,
-                                  thumbnails: [YtifyThumbnail(url: mediaItem.artUri.toString(), width: 0, height: 0)],
-                                  artists: [YtifyArtist(name: mediaItem.artist ?? '', id: '')], 
+                                  thumbnails: [
+                                    YtifyThumbnail(
+                                      url: mediaItem.artUri.toString(),
+                                      width: 0,
+                                      height: 0,
+                                    ),
+                                  ],
+                                  artists: [
+                                    YtifyArtist(
+                                      name: mediaItem.artist ?? '',
+                                      id: '',
+                                    ),
+                                  ],
                                   resultType: isSong ? 'song' : 'video',
                                   isExplicit: false,
                                 );
@@ -125,7 +144,9 @@ class MiniPlayer extends ConsumerWidget {
                     isPlayingAsync.when(
                       data: (isPlaying) => IconButton(
                         icon: Icon(
-                          isPlaying ? FluentIcons.pause_24_filled : FluentIcons.play_24_filled,
+                          isPlaying
+                              ? FluentIcons.pause_24_filled
+                              : FluentIcons.play_24_filled,
                           color: Colors.white,
                           size: 28,
                         ),
@@ -139,11 +160,14 @@ class MiniPlayer extends ConsumerWidget {
                         },
                       ),
                       loading: () => const SizedBox(
-                        width: 24, 
-                        height: 24, 
-                        child: CircularProgressIndicator(strokeWidth: 2)
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                      error: (_, __) => const Icon(FluentIcons.error_circle_24_regular, size: 24),
+                      error: (_, __) => const Icon(
+                        FluentIcons.error_circle_24_regular,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -153,10 +177,14 @@ class MiniPlayer extends ConsumerWidget {
                 stream: audioHandler.player.positionStream,
                 builder: (context, snapshot) {
                   final position = snapshot.data ?? Duration.zero;
-                  final duration = mediaItem.duration ?? audioHandler.player.duration ?? Duration.zero;
+                  final duration =
+                      mediaItem.duration ??
+                      audioHandler.player.duration ??
+                      Duration.zero;
                   double value = 0.0;
                   if (duration.inMilliseconds > 0) {
-                    value = (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+                    value = (position.inMilliseconds / duration.inMilliseconds)
+                        .clamp(0.0, 1.0);
                   }
                   return Align(
                     alignment: Alignment.bottomCenter,
@@ -166,9 +194,12 @@ class MiniPlayer extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(1.5),
                         child: LinearProgressIndicator(
                           value: value,
-                          minHeight: 3, // Slightly thicker for visibility if shorter
+                          minHeight:
+                              3, // Slightly thicker for visibility if shorter
                           backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.9)),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white.withValues(alpha: 0.9),
+                          ),
                         ),
                       ),
                     ),

@@ -5,14 +5,20 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initializationSettings = InitializationSettings(
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings();
+
+    final InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
+      macOS: initializationSettingsDarwin,
+      iOS: initializationSettingsDarwin,
     );
 
     await _notificationsPlugin.initialize(initializationSettings);
@@ -27,24 +33,20 @@ class NotificationService {
   }) async {
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'download_channel',
-      'Downloads',
-      channelDescription: 'Show download progress',
-      importance: Importance.low,
-      priority: Priority.low,
-      showProgress: true,
-      maxProgress: maxProgress,
-      progress: progress,
-      onlyAlertOnce: true,
+          'download_channel',
+          'Downloads',
+          channelDescription: 'Show download progress',
+          importance: Importance.low,
+          priority: Priority.low,
+          showProgress: true,
+          maxProgress: maxProgress,
+          progress: progress,
+          onlyAlertOnce: true,
+        );
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    final NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    await _notificationsPlugin.show(
-      id,
-      title,
-      body,
-      platformChannelSpecifics,
-    );
+    await _notificationsPlugin.show(id, title, body, platformChannelSpecifics);
   }
 
   Future<void> showCompletionNotification({
@@ -55,21 +57,17 @@ class NotificationService {
   }) async {
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'download_channel',
-      'Downloads',
-      channelDescription: 'Show download progress',
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
-      onlyAlertOnce: false,
+          'download_channel',
+          'Downloads',
+          channelDescription: 'Show download progress',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          onlyAlertOnce: false,
+        );
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    final NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    await _notificationsPlugin.show(
-      id,
-      title,
-      body,
-      platformChannelSpecifics,
-    );
+    await _notificationsPlugin.show(id, title, body, platformChannelSpecifics);
   }
 
   Future<void> cancelNotification(int id) async {

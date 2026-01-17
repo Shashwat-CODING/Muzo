@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/models/artist_details.dart';
-import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/ytify_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -45,9 +44,11 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
       final artistDetails = await _apiService.getArtistDetails(widget.browseId);
       if (artistDetails != null) {
         _artistDetails = artistDetails;
-        
+
         if (artistDetails.playlistId.isNotEmpty) {
-          final playlistDetails = await _apiService.getPlaylistDetails(artistDetails.playlistId);
+          final playlistDetails = await _apiService.getPlaylistDetails(
+            artistDetails.playlistId,
+          );
           _topSongsPlaylist = playlistDetails;
         }
       }
@@ -65,14 +66,16 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
   @override
   Widget build(BuildContext context) {
     // Use passed name/thumbnail as fallback or initial data
-    final displayName = _artistDetails?.artistName ?? widget.artistName ?? 'Artist';
-    // We don't have a direct artist thumbnail in ArtistDetails (it's in recommended), 
-    // so we might rely on what was passed or maybe the first recommended artist if it's the same? 
-    // Actually, usually artist details would have a header image, but the API response 
-    // provided in the prompt doesn't seem to have a top-level thumbnail for the artist itself, 
-    // only for recommended artists and playlists. 
+    final displayName =
+        _artistDetails?.artistName ?? widget.artistName ?? 'Artist';
+    // We don't have a direct artist thumbnail in ArtistDetails (it's in recommended),
+    // so we might rely on what was passed or maybe the first recommended artist if it's the same?
+    // Actually, usually artist details would have a header image, but the API response
+    // provided in the prompt doesn't seem to have a top-level thumbnail for the artist itself,
+    // only for recommended artists and playlists.
     // However, the playlist thumbnail (Top Songs) often features the artist.
-    final displayThumbnail = widget.thumbnailUrl ?? _topSongsPlaylist?.thumbnail;
+    final displayThumbnail =
+        widget.thumbnailUrl ?? _topSongsPlaylist?.thumbnail;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -91,13 +94,17 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                       children: [
                         if (displayThumbnail != null)
                           CachedNetworkImage(
-                            imageUrl: displayThumbnail.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
+                            imageUrl: displayThumbnail.replaceAll(
+                              RegExp(r'=[sw]\d+(-h\d+)?'),
+                              '=s800',
+                            ),
                             fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(color: Colors.grey[900]),
+                            errorWidget: (context, url, error) =>
+                                Container(color: Colors.grey[900]),
                           )
                         else
                           Container(color: Colors.grey[900]),
-                        
+
                         const DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -129,16 +136,17 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                     ),
                   ),
                 ),
-                if (_artistDetails?.featuredOnPlaylists.isNotEmpty ?? false) ...[
+                if (_artistDetails?.featuredOnPlaylists.isNotEmpty ??
+                    false) ...[
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                       child: Text(
                         'Featured On',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -150,7 +158,8 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: _artistDetails!.featuredOnPlaylists.length,
                         itemBuilder: (context, index) {
-                          final playlist = _artistDetails!.featuredOnPlaylists[index];
+                          final playlist =
+                              _artistDetails!.featuredOnPlaylists[index];
                           return _buildFeaturedCard(playlist);
                         },
                       ),
@@ -164,9 +173,9 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                       child: Text(
                         'Fans Also Like',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -178,34 +187,33 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: _artistDetails!.recommendedArtists.length,
                         itemBuilder: (context, index) {
-                          final artist = _artistDetails!.recommendedArtists[index];
+                          final artist =
+                              _artistDetails!.recommendedArtists[index];
                           return _buildArtistCard(artist);
                         },
                       ),
                     ),
                   ),
                 ],
-                if (_topSongsPlaylist != null && _topSongsPlaylist!.tracks.isNotEmpty) ...[
+                if (_topSongsPlaylist != null &&
+                    _topSongsPlaylist!.tracks.isNotEmpty) ...[
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
                         'Top Songs',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final track = _topSongsPlaylist!.tracks[index];
-                        return ResultTile(result: track);
-                      },
-                      childCount: _topSongsPlaylist!.tracks.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final track = _topSongsPlaylist!.tracks[index];
+                      return ResultTile(result: track);
+                    }, childCount: _topSongsPlaylist!.tracks.length),
                   ),
                 ],
                 const SliverPadding(padding: EdgeInsets.only(bottom: 50)),
@@ -235,22 +243,31 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
                 child: CachedNetworkImage(
-                  imageUrl: playlist.thumbnail.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
+                  imageUrl: playlist.thumbnail.replaceAll(
+                    RegExp(r'=[sw]\d+(-h\d+)?'),
+                    '=s800',
+                  ),
                   height: 140,
                   fit: BoxFit.fitHeight,
                   placeholder: (context, url) => Container(
                     height: 140,
                     width: 140,
                     color: Colors.grey[900],
-                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+                    child: const Icon(
+                      FluentIcons.music_note_2_24_regular,
+                      color: Colors.white,
+                    ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     height: 140,
                     width: 140,
                     color: Colors.grey[900],
-                    child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white),
+                    child: const Icon(
+                      FluentIcons.music_note_2_24_regular,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -293,13 +310,19 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
           children: [
             ClipOval(
               child: CachedNetworkImage(
-                imageUrl: artist.thumbnail.replaceAll(RegExp(r'=[sw]\d+(-h\d+)?'), '=s800'),
+                imageUrl: artist.thumbnail.replaceAll(
+                  RegExp(r'=[sw]\d+(-h\d+)?'),
+                  '=s800',
+                ),
                 width: 120,
                 height: 120,
                 fit: BoxFit.cover,
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[900],
-                  child: const Icon(FluentIcons.person_24_regular, color: Colors.white),
+                  child: const Icon(
+                    FluentIcons.person_24_regular,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

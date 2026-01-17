@@ -20,7 +20,7 @@ class MusicApiService {
     _auth = AuthService(_storage);
   }
 
-  static const String _baseUrl = 'https://mowttvwofyojqsowpsga.supabase.co/functions/v1/express/api';
+  static const String _baseUrl = 'https://veltrixcode-ytify.hf.space/api';
 
   Map<String, String> get _headers {
     final token = _storage.authToken;
@@ -50,10 +50,9 @@ class MusicApiService {
   // --- User Data ---
 
   Future<UserData> getUserData() async {
-    final response = await _retryWithRefresh(() => http.get(
-      Uri.parse('$_baseUrl/user/data'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.get(Uri.parse('$_baseUrl/user/data'), headers: _headers),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -66,10 +65,9 @@ class MusicApiService {
   // --- History ---
 
   Future<List<YtifyResult>> getHistory() async {
-    final response = await _retryWithRefresh(() => http.get(
-      Uri.parse('$_baseUrl/history'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.get(Uri.parse('$_baseUrl/history'), headers: _headers),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -81,11 +79,13 @@ class MusicApiService {
   }
 
   Future<void> addToHistory(YtifyResult song) async {
-    final response = await _retryWithRefresh(() => http.post(
-      Uri.parse('$_baseUrl/history'),
-      headers: _headers,
-      body: jsonEncode(song.toJson()),
-    ));
+    final response = await _retryWithRefresh(
+      () => http.post(
+        Uri.parse('$_baseUrl/history'),
+        headers: _headers,
+        body: jsonEncode(song.toJson()),
+      ),
+    );
 
     if (response.statusCode != 201) {
       throw Exception('Failed to add to history');
@@ -93,10 +93,12 @@ class MusicApiService {
   }
 
   Future<void> removeFromHistory(String videoId) async {
-    final response = await _retryWithRefresh(() => http.delete(
-      Uri.parse('$_baseUrl/history/$videoId'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.delete(
+        Uri.parse('$_baseUrl/history/$videoId'),
+        headers: _headers,
+      ),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove from history');
@@ -104,10 +106,9 @@ class MusicApiService {
   }
 
   Future<void> clearHistory() async {
-    final response = await _retryWithRefresh(() => http.delete(
-      Uri.parse('$_baseUrl/history'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.delete(Uri.parse('$_baseUrl/history'), headers: _headers),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to clear history');
@@ -117,10 +118,9 @@ class MusicApiService {
   // --- Favorites ---
 
   Future<List<YtifyResult>> getFavorites() async {
-    final response = await _retryWithRefresh(() => http.get(
-      Uri.parse('$_baseUrl/favorites'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.get(Uri.parse('$_baseUrl/favorites'), headers: _headers),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -132,11 +132,13 @@ class MusicApiService {
   }
 
   Future<void> addToFavorites(YtifyResult song) async {
-    final response = await _retryWithRefresh(() => http.post(
-      Uri.parse('$_baseUrl/favorites'),
-      headers: _headers,
-      body: jsonEncode(song.toJson()),
-    ));
+    final response = await _retryWithRefresh(
+      () => http.post(
+        Uri.parse('$_baseUrl/favorites'),
+        headers: _headers,
+        body: jsonEncode(song.toJson()),
+      ),
+    );
 
     if (response.statusCode != 201) {
       throw Exception('Failed to add to favorites');
@@ -144,10 +146,12 @@ class MusicApiService {
   }
 
   Future<void> removeFromFavorites(String videoId) async {
-    final response = await _retryWithRefresh(() => http.delete(
-      Uri.parse('$_baseUrl/favorites/$videoId'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.delete(
+        Uri.parse('$_baseUrl/favorites/$videoId'),
+        headers: _headers,
+      ),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove from favorites');
@@ -157,10 +161,9 @@ class MusicApiService {
   // --- Playlists ---
 
   Future<List<Map<String, dynamic>>> getPlaylists() async {
-    final response = await _retryWithRefresh(() => http.get(
-      Uri.parse('$_baseUrl/playlists'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.get(Uri.parse('$_baseUrl/playlists'), headers: _headers),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -171,10 +174,12 @@ class MusicApiService {
   }
 
   Future<List<YtifyResult>> getPlaylistSongs(String playlistName) async {
-    final response = await _retryWithRefresh(() => http.get(
-      Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.get(
+        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
+        headers: _headers,
+      ),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -186,11 +191,13 @@ class MusicApiService {
   }
 
   Future<void> addToPlaylist(String playlistName, YtifyResult song) async {
-    final response = await _retryWithRefresh(() => http.post(
-      Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
-      headers: _headers,
-      body: jsonEncode(song.toJson()),
-    ));
+    final response = await _retryWithRefresh(
+      () => http.post(
+        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
+        headers: _headers,
+        body: jsonEncode(song.toJson()),
+      ),
+    );
 
     if (response.statusCode != 201) {
       throw Exception('Failed to add to playlist');
@@ -198,21 +205,30 @@ class MusicApiService {
   }
 
   Future<void> deletePlaylist(String playlistName) async {
-    final response = await _retryWithRefresh(() => http.delete(
-      Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.delete(
+        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
+        headers: _headers,
+      ),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to delete playlist');
     }
   }
-  
-  Future<void> removeSongFromPlaylist(String playlistName, String videoId) async {
-    final response = await _retryWithRefresh(() => http.delete(
-      Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}/songs/$videoId'),
-      headers: _headers,
-    ));
+
+  Future<void> removeSongFromPlaylist(
+    String playlistName,
+    String videoId,
+  ) async {
+    final response = await _retryWithRefresh(
+      () => http.delete(
+        Uri.parse(
+          '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}/songs/$videoId',
+        ),
+        headers: _headers,
+      ),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove song from playlist');
@@ -222,10 +238,9 @@ class MusicApiService {
   // --- Subscriptions ---
 
   Future<List<YtifyResult>> getSubscriptions() async {
-    final response = await _retryWithRefresh(() => http.get(
-      Uri.parse('$_baseUrl/subscriptions'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.get(Uri.parse('$_baseUrl/subscriptions'), headers: _headers),
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -237,11 +252,13 @@ class MusicApiService {
   }
 
   Future<void> addSubscription(YtifyResult channel) async {
-    final response = await _retryWithRefresh(() => http.post(
-      Uri.parse('$_baseUrl/subscriptions'),
-      headers: _headers,
-      body: jsonEncode(channel.toJson()),
-    ));
+    final response = await _retryWithRefresh(
+      () => http.post(
+        Uri.parse('$_baseUrl/subscriptions'),
+        headers: _headers,
+        body: jsonEncode(channel.toJson()),
+      ),
+    );
 
     if (response.statusCode != 201) {
       throw Exception('Failed to subscribe');
@@ -249,18 +266,23 @@ class MusicApiService {
   }
 
   Future<void> removeSubscription(String browseId) async {
-    final response = await _retryWithRefresh(() => http.delete(
-      Uri.parse('$_baseUrl/subscriptions/$browseId'),
-      headers: _headers,
-    ));
+    final response = await _retryWithRefresh(
+      () => http.delete(
+        Uri.parse('$_baseUrl/subscriptions/$browseId'),
+        headers: _headers,
+      ),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to unsubscribe');
     }
   }
+
   Future<List<YtifyResult>> getUpNext(String videoId) async {
     try {
-      final uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task?videoId=$videoId');
+      final uri = Uri.parse(
+        'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task?videoId=$videoId',
+      );
       final response = await http.get(uri);
 
       if (response.statusCode != 200) {

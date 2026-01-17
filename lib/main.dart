@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:muzo/screens/home_screen.dart';
 import 'package:muzo/screens/auth_screen.dart';
@@ -13,19 +11,22 @@ import 'package:muzo/services/notification_service.dart';
 import 'package:muzo/widgets/main_layout.dart';
 import 'package:muzo/providers/theme_provider.dart';
 import 'package:muzo/services/auth_service.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set system UI overlay style for transparent nav bar
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarDividerColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.light,
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
-  
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
+
   // Enable edge-to-edge
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
@@ -50,31 +51,44 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
-    
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'Muzo',
-      debugShowCheckedModeBanner: false,
-      theme: theme,
-      builder: (context, child) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final authState = ref.watch(authServiceProvider);
-            // Only show MainLayout (player/navbar) if authenticated
-            if (authState.isAuthenticated) {
-              return MainLayout(child: child!);
-            }
-            return child!;
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        // Use Future.microtask to avoid set during build error
+        Future.microtask(() {
+          if (ref.read(dynamicColorSchemeProvider) != darkDynamic) {
+            ref.read(dynamicColorSchemeProvider.notifier).state = darkDynamic;
+          }
+        });
+
+        final theme = ref.watch(themeProvider);
+
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Muzo',
+          debugShowCheckedModeBanner: false,
+          theme: theme,
+          builder: (context, child) {
+            return Consumer(
+              builder: (context, ref, _) {
+                final authState = ref.watch(authServiceProvider);
+                // Only show MainLayout (player/navbar) if authenticated
+                if (authState.isAuthenticated) {
+                  return MainLayout(child: child!);
+                }
+                return child!;
+              },
+            );
           },
+          home: Consumer(
+            builder: (context, ref, _) {
+              final authState = ref.watch(authServiceProvider);
+              return authState.isAuthenticated
+                  ? const HomeScreen()
+                  : const AuthScreen();
+            },
+          ),
         );
       },
-      home: Consumer(
-        builder: (context, ref, _) {
-          final authState = ref.watch(authServiceProvider);
-          return authState.isAuthenticated ? const HomeScreen() : const AuthScreen();
-        },
-      ),
     );
   }
 }

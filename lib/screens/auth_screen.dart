@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +14,8 @@ class AuthScreen extends ConsumerStatefulWidget {
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends ConsumerState<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -71,7 +71,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       if (mounted) {
         showGlassSnackBar(context, 'Success! Welcome.');
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => MainLayout(child: const HomeScreen())),
+          MaterialPageRoute(
+            builder: (_) => MainLayout(child: const HomeScreen()),
+          ),
         );
       }
     } catch (e) {
@@ -104,10 +106,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF121212),
-                    Colors.black,
-                  ],
+                  colors: [Color(0xFF121212), Colors.black],
                 ),
               ),
             ),
@@ -169,7 +168,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                             indicatorSize: TabBarIndicatorSize.tab,
                             labelColor: Colors.black,
                             unselectedLabelColor: Colors.grey,
-                            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                            labelStyle: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w600,
+                            ),
                             dividerColor: Colors.transparent,
                             tabs: const [
                               Tab(text: 'Login'),
@@ -236,7 +237,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                           const SizedBox(
                             height: 24,
                             width: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
                         else
                           SizedBox(
@@ -256,7 +260,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                                 animation: _tabController,
                                 builder: (context, child) {
                                   return Text(
-                                    _tabController.index == 0 ? 'Login' : 'Create Account',
+                                    _tabController.index == 0
+                                        ? 'Login'
+                                        : 'Create Account',
                                     style: GoogleFonts.outfit(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -269,7 +275,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
                   TextButton(
                     onPressed: _skip,
@@ -313,15 +319,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
-                    _obscurePassword ? FluentIcons.eye_24_regular : FluentIcons.eye_off_24_regular,
+                    _obscurePassword
+                        ? FluentIcons.eye_24_regular
+                        : FluentIcons.eye_off_24_regular,
                     color: Colors.white38,
                     size: 20,
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
       ),
     );

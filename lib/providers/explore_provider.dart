@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/youtube_api_service.dart';
 
-final trendingContentProvider = FutureProvider<Map<String, List<YtifyResult>>>((ref) async {
+final trendingContentProvider = FutureProvider<Map<String, List<YtifyResult>>>((
+  ref,
+) async {
   final apiService = YouTubeApiService();
   return apiService.getTrendingContent();
 });
@@ -17,7 +19,9 @@ final newestVideosProvider = FutureProvider<List<YtifyResult>>((ref) async {
   return content['videos'] ?? [];
 });
 
-final trendingPlaylistsProvider = FutureProvider<List<YtifyResult>>((ref) async {
+final trendingPlaylistsProvider = FutureProvider<List<YtifyResult>>((
+  ref,
+) async {
   final content = await ref.watch(trendingContentProvider.future);
   return content['playlists'] ?? [];
 });

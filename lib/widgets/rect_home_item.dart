@@ -24,45 +24,52 @@ class RectHomeItem extends ConsumerWidget {
       onTap: () {
         HapticFeedback.lightImpact();
         if (item.resultType == 'song' || item.resultType == 'video') {
-           ref.read(audioHandlerProvider).playVideo(item);
-        } else if (item.resultType == 'playlist' || item.resultType == 'album') {
-           final idToUse = item.browseId; // YtifyResult uses browseId for playlists/albums 
-           
-           // Check local
-           final storage = ref.read(storageServiceProvider);
-           final localPlaylists = storage.getPlaylistNames();
-           final title = item.title;
-           
-           if (localPlaylists.contains(title)) { 
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PlaylistDetailsScreen(playlistName: title),
-                ),
-              );
-           } else if (idToUse != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PlaylistScreen(
-                    playlistId: idToUse,
-                    title: item.title,
-                    thumbnailUrl: item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
-                  ),
-                ),
-              );
-           } else {
-             // Fallback
-             ref.read(audioHandlerProvider).playVideo(item);
-           }
-        } else if (item.resultType == 'artist' && item.browseId != null) {
+          ref.read(audioHandlerProvider).playVideo(item);
+        } else if (item.resultType == 'playlist' ||
+            item.resultType == 'album') {
+          final idToUse =
+              item.browseId; // YtifyResult uses browseId for playlists/albums
+
+          // Check local
+          final storage = ref.read(storageServiceProvider);
+          final localPlaylists = storage.getPlaylistNames();
+          final title = item.title;
+
+          if (localPlaylists.contains(title)) {
             Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    PlaylistDetailsScreen(playlistName: title),
+              ),
+            );
+          } else if (idToUse != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PlaylistScreen(
+                  playlistId: idToUse,
+                  title: item.title,
+                  thumbnailUrl: item.thumbnails.isNotEmpty
+                      ? item.thumbnails.last.url
+                      : null,
+                ),
+              ),
+            );
+          } else {
+            // Fallback
+            ref.read(audioHandlerProvider).playVideo(item);
+          }
+        } else if (item.resultType == 'artist' && item.browseId != null) {
+          Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ArtistScreen(
                 browseId: item.browseId!,
                 artistName: item.title,
-                thumbnailUrl: item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+                thumbnailUrl: item.thumbnails.isNotEmpty
+                    ? item.thumbnails.last.url
+                    : null,
               ),
             ),
           );
@@ -71,14 +78,14 @@ class RectHomeItem extends ConsumerWidget {
       child: GlassContainer(
         blur: 10,
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         child: Row(
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                bottomLeft: Radius.circular(8),
+                topLeft: Radius.circular(4),
+                bottomLeft: Radius.circular(4),
               ),
               child: imageUrl.isNotEmpty
                   ? CachedNetworkImage(
@@ -90,14 +97,22 @@ class RectHomeItem extends ConsumerWidget {
                         height: 56,
                         width: 56,
                         color: Colors.grey[800],
-                        child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white, size: 20),
+                        child: const Icon(
+                          FluentIcons.music_note_2_24_regular,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     )
                   : Container(
                       height: 56,
                       width: 56,
                       color: Colors.grey[800],
-                      child: const Icon(FluentIcons.music_note_2_24_regular, color: Colors.white, size: 20),
+                      child: const Icon(
+                        FluentIcons.music_note_2_24_regular,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
             ),
             Expanded(

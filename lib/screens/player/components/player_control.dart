@@ -7,9 +7,8 @@ import 'package:just_audio/just_audio.dart';
 
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzo/models/ytify_result.dart'; 
+import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
-import 'package:muzo/providers/theme_provider.dart';
 
 class PlayerControlWidget extends ConsumerWidget {
   const PlayerControlWidget({super.key});
@@ -39,7 +38,11 @@ class PlayerControlWidget extends ConsumerWidget {
                       child: Text(
                         mediaItem?.title ?? "NA",
                         textAlign: TextAlign.start,
-                        style: Theme.of(context).textTheme.titleMedium!.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleMedium!
+                            .copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -50,14 +53,16 @@ class PlayerControlWidget extends ConsumerWidget {
                         mediaItem?.artist ?? "NA",
                         textAlign: TextAlign.start,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white70),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall!.copyWith(color: Colors.white70),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
               // Favorite Button
-               Consumer(
+              Consumer(
                 builder: (context, ref, child) {
                   final storage = ref.watch(storageServiceProvider);
                   if (mediaItem == null) return const SizedBox.shrink();
@@ -67,28 +72,41 @@ class PlayerControlWidget extends ConsumerWidget {
                       final isFav = storage.isFavorite(mediaItem.id);
                       return IconButton(
                         icon: Icon(
-                          isFav ? FluentIcons.heart_24_filled : FluentIcons.heart_24_regular,
+                          isFav
+                              ? FluentIcons.heart_24_filled
+                              : FluentIcons.heart_24_regular,
                           color: isFav ? Colors.red : Colors.white,
                         ),
                         onPressed: () {
-                           // Reconstruct YtifyResult
-                           final result = YtifyResult(
-                             videoId: mediaItem.id,
-                             title: mediaItem.title,
-                             thumbnails: [YtifyThumbnail(url: mediaItem.artUri.toString(), width: 0, height: 0)],
-                             artists: [YtifyArtist(name: mediaItem.artist ?? '', id: '')],
-                             resultType: mediaItem.extras?['resultType'] ?? 'video',
-                             isExplicit: false,
-                           );
-                           
-                           storage.toggleFavorite(result);
-                           
-                           if (context.mounted) {
-                             showGlassSnackBar(
-                               context, 
-                               isFav ? 'Removed from favorites' : 'Added to favorites'
-                             );
-                           }
+                          // Reconstruct YtifyResult
+                          final result = YtifyResult(
+                            videoId: mediaItem.id,
+                            title: mediaItem.title,
+                            thumbnails: [
+                              YtifyThumbnail(
+                                url: mediaItem.artUri.toString(),
+                                width: 0,
+                                height: 0,
+                              ),
+                            ],
+                            artists: [
+                              YtifyArtist(name: mediaItem.artist ?? '', id: ''),
+                            ],
+                            resultType:
+                                mediaItem.extras?['resultType'] ?? 'video',
+                            isExplicit: false,
+                          );
+
+                          storage.toggleFavorite(result);
+
+                          if (context.mounted) {
+                            showGlassSnackBar(
+                              context,
+                              isFav
+                                  ? 'Removed from favorites'
+                                  : 'Added to favorites',
+                            );
+                          }
                         },
                       );
                     },
@@ -109,22 +127,24 @@ class PlayerControlWidget extends ConsumerWidget {
           builder: (context, snapshot) {
             final position = snapshot.data ?? Duration.zero;
             final duration = player.duration ?? Duration.zero;
-            
+
             return Consumer(
               builder: (context, ref, child) {
-                 final thumbColor = Colors.white;
-                 final progressBarColor = Colors.white;
-                 final baseBarColor = Colors.white.withOpacity(0.24);
-                 final bufferedBarColor = Colors.white.withOpacity(0.38);
+                final thumbColor = Colors.white;
+                final progressBarColor = Colors.white;
+                final baseBarColor = Colors.white.withOpacity(0.24);
+                final bufferedBarColor = Colors.white.withOpacity(0.38);
 
-                 return ProgressBar(
+                return ProgressBar(
                   thumbRadius: 7,
                   barHeight: 4.5,
                   baseBarColor: baseBarColor,
                   bufferedBarColor: bufferedBarColor,
                   progressBarColor: progressBarColor,
                   thumbColor: thumbColor,
-                  timeLabelTextStyle: Theme.of(context).textTheme.bodySmall!.copyWith(color: Colors.white),
+                  timeLabelTextStyle: Theme.of(
+                    context,
+                  ).textTheme.bodySmall!.copyWith(color: Colors.white),
                   progress: position,
                   total: duration,
                   onSeek: (duration) {
@@ -133,7 +153,7 @@ class PlayerControlWidget extends ConsumerWidget {
                 );
               },
             );
-          }
+          },
         ),
 
         // Controls
@@ -155,12 +175,16 @@ class PlayerControlWidget extends ConsumerWidget {
                     color: shuffleEnabled ? Colors.white : Colors.white38,
                   ),
                 );
-              }
+              },
             ),
-            
+
             // Previous
             IconButton(
-              icon: const Icon(FluentIcons.previous_24_filled, color: Colors.white, size: 30),
+              icon: const Icon(
+                FluentIcons.previous_24_filled,
+                color: Colors.white,
+                size: 30,
+              ),
               onPressed: () => audioHandler.skipToPrevious(),
             ),
 
@@ -174,7 +198,9 @@ class PlayerControlWidget extends ConsumerWidget {
                   backgroundColor: Colors.white,
                   child: IconButton(
                     icon: Icon(
-                      playing ? FluentIcons.pause_24_filled : FluentIcons.play_24_filled,
+                      playing
+                          ? FluentIcons.pause_24_filled
+                          : FluentIcons.play_24_filled,
                       color: Colors.black,
                       size: 35,
                     ),
@@ -187,12 +213,16 @@ class PlayerControlWidget extends ConsumerWidget {
                     },
                   ),
                 );
-              }
+              },
             ),
 
             // Next
             IconButton(
-              icon: const Icon(FluentIcons.next_24_filled, color: Colors.white, size: 30),
+              icon: const Icon(
+                FluentIcons.next_24_filled,
+                color: Colors.white,
+                size: 30,
+              ),
               onPressed: () => audioHandler.skipToNext(),
             ),
 
@@ -204,19 +234,23 @@ class PlayerControlWidget extends ConsumerWidget {
                 return IconButton(
                   onPressed: () async {
                     if (loopMode == LoopMode.off) {
-                       await player.setLoopMode(LoopMode.all);
+                      await player.setLoopMode(LoopMode.all);
                     } else if (loopMode == LoopMode.all) {
-                       await player.setLoopMode(LoopMode.one);
+                      await player.setLoopMode(LoopMode.one);
                     } else {
-                       await player.setLoopMode(LoopMode.off);
+                      await player.setLoopMode(LoopMode.off);
                     }
                   },
                   icon: Icon(
-                    loopMode == LoopMode.one ? FluentIcons.arrow_repeat_1_24_regular : FluentIcons.arrow_repeat_all_24_regular,
-                    color: loopMode != LoopMode.off ? Colors.white : Colors.white38,
+                    loopMode == LoopMode.one
+                        ? FluentIcons.arrow_repeat_1_24_regular
+                        : FluentIcons.arrow_repeat_all_24_regular,
+                    color: loopMode != LoopMode.off
+                        ? Colors.white
+                        : Colors.white38,
                   ),
                 );
-              }
+              },
             ),
           ],
         ),

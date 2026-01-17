@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/models/ytify_result.dart';
@@ -16,7 +17,8 @@ class YouTubeApiService {
   static const String _baseUrl = 'https://youtubei.googleapis.com/youtubei/v1/';
   static const String _apiKey = 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w';
   static const String _referer = 'https://www.youtube.com/';
-  static const String _userAgent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36';
+  static const String _userAgent =
+      'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36';
   static const String _clientName = 'ANDROID';
   static const String _clientVersion = '19.17.34';
   static const int _clientId = 3;
@@ -32,7 +34,12 @@ class YouTubeApiService {
     }
   }
 
-  Future<String?> getStreamUrl(String videoId, {String? title, String? artist, VoidCallback? onFallback}) async {
+  Future<String?> getStreamUrl(
+    String videoId, {
+    String? title,
+    String? artist,
+    VoidCallback? onFallback,
+  }) async {
     try {
       final url = Uri.parse('${_baseUrl}player?key=$_apiKey');
       final headers = {
@@ -51,7 +58,7 @@ class YouTubeApiService {
             'clientVersion': _clientVersion,
             'clientId': _clientId,
             'userAgent': _userAgent,
-          }
+          },
         },
         'videoId': videoId,
       });
@@ -65,7 +72,7 @@ class YouTubeApiService {
       }
 
       final data = jsonDecode(response.body);
-      
+
       final playabilityStatus = data['playabilityStatus'];
       if (playabilityStatus?['status'] != 'OK') {
         final reason = playabilityStatus?['reason'] ?? 'Unknown error';
@@ -83,12 +90,17 @@ class YouTubeApiService {
 
       // Get formats and adaptiveFormats
       final formats = streamingData['formats'] as List<dynamic>?;
-      final adaptiveFormats = streamingData['adaptiveFormats'] as List<dynamic>?;
+      final adaptiveFormats =
+          streamingData['adaptiveFormats'] as List<dynamic>?;
 
       // Combine all formats
       final allFormats = <Map<String, dynamic>>[];
-      if (formats != null) allFormats.addAll(formats.cast<Map<String, dynamic>>());
-      if (adaptiveFormats != null) allFormats.addAll(adaptiveFormats.cast<Map<String, dynamic>>());
+      if (formats != null) {
+        allFormats.addAll(formats.cast<Map<String, dynamic>>());
+      }
+      if (adaptiveFormats != null) {
+        allFormats.addAll(adaptiveFormats.cast<Map<String, dynamic>>());
+      }
 
       debugPrint('Found ${allFormats.length} formats');
 
@@ -102,13 +114,39 @@ class YouTubeApiService {
         final bitrate = format['bitrate'] as int?;
 
         // Look for audio-only formats (audio/mp4, audio/webm, etc.)
-        if (mimeType != null && 
-            mimeType.startsWith('audio/') && 
-            url != null && 
+        if (mimeType != null &&
+            mimeType.startsWith('audio/') &&
+            url != null &&
             bitrate != null) {
-          if (bitrate > bestBitrate) {
-            bestBitrate = bitrate;
-            bestAudioUrl = url;
+          // On macOS/iOS, we MUST prefer mp4/aac as webm/opus is not supported by AVPlayer
+          bool isApple = Platform.isMacOS || Platform.isIOS;
+          bool isMp4 = mimeType.contains('mp4');
+
+          if (isApple) {
+            // Apple Logic: Only pick if mp4, or if we haven't found anything yet
+            // If we already have a candidate, only replace it if new one is mp4 and better bitrate,
+            // or if current candidate is NOT mp4 and new one IS mp4.
+            bool currentIsMp4 = bestAudioUrl != null &&
+                allFormats.any((f) =>
+                    f['url'] == bestAudioUrl &&
+                    (f['mimeType'] as String).contains('mp4'));
+
+            if (isMp4) {
+              if (!currentIsMp4 || bitrate > bestBitrate) {
+                bestBitrate = bitrate;
+                bestAudioUrl = url;
+              }
+            } else if (bestAudioUrl == null) {
+              // Accept non-mp4 only if we have nothing else
+              bestBitrate = bitrate;
+              bestAudioUrl = url;
+            }
+          } else {
+            // Standard Logic (Android/Web)
+            if (bitrate > bestBitrate) {
+              bestBitrate = bitrate;
+              bestAudioUrl = url;
+            }
           }
         }
       }
@@ -120,8 +158,7 @@ class YouTubeApiService {
       debugPrint('No suitable audio stream found for video: $videoId');
       onFallback?.call();
       return await _getFallbackStreamUrl(videoId, title, artist);
-
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('Error fetching stream info for video: $videoId');
       debugPrint('Exception: $e');
       onFallback?.call();
@@ -129,28 +166,39 @@ class YouTubeApiService {
     }
   }
 
-  Future<String?> _getFallbackStreamUrl(String videoId, String? title, String? artist) async {
+  Future<String?> _getFallbackStreamUrl(
+    String videoId,
+    String? title,
+    String? artist,
+  ) async {
     try {
       // Access key and country code via singleton
       final apiKey = StorageService().rapidApiKey;
       final countryCode = StorageService().rapidApiCountryCode;
-      
+
       if (apiKey == null || apiKey.isEmpty) {
         debugPrint('RapidAPI Key not set. Fallback disabled.');
         return null;
       }
 
-      debugPrint('Attempting RapidAPI fallback for $videoId with cgeo=$countryCode');
-      
-      final uri = Uri.parse('https://yt-api.p.rapidapi.com/dl').replace(queryParameters: {
-        'id': videoId,
-        'cgeo': countryCode.isNotEmpty ? countryCode : 'IN',
-      });
+      debugPrint(
+        'Attempting RapidAPI fallback for $videoId with cgeo=$countryCode',
+      );
 
-      final response = await http.get(uri, headers: {
-        'x-rapidapi-host': 'yt-api.p.rapidapi.com',
-        'x-rapidapi-key': apiKey,
-      });
+      final uri = Uri.parse('https://yt-api.p.rapidapi.com/dl').replace(
+        queryParameters: {
+          'id': videoId,
+          'cgeo': countryCode.isNotEmpty ? countryCode : 'IN',
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'x-rapidapi-host': 'yt-api.p.rapidapi.com',
+          'x-rapidapi-key': apiKey,
+        },
+      );
 
       if (response.statusCode != 200) {
         debugPrint('RapidAPI Error: ${response.statusCode}');
@@ -175,11 +223,14 @@ class YouTubeApiService {
         final bitrate = format['bitrate'] as int?;
         final url = format['url'] as String?;
 
-        if (mimeType != null && mimeType.startsWith('audio/') && url != null && bitrate != null) {
-           if (bitrate > bestBitrate) {
-             bestBitrate = bitrate;
-             bestUrl = url;
-           }
+        if (mimeType != null &&
+            mimeType.startsWith('audio/') &&
+            url != null &&
+            bitrate != null) {
+          if (bitrate > bestBitrate) {
+            bestBitrate = bitrate;
+            bestUrl = url;
+          }
         }
       }
 
@@ -190,24 +241,31 @@ class YouTubeApiService {
     }
   }
 
-
-
-  Future<YtifySearchResponse> search(String query, {String filter = 'songs', String? continuationToken}) async {
+  Future<YtifySearchResponse> search(
+    String query, {
+    String filter = 'songs',
+    String? continuationToken,
+  }) async {
     try {
       Uri uri;
-      final queryParams = {
-        'q': query,
-        'filter': filter,
-      };
-      
+      final queryParams = {'q': query, 'filter': filter};
+
       if (continuationToken != null) {
         queryParams['continuationToken'] = continuationToken;
       }
 
       if (filter == 'videos' || filter == 'channels') {
-        uri = Uri.parse('https://ytify-backend.vercel.app/api/yt_search').replace(queryParameters: queryParams);
+        uri = Uri.parse(
+          'https://ytify-backend.vercel.app/api/yt_search',
+        ).replace(queryParameters: queryParams);
+      } else if (filter == 'albums') {
+        uri = Uri.parse(
+          'https://ytify-backend.vercel.app/api/search',
+        ).replace(queryParameters: queryParams);
       } else {
-        uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task').replace(queryParameters: queryParams);
+        uri = Uri.parse(
+          'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task',
+        ).replace(queryParameters: queryParams);
       }
 
       final response = await http.get(uri);
@@ -223,7 +281,9 @@ class YouTubeApiService {
 
       if (resultsJson == null) return YtifySearchResponse(results: []);
 
-      final results = resultsJson.map((json) => YtifyResult.fromJson(json)).toList();
+      final results = resultsJson
+          .map((json) => YtifyResult.fromJson(json))
+          .toList();
       return YtifySearchResponse(results: results, continuationToken: token);
     } catch (e) {
       debugPrint('Error searching: $e');
@@ -233,7 +293,9 @@ class YouTubeApiService {
 
   Future<List<YtifyResult>> getChannelVideos(String channelId) async {
     try {
-      final uri = Uri.parse('https://ytify-backend.vercel.app/api/feed/channels=$channelId');
+      final uri = Uri.parse(
+        'https://ytify-backend.vercel.app/api/feed/channels=$channelId',
+      );
       final response = await http.get(uri);
 
       if (response.statusCode != 200) {
@@ -249,13 +311,15 @@ class YouTubeApiService {
     }
   }
 
-  Future<List<YtifyResult>> getSubscriptionsFeed(List<String> channelIds) async {
+  Future<List<YtifyResult>> getSubscriptionsFeed(
+    List<String> channelIds,
+  ) async {
     if (channelIds.isEmpty) return [];
     try {
       final ids = channelIds.join(',');
-      final uri = Uri.parse('https://ytify-backend.vercel.app/api/feed/channels=$ids').replace(queryParameters: {
-        'preview': '1',
-      });
+      final uri = Uri.parse(
+        'https://ytify-backend.vercel.app/api/feed/channels=$ids',
+      ).replace(queryParameters: {'preview': '1'});
       final response = await http.get(uri);
 
       if (response.statusCode != 200) {
@@ -273,10 +337,9 @@ class YouTubeApiService {
 
   Future<List<String>> getSearchSuggestions(String query) async {
     try {
-      final uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/ytmusic-search/suggestions').replace(queryParameters: {
-        'q': query,
-        'music': '1',
-      });
+      final uri = Uri.parse(
+        'https://ytify-backend.vercel.app/api/search/suggestions',
+      ).replace(queryParameters: {'q': query, 'music': '1'});
 
       final response = await http.get(uri);
 
@@ -299,7 +362,9 @@ class YouTubeApiService {
 
   Future<List<YtifyResult>> getRelatedVideos(String videoId) async {
     try {
-      final uri = Uri.parse('https://ytify-backend.vercel.app/api/related/$videoId');
+      final uri = Uri.parse(
+        'https://ytify-backend.vercel.app/api/related/$videoId',
+      );
       final response = await http.get(uri);
 
       if (response.statusCode != 200) {
@@ -321,6 +386,7 @@ class YouTubeApiService {
       return [];
     }
   }
+
   Future<Map<String, List<YtifyResult>>> getTrendingContent() async {
     try {
       final uri = Uri.parse('https://ytify-backend.vercel.app/api/trending');
@@ -337,7 +403,7 @@ class YouTubeApiService {
       }
 
       final content = data['data'];
-      
+
       List<YtifyResult> parseList(String key, {String? forceType}) {
         final list = content[key] as List?;
         if (list == null) return [];
@@ -360,6 +426,7 @@ class YouTubeApiService {
       return {'songs': [], 'videos': [], 'playlists': []};
     }
   }
+
   Future<YtifyResult?> getVideoDetails(String videoId) async {
     try {
       final url = Uri.parse('${_baseUrl}player?key=$_apiKey');
@@ -379,7 +446,7 @@ class YouTubeApiService {
             'clientVersion': _clientVersion,
             'clientId': _clientId,
             'userAgent': _userAgent,
-          }
+          },
         },
         'videoId': videoId,
       });
@@ -387,46 +454,58 @@ class YouTubeApiService {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode != 200) {
-        debugPrint('YouTube API Error (getVideoDetails): ${response.statusCode}');
+        debugPrint(
+          'YouTube API Error (getVideoDetails): ${response.statusCode}',
+        );
         return null;
       }
 
       final data = jsonDecode(response.body);
       final videoDetails = data['videoDetails'];
-      
+
       if (videoDetails == null) {
         debugPrint('No videoDetails found for: $videoId');
         return null;
       }
 
-      final thumbnails = (videoDetails['thumbnail']?['thumbnails'] as List?)
-          ?.map((t) => YtifyThumbnail(
-                url: t['url'],
-                width: t['width'] ?? 0,
-                height: t['height'] ?? 0,
-              ))
-          .toList() ?? [];
+      final thumbnails =
+          (videoDetails['thumbnail']?['thumbnails'] as List?)
+              ?.map(
+                (t) => YtifyThumbnail(
+                  url: t['url'],
+                  width: t['width'] ?? 0,
+                  height: t['height'] ?? 0,
+                ),
+              )
+              .toList() ??
+          [];
 
       // Ensure we have at least one thumbnail
       if (thumbnails.isEmpty) {
-        thumbnails.add(YtifyThumbnail(
-          url: 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg',
-          width: 480,
-          height: 360,
-        ));
+        thumbnails.add(
+          YtifyThumbnail(
+            url: 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg',
+            width: 480,
+            height: 360,
+          ),
+        );
       }
 
-      final durationSeconds = int.tryParse(videoDetails['lengthSeconds'] ?? '0') ?? 0;
+      final durationSeconds =
+          int.tryParse(videoDetails['lengthSeconds'] ?? '0') ?? 0;
       final duration = Duration(seconds: durationSeconds);
       String twoDigits(int n) => n.toString().padLeft(2, "0");
       String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
       String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-      final durationString = "${duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : ''}$twoDigitMinutes:$twoDigitSeconds";
+      final durationString =
+          "${duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : ''}$twoDigitMinutes:$twoDigitSeconds";
 
       return YtifyResult(
         videoId: videoDetails['videoId'],
         title: videoDetails['title'] ?? 'Unknown Title',
-        artists: [YtifyArtist(name: videoDetails['author'] ?? 'Unknown Artist', id: '')],
+        artists: [
+          YtifyArtist(name: videoDetails['author'] ?? 'Unknown Artist', id: ''),
+        ],
         thumbnails: thumbnails,
         duration: durationString,
         resultType: 'video',

@@ -24,23 +24,36 @@ class LyricsSwitch extends ConsumerWidget {
               onPressed: () {
                 final mediaItem = ref.read(currentMediaItemProvider).value;
                 if (mediaItem != null) {
-                   Navigator.of(context).push(
-                     MaterialPageRoute(
-                       builder: (_) => LyricsScreen(
-                         title: mediaItem.title,
-                         artist: mediaItem.artist ?? '',
-                         thumbnailUrl: mediaItem.artUri?.toString(),
-                         durationSeconds: mediaItem.duration?.inSeconds ?? 0,
-                       ),
-                     ),
-                   );
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => LyricsScreen(
+                        title: mediaItem.title,
+                        artist: mediaItem.artist ?? '',
+                        thumbnailUrl: mediaItem.artUri?.toString(),
+                        durationSeconds: mediaItem.duration?.inSeconds ?? 0,
+                      ),
+                    ),
+                  );
                 }
               },
-              icon: const Icon(FluentIcons.text_quote_20_regular, color: Colors.white, size: 16),
-              label: const Text("Lyrics", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+              icon: const Icon(
+                FluentIcons.text_quote_20_regular,
+                color: Colors.white,
+                size: 16,
+              ),
+              label: const Text(
+                "Lyrics",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 backgroundColor: Colors.transparent,
               ),
             ),

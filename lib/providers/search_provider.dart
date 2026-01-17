@@ -6,11 +6,15 @@ final searchQueryProvider = StateProvider<String>((ref) => '');
 
 final searchFilterProvider = StateProvider<String>((ref) => 'songs');
 
-final searchResultsProvider = StateNotifierProvider<SearchResultsNotifier, AsyncValue<List<YtifyResult>>>((ref) {
-  return SearchResultsNotifier(ref);
-});
+final searchResultsProvider =
+    StateNotifierProvider<SearchResultsNotifier, AsyncValue<List<YtifyResult>>>(
+      (ref) {
+        return SearchResultsNotifier(ref);
+      },
+    );
 
-class SearchResultsNotifier extends StateNotifier<AsyncValue<List<YtifyResult>>> {
+class SearchResultsNotifier
+    extends StateNotifier<AsyncValue<List<YtifyResult>>> {
   final Ref ref;
   String? _continuationToken;
   bool _isLoadingMore = false;
@@ -49,7 +53,11 @@ class SearchResultsNotifier extends StateNotifier<AsyncValue<List<YtifyResult>>>
 
     try {
       final apiService = YouTubeApiService();
-      final response = await apiService.search(query, filter: filter, continuationToken: _continuationToken);
+      final response = await apiService.search(
+        query,
+        filter: filter,
+        continuationToken: _continuationToken,
+      );
       _continuationToken = response.continuationToken;
       state = AsyncValue.data([...currentResults, ...response.results]);
     } catch (e) {
@@ -63,7 +71,10 @@ class SearchResultsNotifier extends StateNotifier<AsyncValue<List<YtifyResult>>>
   bool get hasMore => _continuationToken != null;
 }
 
-final searchSuggestionsProvider = FutureProvider.family<List<String>, String>((ref, query) async {
+final searchSuggestionsProvider = FutureProvider.family<List<String>, String>((
+  ref,
+  query,
+) async {
   if (query.isEmpty) return [];
   final apiService = YouTubeApiService();
   return await apiService.getSearchSuggestions(query);

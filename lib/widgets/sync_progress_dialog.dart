@@ -41,10 +41,10 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
 
   Future<void> _startSync() async {
     final storage = ref.read(storageServiceProvider);
-    
+
     try {
       _log('Starting sync...');
-      
+
       if (storage.authToken == null) {
         _log('Error: Not logged in.');
         setState(() => _isSyncing = false);
@@ -54,7 +54,7 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
       _log('Fetching data from API...');
       await storage.refreshAll();
       _log('Sync Completed Successfully');
-      
+
       // Auto-close after delay
       if (mounted) {
         setState(() {
@@ -92,7 +92,10 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
             const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             )
           else
             const Icon(Icons.check_circle, color: Colors.green),
@@ -106,7 +109,7 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
         decoration: BoxDecoration(
           color: Colors.black,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: ListView.builder(
           controller: _scrollController,
