@@ -101,9 +101,6 @@ class SettingsScreen extends ConsumerWidget {
                   return ValueListenableBuilder(
                     valueListenable: storage.settingsListenable,
                     builder: (context, box, _) {
-                      final apiKey = storage.rapidApiKey;
-                      final countryCode = storage.rapidApiCountryCode;
-
                       return _buildSection('Playback', [
                         ListTile(
                           title: const Text(
@@ -163,48 +160,6 @@ class SettingsScreen extends ConsumerWidget {
                           onTap: () async => await Permission
                               .ignoreBatteryOptimizations
                               .request(),
-                        ),
-                        const Divider(height: 1, color: Colors.white10),
-                        ListTile(
-                          title: const Text(
-                            'RapidAPI Key',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          subtitle: Text(
-                            apiKey != null && apiKey.isNotEmpty
-                                ? 'Key set'
-                                : 'Not set',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                            ),
-                          ),
-                          trailing: const Icon(
-                            FluentIcons.edit_24_regular,
-                            color: Colors.white,
-                          ),
-                          onTap: () => _showApiKeyDialog(context, storage),
-                        ),
-                        const Divider(height: 1, color: Colors.white10),
-                        ListTile(
-                          title: const Text(
-                            'RapidAPI Country Code',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          subtitle: Text(
-                            countryCode.isNotEmpty
-                                ? 'Current: $countryCode'
-                                : 'Default: IN',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                            ),
-                          ),
-                          trailing: const Icon(
-                            FluentIcons.globe_24_regular,
-                            color: Colors.white,
-                          ),
-                          onTap: () => _showApiCountryDialog(context, storage),
                         ),
                       ]);
                     },
@@ -336,119 +291,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showApiKeyDialog(BuildContext context, StorageService storage) {
-    final controller = TextEditingController(text: storage.rapidApiKey);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text(
-          'Enter RapidAPI Key',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter your RapidAPI key for "yt-api" to enable fallback playback when the primary API fails.',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: 'Paste API Key here',
-                hintStyle: TextStyle(color: Colors.grey),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              storage.setRapidApiKey(controller.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _showApiCountryDialog(BuildContext context, StorageService storage) {
-    final controller = TextEditingController(text: storage.rapidApiCountryCode);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text(
-          'RapidAPI Country Code',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Country code in ISO 3166 format of the end user (e.g., IN, US).',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Not providing cgeo param may cost +1 quota. It is important to provide geo of the end user to get the best speed and direct links. If links are used in the server, then cgeo will be the geo of the server. Not providing cgeo param may lead to 403 issue.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'e.g. IN',
-                  hintStyle: TextStyle(color: Colors.grey),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              storage.setRapidApiCountryCode(
-                controller.text.trim().toUpperCase(),
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildQualityOption(
     BuildContext context,

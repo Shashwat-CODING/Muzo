@@ -29,85 +29,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         Navigator.of(context).pop();
       },
       child: Scaffold(
-        body: SlidingUpPanel(
-          controller: _panelController,
-          boxShadow: const [],
-          minHeight: 65 + MediaQuery.of(context).padding.bottom,
-          maxHeight: size.height,
-          color: Colors.transparent,
-
-          onPanelOpened: () {
-            setState(() {
-              _isPanelClosed = false;
-            });
-          },
-          onPanelClosed: () {
-            setState(() {
-              _isPanelClosed = true;
-            });
-          },
-
-          collapsed: InkWell(
-            onTap: () {
-              _panelController.open();
-            },
-            child: Container(
-              color: Colors.black,
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 65,
-                    child: Center(
-                      child: Icon(
-                        FluentIcons.chevron_up_24_regular,
-                        size: 40,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          panelBuilder: (ScrollController sc) {
-            return ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  color: Colors.black.withOpacity(0.6),
-                  child: Stack(
-                    children: [
-                      UpNextQueue(
-                        scrollController: sc,
-                        onReorderStart: (oldIndex, newIndex) {},
-                        onReorderEnd: (index) {},
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: SafeArea(
-                          child: IconButton(
-                            icon: const Icon(
-                              FluentIcons.chevron_down_24_regular,
-                              color: Colors.white,
-                            ),
-                            onPressed: () => _panelController.close(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-
-          body: const StandardPlayer(),
-        ),
+        backgroundColor: Colors.transparent,
+        body: const StandardPlayer(),
       ),
     );
   }

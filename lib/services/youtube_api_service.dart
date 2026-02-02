@@ -1,10 +1,10 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzoapi/youtube_stream_provider.dart';
+import 'dart:convert';
 
 class YtifySearchResponse {
   final List<YtifyResult> results;
@@ -14,24 +14,12 @@ class YtifySearchResponse {
 }
 
 class YouTubeApiService {
-  static const String _baseUrl = 'https://youtubei.googleapis.com/youtubei/v1/';
-  static const String _apiKey = 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w';
-  static const String _referer = 'https://www.youtube.com/';
-  static const String _userAgent =
-      'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36';
-  static const String _clientName = 'ANDROID';
-  static const String _clientVersion = '19.17.34';
-  static const int _clientId = 3;
+  final _yt = YoutubeExplode();
+  final _client = http.Client();
 
-  final _ytHelper = InnerTube();
-
-  Future<StreamInfo?> getStreamManifest(String videoId) async {
-    try {
-      return await _ytHelper.player(videoId);
-    } catch (e) {
-      debugPrint('Error fetching stream manifest: $e');
-      return null;
-    }
+  Future<void> dispose() async {
+    _yt.close();
+    _client.close();
   }
 
   Future<String?> getStreamUrl(
@@ -40,130 +28,51 @@ class YouTubeApiService {
     String? artist,
     VoidCallback? onFallback,
   }) async {
-    try {
-      final url = Uri.parse('${_baseUrl}player?key=$_apiKey');
-      final headers = {
-        'X-Goog-Api-Format-Version': '1',
-        'X-YouTube-Client-Name': _clientId.toString(),
-        'X-YouTube-Client-Version': _clientVersion,
-        'User-Agent': _userAgent,
-        'Referer': _referer,
-        'Content-Type': 'application/json',
-      };
-
-      final body = jsonEncode({
-        'context': {
-          'client': {
-            'clientName': _clientName,
-            'clientVersion': _clientVersion,
-            'clientId': _clientId,
-            'userAgent': _userAgent,
-          },
-        },
-        'videoId': videoId,
-      });
-
-      final response = await http.post(url, headers: headers, body: body);
-
-      if (response.statusCode != 200) {
-        debugPrint('YouTube API Error: ${response.statusCode}');
-        onFallback?.call();
-        return await _getFallbackStreamUrl(videoId, title, artist);
-      }
-
-      final data = jsonDecode(response.body);
-
-      final playabilityStatus = data['playabilityStatus'];
-      if (playabilityStatus?['status'] != 'OK') {
-        final reason = playabilityStatus?['reason'] ?? 'Unknown error';
-        debugPrint('Video not playable: $reason');
-        onFallback?.call();
-        return await _getFallbackStreamUrl(videoId, title, artist);
-      }
-
-      final streamingData = data['streamingData'];
-      if (streamingData == null) {
-        debugPrint('No streaming data found for video: $videoId');
-        onFallback?.call();
-        return await _getFallbackStreamUrl(videoId, title, artist);
-      }
-
-      // Get formats and adaptiveFormats
-      final formats = streamingData['formats'] as List<dynamic>?;
-      final adaptiveFormats =
-          streamingData['adaptiveFormats'] as List<dynamic>?;
-
-      // Combine all formats
-      final allFormats = <Map<String, dynamic>>[];
-      if (formats != null) {
-        allFormats.addAll(formats.cast<Map<String, dynamic>>());
-      }
-      if (adaptiveFormats != null) {
-        allFormats.addAll(adaptiveFormats.cast<Map<String, dynamic>>());
-      }
-
-      debugPrint('Found ${allFormats.length} formats');
-
-      // Find the best audio-only format
-      String? bestAudioUrl;
-      int bestBitrate = 0;
-
-      for (final format in allFormats) {
-        final mimeType = format['mimeType'] as String?;
-        final url = format['url'] as String?;
-        final bitrate = format['bitrate'] as int?;
-
-        // Look for audio-only formats (audio/mp4, audio/webm, etc.)
-        if (mimeType != null &&
-            mimeType.startsWith('audio/') &&
-            url != null &&
-            bitrate != null) {
-          // On macOS/iOS, we MUST prefer mp4/aac as webm/opus is not supported by AVPlayer
-          bool isApple = Platform.isMacOS || Platform.isIOS;
-          bool isMp4 = mimeType.contains('mp4');
-
-          if (isApple) {
-            // Apple Logic: Only pick if mp4, or if we haven't found anything yet
-            // If we already have a candidate, only replace it if new one is mp4 and better bitrate,
-            // or if current candidate is NOT mp4 and new one IS mp4.
-            bool currentIsMp4 = bestAudioUrl != null &&
-                allFormats.any((f) =>
-                    f['url'] == bestAudioUrl &&
-                    (f['mimeType'] as String).contains('mp4'));
-
-            if (isMp4) {
-              if (!currentIsMp4 || bitrate > bestBitrate) {
-                bestBitrate = bitrate;
-                bestAudioUrl = url;
-              }
-            } else if (bestAudioUrl == null) {
-              // Accept non-mp4 only if we have nothing else
-              bestBitrate = bitrate;
-              bestAudioUrl = url;
-            }
-          } else {
-            // Standard Logic (Android/Web)
-            if (bitrate > bestBitrate) {
-              bestBitrate = bitrate;
-              bestAudioUrl = url;
-            }
-          }
-        }
-      }
-
-      if (bestAudioUrl != null) {
-        return bestAudioUrl;
-      }
-
-      debugPrint('No suitable audio stream found for video: $videoId');
-      onFallback?.call();
+    // 0. Web Platform Check: Bypass library entirely on web
+    if (kIsWeb) {
+      debugPrint('Web platform detected: bypassing package:youtube_explode_dart');
       return await _getFallbackStreamUrl(videoId, title, artist);
+    }
+
+    try {
+      debugPrint('Extracting stream for videoId: $videoId...');
+      
+      // 1. Get the stream manifest (contains all available formats)
+      final manifest = await _yt.videos.streamsClient.getManifest(
+        videoId,
+        ytClients: [
+          YoutubeApiClient.tv,
+          YoutubeApiClient.androidVr,
+        ],
+      );
+      
+      // 2. Filter for audio-only streams
+      final audioStreams = manifest.audioOnly;
+      
+      if (audioStreams.isEmpty) {
+        debugPrint("No audio streams found for this video.");
+        onFallback?.call();
+        return await _getFallbackStreamUrl(videoId, title, artist);
+      }
+
+      // 3. Select the best stream 
+      final bestStream = audioStreams.withHighestBitrate();
+      
+      // 4. Extract the direct URL
+      final streamUrl = bestStream.url.toString();
+      
+      _logLong('Stream URL extracted: $streamUrl');
+      return streamUrl;
     } catch (e) {
-      debugPrint('Error fetching stream info for video: $videoId');
-      debugPrint('Exception: $e');
+      debugPrint("Error extracting stream: $e");
       onFallback?.call();
       return await _getFallbackStreamUrl(videoId, title, artist);
     }
+  }
+
+  void _logLong(String text) {
+    final pattern = RegExp('.{1,800}');
+    pattern.allMatches(text).forEach((match) => debugPrint(match.group(0)));
   }
 
   Future<String?> _getFallbackStreamUrl(
@@ -171,74 +80,122 @@ class YouTubeApiService {
     String? title,
     String? artist,
   ) async {
-    try {
-      // Access key and country code via singleton
-      final apiKey = StorageService().rapidApiKey;
-      final countryCode = StorageService().rapidApiCountryCode;
+    final invidiousInstances = [
+      'inv-veltrix-3.zeabur.app',
+      'inv-veltrix-2.zeabur.app',
+      'inv-veltrix.zeabur.app',
+    ];
 
-      if (apiKey == null || apiKey.isEmpty) {
-        debugPrint('RapidAPI Key not set. Fallback disabled.');
-        return null;
-      }
+    for (final instance in invidiousInstances) {
+      try {
+        debugPrint('Using Invidious instance: $instance for videoId: $videoId');
+        final uri = Uri.parse('https://$instance/api/v1/videos/$videoId');
 
-      debugPrint(
-        'Attempting RapidAPI fallback for $videoId with cgeo=$countryCode',
-      );
+        final response = await http.get(uri);
 
-      final uri = Uri.parse('https://yt-api.p.rapidapi.com/dl').replace(
-        queryParameters: {
-          'id': videoId,
-          'cgeo': countryCode.isNotEmpty ? countryCode : 'IN',
-        },
-      );
+        if (response.statusCode != 200) {
+          debugPrint('Invidious ($instance) returned status: ${response.statusCode}');
+          continue; // Try next instance
+        }
 
-      final response = await http.get(
-        uri,
-        headers: {
-          'x-rapidapi-host': 'yt-api.p.rapidapi.com',
-          'x-rapidapi-key': apiKey,
-        },
-      );
+        final data = jsonDecode(response.body);
+        final adaptiveFormats = data['adaptiveFormats'] as List?;
 
-      if (response.statusCode != 200) {
-        debugPrint('RapidAPI Error: ${response.statusCode}');
-        return null;
-      }
+        if (adaptiveFormats == null) continue;
 
-      final data = jsonDecode(response.body);
-      if (data['status'] != 'OK') {
-        debugPrint('RapidAPI Status: ${data['status']}');
-        return null;
-      }
+        String? bestUrl;
+        int bestBitrate = 0;
 
-      // Parse adaptiveFormats for best audio
-      final adaptiveFormats = data['adaptiveFormats'] as List?;
-      if (adaptiveFormats == null) return null;
+        for (final format in adaptiveFormats) {
+          final type = format['type'] as String?;
+          final url = format['url'] as String?;
+          // bitrate can be string or int in JSON, safer to handle both or clean plain string
+          final bitrateVal = format['bitrate'];
+          int bitrate = 0;
+          if (bitrateVal is int) {
+            bitrate = bitrateVal;
+          } else if (bitrateVal is String) {
+            bitrate = int.tryParse(bitrateVal) ?? 0;
+          }
 
-      String? bestUrl;
-      int bestBitrate = 0;
-
-      for (final format in adaptiveFormats) {
-        final mimeType = format['mimeType'] as String?;
-        final bitrate = format['bitrate'] as int?;
-        final url = format['url'] as String?;
-
-        if (mimeType != null &&
-            mimeType.startsWith('audio/') &&
-            url != null &&
-            bitrate != null) {
-          if (bitrate > bestBitrate) {
-            bestBitrate = bitrate;
-            bestUrl = url;
+          if (type != null && type.startsWith('audio/') && url != null) {
+            if (bitrate > bestBitrate) {
+              bestBitrate = bitrate;
+              bestUrl = url;
+            }
           }
         }
-      }
 
-      return bestUrl;
-    } catch (e) {
-      debugPrint('RapidAPI Exception: $e');
-      return null;
+        if (bestUrl != null) {
+          // Proxy logic: Replace host with CURRENT Invidious base URL
+          try {
+            final originalUri = Uri.parse(bestUrl);
+            final proxiedUri = originalUri.replace(
+              scheme: 'https',
+              host: instance,
+            );
+            return proxiedUri.toString();
+          } catch (e) {
+            debugPrint("Error parsing/proxying URL: $e");
+            return bestUrl; // Return original if proxying fails
+          }
+        }
+      } catch (e) {
+        debugPrint("Error in Invidious fallback ($instance): $e");
+        continue; // Try next instance
+      }
     }
+    return null;
+  }
+
+  Future<YtifyResult?> _getFallbackVideoDetails(String videoId) async {
+    final invidiousInstances = [
+      'inv-veltrix-3.zeabur.app',
+      'inv-veltrix-2.zeabur.app',
+      'inv-veltrix.zeabur.app',
+    ];
+
+    for (final instance in invidiousInstances) {
+      try {
+        final uri = Uri.parse('https://$instance/api/v1/videos/$videoId');
+        final response = await http.get(uri);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          
+          final title = data['title'] ?? 'Unknown Title';
+          final author = data['author'] ?? 'Unknown Artist';
+          final authorId = data['authorId'] ?? '';
+          final lengthSeconds = data['lengthSeconds'] ?? 0;
+          
+          // Thumbnails
+          String thumbnail = '';
+          final thumbnails = data['videoThumbnails'] as List?;
+          if (thumbnails != null && thumbnails.isNotEmpty) {
+             // Try to find reasonable quality
+             thumbnail = thumbnails.last['url'] ?? ''; 
+          }
+
+          final duration = Duration(seconds: lengthSeconds);
+          String twoDigits(int n) => n.toString().padLeft(2, "0");
+          final durationString = "${duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : ''}${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}";
+
+          return YtifyResult(
+            videoId: videoId,
+            title: title,
+            artists: [YtifyArtist(name: author, id: authorId)],
+            thumbnails: [YtifyThumbnail(url: thumbnail, width: 480, height: 360)],
+            duration: durationString,
+            resultType: 'video',
+            isExplicit: false,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error getting fallback details from $instance: $e');
+        continue;
+      }
+    }
+    return null;
   }
 
   Future<YtifySearchResponse> search(
@@ -249,31 +206,18 @@ class YouTubeApiService {
     try {
       Uri uri;
       final queryParams = {'q': query, 'filter': filter};
-
-      if (continuationToken != null) {
-        queryParams['continuationToken'] = continuationToken;
-      }
+      if (continuationToken != null) queryParams['continuationToken'] = continuationToken;
 
       if (filter == 'videos' || filter == 'channels') {
-        uri = Uri.parse(
-          'https://ytify-backend.vercel.app/api/yt_search',
-        ).replace(queryParameters: queryParams);
+        uri = Uri.parse('https://ytify-backend.vercel.app/api/yt_search').replace(queryParameters: queryParams);
       } else if (filter == 'albums') {
-        uri = Uri.parse(
-          'https://ytify-backend.vercel.app/api/search',
-        ).replace(queryParameters: queryParams);
+        uri = Uri.parse('https://ytify-backend.vercel.app/api/search').replace(queryParameters: queryParams);
       } else {
-        uri = Uri.parse(
-          'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task',
-        ).replace(queryParameters: queryParams);
+        uri = Uri.parse('https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task').replace(queryParameters: queryParams);
       }
 
       final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('Ytify Search Error: ${response.statusCode}');
-        return YtifySearchResponse(results: []);
-      }
+      if (response.statusCode != 200) return YtifySearchResponse(results: []);
 
       final data = jsonDecode(response.body);
       final resultsJson = data['results'] as List?;
@@ -281,108 +225,64 @@ class YouTubeApiService {
 
       if (resultsJson == null) return YtifySearchResponse(results: []);
 
-      final results = resultsJson
-          .map((json) => YtifyResult.fromJson(json))
-          .toList();
+      final results = resultsJson.map((json) => YtifyResult.fromJson(json)).toList();
       return YtifySearchResponse(results: results, continuationToken: token);
     } catch (e) {
-      debugPrint('Error searching: $e');
       return YtifySearchResponse(results: []);
     }
   }
 
   Future<List<YtifyResult>> getChannelVideos(String channelId) async {
     try {
-      final uri = Uri.parse(
-        'https://ytify-backend.vercel.app/api/feed/channels=$channelId',
-      );
+      final uri = Uri.parse('https://ytify-backend.vercel.app/api/feed/channels=$channelId');
       final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('Ytify Channel Videos Error: ${response.statusCode}');
-        return [];
-      }
-
+      if (response.statusCode != 200) return [];
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => YtifyResult.fromJson(json)).toList();
     } catch (e) {
-      debugPrint('Error fetching channel videos: $e');
       return [];
     }
   }
 
-  Future<List<YtifyResult>> getSubscriptionsFeed(
-    List<String> channelIds,
-  ) async {
+  Future<List<YtifyResult>> getSubscriptionsFeed(List<String> channelIds) async {
     if (channelIds.isEmpty) return [];
     try {
       final ids = channelIds.join(',');
-      final uri = Uri.parse(
-        'https://ytify-backend.vercel.app/api/feed/channels=$ids',
-      ).replace(queryParameters: {'preview': '1'});
+      final uri = Uri.parse('https://ytify-backend.vercel.app/api/feed/channels=$ids').replace(queryParameters: {'preview': '1'});
       final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('Ytify Subscriptions Feed Error: ${response.statusCode}');
-        return [];
-      }
-
+      if (response.statusCode != 200) return [];
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => YtifyResult.fromJson(json)).toList();
     } catch (e) {
-      debugPrint('Error fetching subscriptions feed: $e');
       return [];
     }
   }
 
   Future<List<String>> getSearchSuggestions(String query) async {
     try {
-      final uri = Uri.parse(
-        'https://ytify-backend.vercel.app/api/search/suggestions',
-      ).replace(queryParameters: {'q': query, 'music': '1'});
-
+      final uri = Uri.parse('https://ytify-backend.vercel.app/api/search/suggestions').replace(queryParameters: {'q': query, 'music': '1'});
       final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('Ytify Suggestions Error: ${response.statusCode}');
-        return [];
-      }
-
+      if (response.statusCode != 200) return [];
       final data = jsonDecode(response.body);
       final suggestions = data['suggestions'] as List?;
-
       if (suggestions == null) return [];
-
       return suggestions.map((s) => s.toString()).toList();
     } catch (e) {
-      debugPrint('Error fetching suggestions: $e');
       return [];
     }
   }
 
   Future<List<YtifyResult>> getRelatedVideos(String videoId) async {
     try {
-      final uri = Uri.parse(
-        'https://ytify-backend.vercel.app/api/related/$videoId',
-      );
+      final uri = Uri.parse('https://ytify-backend.vercel.app/api/related/$videoId');
       final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('Ytify Related Videos Error: ${response.statusCode}');
-        return [];
-      }
-
+      if (response.statusCode != 200) return [];
       final data = jsonDecode(response.body);
-      if (data['success'] != true) {
-        return [];
-      }
-
+      if (data['success'] != true) return [];
       final resultsJson = data['data'] as List?;
       if (resultsJson == null) return [];
-
       return resultsJson.map((json) => YtifyResult.fromJson(json)).toList();
     } catch (e) {
-      debugPrint('Error fetching related videos: $e');
       return [];
     }
   }
@@ -391,129 +291,52 @@ class YouTubeApiService {
     try {
       final uri = Uri.parse('https://ytify-backend.vercel.app/api/trending');
       final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('Ytify Trending Error: ${response.statusCode}');
-        return {'songs': [], 'videos': [], 'playlists': []};
-      }
-
+      if (response.statusCode != 200) return {'songs': [], 'videos': [], 'playlists': []};
       final data = jsonDecode(response.body);
-      if (data['success'] != true || data['data'] == null) {
-        return {'songs': [], 'videos': [], 'playlists': []};
-      }
-
+      if (data['success'] != true || data['data'] == null) return {'songs': [], 'videos': [], 'playlists': []};
       final content = data['data'];
-
       List<YtifyResult> parseList(String key, {String? forceType}) {
         final list = content[key] as List?;
         if (list == null) return [];
         return list.map((json) {
           final map = Map<String, dynamic>.from(json);
-          if (forceType != null) {
-            map['resultType'] = forceType;
-          }
+          if (forceType != null) map['resultType'] = forceType;
           return YtifyResult.fromJson(map);
         }).toList();
       }
-
       return {
         'songs': parseList('songs'),
         'videos': parseList('videos'),
         'playlists': parseList('playlists', forceType: 'playlist'),
       };
     } catch (e) {
-      debugPrint('Error fetching trending content: $e');
       return {'songs': [], 'videos': [], 'playlists': []};
     }
   }
 
   Future<YtifyResult?> getVideoDetails(String videoId) async {
+    // 0. Web Platform Check: Bypass library entirely on web
+    if (kIsWeb) {
+       return await _getFallbackVideoDetails(videoId);
+    }
     try {
-      final url = Uri.parse('${_baseUrl}player?key=$_apiKey');
-      final headers = {
-        'X-Goog-Api-Format-Version': '1',
-        'X-YouTube-Client-Name': _clientId.toString(),
-        'X-YouTube-Client-Version': _clientVersion,
-        'User-Agent': _userAgent,
-        'Referer': _referer,
-        'Content-Type': 'application/json',
-      };
-
-      final body = jsonEncode({
-        'context': {
-          'client': {
-            'clientName': _clientName,
-            'clientVersion': _clientVersion,
-            'clientId': _clientId,
-            'userAgent': _userAgent,
-          },
-        },
-        'videoId': videoId,
-      });
-
-      final response = await http.post(url, headers: headers, body: body);
-
-      if (response.statusCode != 200) {
-        debugPrint(
-          'YouTube API Error (getVideoDetails): ${response.statusCode}',
-        );
-        return null;
-      }
-
-      final data = jsonDecode(response.body);
-      final videoDetails = data['videoDetails'];
-
-      if (videoDetails == null) {
-        debugPrint('No videoDetails found for: $videoId');
-        return null;
-      }
-
-      final thumbnails =
-          (videoDetails['thumbnail']?['thumbnails'] as List?)
-              ?.map(
-                (t) => YtifyThumbnail(
-                  url: t['url'],
-                  width: t['width'] ?? 0,
-                  height: t['height'] ?? 0,
-                ),
-              )
-              .toList() ??
-          [];
-
-      // Ensure we have at least one thumbnail
-      if (thumbnails.isEmpty) {
-        thumbnails.add(
-          YtifyThumbnail(
-            url: 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg',
-            width: 480,
-            height: 360,
-          ),
-        );
-      }
-
-      final durationSeconds =
-          int.tryParse(videoDetails['lengthSeconds'] ?? '0') ?? 0;
-      final duration = Duration(seconds: durationSeconds);
+      final video = await _yt.videos.get(videoId);
+      final thumbnails = [YtifyThumbnail(url: video.thumbnails.highResUrl, width: 480, height: 360)];
+      final duration = video.duration ?? Duration.zero;
       String twoDigits(int n) => n.toString().padLeft(2, "0");
-      String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-      String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-      final durationString =
-          "${duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : ''}$twoDigitMinutes:$twoDigitSeconds";
-
+      final durationString = "${duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : ''}${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}";
       return YtifyResult(
-        videoId: videoDetails['videoId'],
-        title: videoDetails['title'] ?? 'Unknown Title',
-        artists: [
-          YtifyArtist(name: videoDetails['author'] ?? 'Unknown Artist', id: ''),
-        ],
+        videoId: video.id.value,
+        title: video.title,
+        artists: [YtifyArtist(name: video.author, id: video.channelId.value)],
         thumbnails: thumbnails,
         duration: durationString,
         resultType: 'video',
         isExplicit: false,
       );
     } catch (e) {
-      debugPrint('Error fetching video details: $e');
-      return null;
+      // Also fallback if library fails on other platforms (optional but good consistency)
+      return await _getFallbackVideoDetails(videoId);
     }
   }
 }

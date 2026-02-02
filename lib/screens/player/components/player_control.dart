@@ -1,9 +1,11 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:widget_marquee/widget_marquee.dart';
 import 'package:just_audio/just_audio.dart';
+import 'up_next_queue.dart';
 
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/services/storage_service.dart';
@@ -61,6 +63,47 @@ class PlayerControlWidget extends ConsumerWidget {
                   ],
                 ),
               ),
+              // Queue Button
+              IconButton(
+                icon: const Icon(
+                  FluentIcons.list_24_regular,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
+                    builder: (context) {
+                      return DraggableScrollableSheet(
+                        initialChildSize: 0.6,
+                        minChildSize: 0.3,
+                        maxChildSize: 0.9,
+                        builder: (context, scrollController) {
+                          return ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(20),
+                            ),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                color: Colors.black.withOpacity(0.5),
+                                child: UpNextQueue(
+                                  scrollController: scrollController,
+                                  onReorderStart: (oldIndex, newIndex) {
+                                    // Reorder logic if needed
+                                  },
+                                  onReorderEnd: (index) {},
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
               // Favorite Button
               Consumer(
                 builder: (context, ref, child) {
@@ -92,8 +135,7 @@ class PlayerControlWidget extends ConsumerWidget {
                             artists: [
                               YtifyArtist(name: mediaItem.artist ?? '', id: ''),
                             ],
-                            resultType:
-                                mediaItem.extras?['resultType'] ?? 'video',
+                            resultType: mediaItem.extras?['resultType'] ?? 'video',
                             isExplicit: false,
                           );
 

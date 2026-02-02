@@ -236,7 +236,7 @@ class ThemeLogic {
         tabBarTheme: TabBarThemeData(indicatorColor: Colors.white),
       );
       return baseTheme.copyWith(
-        textTheme: GoogleFonts.outfitTextTheme(baseTheme.textTheme),
+        textTheme: GoogleFonts.bitcountTextTheme(baseTheme.textTheme),
       );
     } else {
       SystemChrome.setSystemUIOverlayStyle(
@@ -314,7 +314,7 @@ class ThemeLogic {
         ),
       );
       return baseTheme.copyWith(
-        textTheme: GoogleFonts.outfitTextTheme(baseTheme.textTheme),
+        textTheme: GoogleFonts.bitcountTextTheme(baseTheme.textTheme),
       );
     }
   }

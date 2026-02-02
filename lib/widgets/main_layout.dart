@@ -407,6 +407,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             2,
             selectedIndex,
           ),
+
           _buildNavItem(
             context,
             ref,
@@ -414,6 +415,15 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             FluentIcons.person_24_filled,
             "Channels",
             3,
+            selectedIndex,
+          ),
+          _buildNavItem(
+            context,
+            ref,
+            FluentIcons.settings_24_regular,
+            FluentIcons.settings_24_filled,
+            "Settings",
+            4,
             selectedIndex,
           ),
         ],
@@ -435,7 +445,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       behavior: HitTestBehavior.opaque,
       onTap: () {
         HapticFeedback.lightImpact();
-        if (index == 0 || index == 1 || index == 2 || index == 3) {
+        if (index == 0 || index == 1 || index == 2 || index == 3 || index == 4) {
           ref.read(navigationIndexProvider.notifier).state = index;
           navigatorKey.currentState?.popUntil((route) => route.isFirst);
         } else if (index == 5) {

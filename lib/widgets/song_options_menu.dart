@@ -13,6 +13,7 @@ import 'package:muzo/services/download_service.dart';
 import 'package:muzo/widgets/playlist_selection_dialog.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/providers/settings_provider.dart';
 
 class SongOptionsMenu extends ConsumerWidget {
   final YtifyResult result;
@@ -171,6 +172,15 @@ class SongOptionsMenu extends ConsumerWidget {
                         ref.read(audioHandlerProvider).toggleLofiMode(),
                   );
                 },
+              ),
+              // Gesture Mode Toggle
+              _buildSwitchOption(
+                context,
+                icon: FluentIcons.content_view_24_regular,
+                label: 'Gesture Mode',
+                value: ref.watch(settingsProvider).isGestureMode,
+                onChanged: (val) =>
+                    ref.read(settingsProvider.notifier).toggleGestureMode(),
               ),
             ],
             _buildMenuOption(

@@ -128,7 +128,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       border: Border.all(color: Colors.white.withOpacity(0.05)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withOpacity(0),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -143,7 +143,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         const SizedBox(height: 16),
                         Text(
                           'Muzo',
-                          style: GoogleFonts.outfit(
+                          style: GoogleFonts.bitcount(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -155,7 +155,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         Container(
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withOpacity(0),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: TabBar(
@@ -168,7 +168,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                             indicatorSize: TabBarIndicatorSize.tab,
                             labelColor: Colors.black,
                             unselectedLabelColor: Colors.grey,
-                            labelStyle: GoogleFonts.outfit(
+                            labelStyle: GoogleFonts.bitcount(
                               fontWeight: FontWeight.w600,
                             ),
                             dividerColor: Colors.transparent,
@@ -263,7 +263,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                     _tabController.index == 0
                                         ? 'Login'
                                         : 'Create Account',
-                                    style: GoogleFonts.outfit(
+                                    style: GoogleFonts.bitcount(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -281,7 +281,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                     onPressed: _skip,
                     child: Text(
                       'Continue as Guest',
-                      style: GoogleFonts.outfit(
+                      style: GoogleFonts.bitcount(
                         color: Colors.white54,
                         fontSize: 14,
                       ),
@@ -304,17 +304,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
+        color: Colors.black.withOpacity(0),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
-        style: GoogleFonts.outfit(color: Colors.white),
+        style: GoogleFonts.bitcount(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.outfit(color: Colors.white38),
+          hintStyle: GoogleFonts.bitcount(color: Colors.white38),
           prefixIcon: Icon(icon, color: Colors.white54, size: 20),
           suffixIcon: isPassword
               ? IconButton(

@@ -19,6 +19,7 @@ class SubscribedChannelsScreen extends ConsumerStatefulWidget {
 class _SubscribedChannelsScreenState
     extends ConsumerState<SubscribedChannelsScreen> {
   final _apiService = YouTubeApiService();
+  late final StorageService _storage;
   Future<List<YtifyResult>>? _feedFuture;
 
   @override
@@ -27,15 +28,15 @@ class _SubscribedChannelsScreenState
     // Defer accessing storage to avoid initialization order issues if needed,
     // but ref.read is usually fine.
     // Ideally use postFrameCallback or ref.read.
-    final storage = ref.read(storageServiceProvider);
-    storage.subscriptionsListenable.addListener(_onSubscriptionsChanged);
+    // Ideally use postFrameCallback or ref.read.
+    _storage = ref.read(storageServiceProvider);
+    _storage.subscriptionsListenable.addListener(_onSubscriptionsChanged);
     _loadFeed();
   }
 
   @override
   void dispose() {
-    final storage = ref.read(storageServiceProvider);
-    storage.subscriptionsListenable.removeListener(_onSubscriptionsChanged);
+    _storage.subscriptionsListenable.removeListener(_onSubscriptionsChanged);
     super.dispose();
   }
 

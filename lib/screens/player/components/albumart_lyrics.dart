@@ -83,7 +83,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
       height: safeSize,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
           boxShadow: const [
             BoxShadow(
               color: Colors.black45,
@@ -93,7 +93,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
           child: Stack(
             children: [
               mediaItemAsync.when(
@@ -104,7 +104,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                   return CachedNetworkImage(
                     imageUrl: mediaItem!.artUri
                         .toString()
-                        .replaceAll(RegExp(r'w\d+-h\d+'), 'w500-h500'),
+                        .replaceAll(RegExp(r'w\d+-h\d+'), 'w800-h800'),
                     fit: BoxFit.cover,
                     width: widget.playerArtImageSize,
                     height: widget.playerArtImageSize,
@@ -437,7 +437,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(15),
                                       ),
-                                      color: Colors.black.withOpacity(0.8),
+                                      color: Colors.black.withOpacity(0),
                                       offset: const Offset(0, -50),
                                       tooltip: 'Select Language',
                                       itemBuilder: (context) {

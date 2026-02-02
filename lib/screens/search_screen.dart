@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/search_provider.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:muzo/providers/settings_provider.dart';
+import 'package:muzo/widgets/glass_container.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -66,57 +67,55 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 horizontal: 16.0,
                 vertical: 8.0,
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    cursorColor: Colors.white,
-                    decoration: InputDecoration(
-                      hintText: 'Search songs, albums, artists',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
-                      prefixIcon: const Icon(
-                        FluentIcons.search_24_regular,
-                        color: Colors.white70,
-                        size: 22,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                FluentIcons.dismiss_24_regular,
-                                color: Colors.white70,
-                                size: 22,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _showSuggestions = false;
-                                });
-                                ref.read(searchQueryProvider.notifier).state =
-                                    '';
-                              },
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
+              child: GlassContainer(
+                borderRadius: BorderRadius.circular(24),
+                blur: 10,
+                color: Colors.white.withValues(alpha: 0.1),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  cursorColor: Colors.white,
+                  decoration: InputDecoration(
+                    hintText: 'Search songs, albums, artists',
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
-                    onSubmitted: (value) {
-                      _performSearch(value);
-                    },
-                    onChanged: (value) {
-                      // Ensure clear button visibility updates
-                      setState(() {});
-                    },
+                    filled: false, // GlassContainer handles background
+                    prefixIcon: const Icon(
+                      FluentIcons.search_24_regular,
+                      color: Colors.white70,
+                      size: 22,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              FluentIcons.dismiss_24_regular,
+                              color: Colors.white70,
+                              size: 22,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _showSuggestions = false;
+                              });
+                              ref.read(searchQueryProvider.notifier).state =
+                                  '';
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
+                  onSubmitted: (value) {
+                    _performSearch(value);
+                  },
+                  onChanged: (value) {
+                    // Ensure clear button visibility updates
+                    setState(() {});
+                  },
                 ),
               ),
             ),

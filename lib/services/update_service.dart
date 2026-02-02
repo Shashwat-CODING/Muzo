@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class UpdateService {
   // Current app version - Update this when releasing a new version
-  static const String currentAppVersion = '2.0.1';
+  static const String currentAppVersion = '2.1.1';
 
   static const String _repoOwner = 'Shashwat-CODING';
   static const String _repoName = 'Muzo';
@@ -36,8 +36,13 @@ class UpdateService {
 
   bool _isNewerVersion(String latest, String current) {
     try {
-      final latestClean = latest.trim().toLowerCase().replaceAll('v', '');
-      final currentClean = current.trim().toLowerCase().replaceAll('v', '');
+      debugPrint('Update Check: Remote Version: "$latest" vs Local Version: "$current"');
+      
+      // Remove everything except numbers and dots to ensure clean comparison
+      final latestClean = latest.replaceAll(RegExp(r'[^0-9.]'), '');
+      final currentClean = current.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      debugPrint('Cleaned Versions: Remote: "$latestClean" vs Local: "$currentClean"');
 
       if (latestClean == currentClean) return false;
 
@@ -49,14 +54,8 @@ class UpdateService {
           : currentParts.length;
 
       for (int i = 0; i < maxLength; i++) {
-        int l = i < latestParts.length
-            ? int.tryParse(latestParts[i].replaceAll(RegExp(r'[^0-9]'), '')) ??
-                  0
-            : 0;
-        int c = i < currentParts.length
-            ? int.tryParse(currentParts[i].replaceAll(RegExp(r'[^0-9]'), '')) ??
-                  0
-            : 0;
+        int l = i < latestParts.length ? int.tryParse(latestParts[i]) ?? 0 : 0;
+        int c = i < currentParts.length ? int.tryParse(currentParts[i]) ?? 0 : 0;
 
         if (l > c) return true;
         if (l < c) return false;

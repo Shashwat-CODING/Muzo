@@ -31,7 +31,7 @@ class HomeItemWidget extends ConsumerWidget {
             AspectRatio(
               aspectRatio: 1.0,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(4),
                 child: item.thumbnailUrl != null
                     ? CachedNetworkImage(
                         imageUrl: item.thumbnailUrl!,

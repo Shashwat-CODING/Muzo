@@ -70,7 +70,7 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
           Shadow(
             offset: const Offset(0, 1),
             blurRadius: 10.0,
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withOpacity(0),
           ),
         ],
       ),
@@ -82,7 +82,7 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
           Shadow(
             offset: const Offset(0, 1),
             blurRadius: 8.0,
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withOpacity(0),
           ),
         ],
       ),
@@ -94,7 +94,7 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
           Shadow(
             offset: const Offset(0, 1),
             blurRadius: 8.0,
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withOpacity(0),
           ),
         ],
       ),

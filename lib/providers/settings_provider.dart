@@ -9,22 +9,26 @@ class SettingsState {
   final AudioQuality audioQuality;
   final bool isLiteMode;
   final ThemeType themeType;
+  final bool isGestureMode;
 
   SettingsState({
     required this.audioQuality,
     required this.isLiteMode,
     required this.themeType,
+    this.isGestureMode = false,
   });
 
   SettingsState copyWith({
     AudioQuality? audioQuality,
     bool? isLiteMode,
     ThemeType? themeType,
+    bool? isGestureMode,
   }) {
     return SettingsState(
       audioQuality: audioQuality ?? this.audioQuality,
       isLiteMode: isLiteMode ?? this.isLiteMode,
       themeType: themeType ?? this.themeType,
+      isGestureMode: isGestureMode ?? this.isGestureMode,
     );
   }
 }
@@ -36,6 +40,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           audioQuality: AudioQuality.high,
           isLiteMode: false,
           themeType: ThemeType.dynamic,
+          isGestureMode: false,
         ),
       ) {
     _loadSettings();
@@ -46,6 +51,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final qualityIndex = box.get('audioQuality', defaultValue: 0);
     final isLiteMode = box.get('isLiteMode', defaultValue: false);
     final themeTypeIndex = box.get('themeModeType', defaultValue: 0);
+    final isGestureMode = box.get('isGestureMode', defaultValue: false) ?? false;
 
     // Migration logic: If saved index is out of bounds (legacy light/system), default to dynamic (0)
     final validThemeIndex =
@@ -57,6 +63,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       audioQuality: AudioQuality.values[qualityIndex],
       isLiteMode: isLiteMode,
       themeType: ThemeType.values[validThemeIndex],
+      isGestureMode: isGestureMode,
     );
   }
 
@@ -76,6 +83,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(themeType: themeType);
     final box = await Hive.openBox('settings');
     await box.put('themeModeType', themeType.index);
+  }
+
+  Future<void> toggleGestureMode() async {
+    final newValue = !state.isGestureMode;
+    state = state.copyWith(isGestureMode: newValue);
+    final box = await Hive.openBox('settings');
+    await box.put('isGestureMode', newValue);
   }
 }
 

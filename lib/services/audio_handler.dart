@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:developer' as dev;
 import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -90,6 +91,13 @@ class AudioHandler {
       }
     });
 
+    // JIT: Listen for index changes to resolve upcoming lazy sources
+    _player.currentIndexStream.listen((index) {
+      if (index != null) {
+        _ensureUpcomingResolved(index);
+      }
+    });
+
     // Listen to settings changes for real-time Lofi updates
     _storage.settingsListenable.addListener(() {
       if (isLofiModeNotifier.value) {
@@ -99,12 +107,16 @@ class AudioHandler {
     });
   }
 
+  /// Reverb intensity (0.0 = off, 1.0 = maximum)
+  static const double _reverbIntensity = 0.4; // 40% reverb
+
   Future<void> _applyReverb(int sessionId, bool enable) async {
     if (!Platform.isAndroid) return;
     try {
       await platform.invokeMethod('enableReverb', {
         'sessionId': sessionId,
         'enable': enable,
+        'intensity': _reverbIntensity,
       });
     } catch (e) {
       debugPrint("Error toggling reverb: $e");
@@ -203,7 +215,7 @@ class AudioHandler {
     }
   }
 
-  Future<AudioSource?> _createAudioSource(dynamic video) async {
+  Future<AudioSource?> _createAudioSource(dynamic video, {bool lazy = false}) async {
     try {
       String videoId;
       String title;
@@ -211,21 +223,15 @@ class AudioHandler {
       String artUri;
       String resultType = 'video';
       String? artistId;
-
       Duration? duration;
 
       if (video is YtifyResult) {
         if (video.videoId == null) return null;
         videoId = video.videoId!;
-
         title = video.title;
-        artist =
-            video.artists?.map((a) => a.name).join(', ') ??
-            video.videoType ??
-            'Unknown';
+        artist = video.artists?.map((a) => a.name).join(', ') ?? video.videoType ?? 'Unknown';
         artistId = video.artists?.firstOrNull?.id;
         artUri = video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
-
         resultType = video.resultType;
         if (video.durationSeconds != null) {
           duration = Duration(seconds: video.durationSeconds!);
@@ -234,147 +240,41 @@ class AudioHandler {
         return null;
       }
 
-      final downloadPath = _storage.getDownloadPath(videoId);
-      Uri audioUri;
-      Map<String, dynamic> extras = {
+      final Map<String, dynamic> extras = {
         'resultType': resultType,
         'artistId': artistId,
       };
 
-      if (downloadPath != null && await File(downloadPath).exists()) {
-        audioUri = Uri.file(downloadPath);
+      Uri audioUri;
+      
+      // Lazy Loading: Return dummy URI immediately if not downloaded
+      final downloadPath = _storage.getDownloadPath(videoId);
+      final isDownloaded = downloadPath != null && await File(downloadPath).exists();
+
+      if (lazy && !isDownloaded) {
+        audioUri = Uri.parse('lazy://$videoId');
+      } else if (isDownloaded) {
+        audioUri = Uri.file(downloadPath!);
       } else {
-        // Fetch stream manifest only - use source metadata directly
-        final manifest = await _apiService.getStreamManifest(videoId);
+        // Fetch stream (Expensive)
+        final streamUrl = await _apiService.getStreamUrl(
+          videoId,
+          title: title,
+          artist: artist,
+          onFallback: () => _showFallbackAlert(),
+        );
 
-        // Process Manifest
-        if (manifest != null && (manifest as dynamic).audioStreams.isNotEmpty) {
-          final typedManifest =
-              manifest
-                  as dynamic; // Cast to access properties if type inference fails
-          // Process multi-language streams
-          final uniqueLanguages =
-              <String, String>{}; // name -> url (best bitrate)
-          final languageBitrates = <String, int>{}; // name -> bitrate
-
-          for (final stream in typedManifest.audioStreams) {
-            final name = stream.languageDisplayName ?? "Default";
-            final bitrate = stream.bitrate;
-
-            if (!languageBitrates.containsKey(name) ||
-                bitrate > languageBitrates[name]!) {
-              languageBitrates[name] = bitrate;
-              uniqueLanguages[name] = stream.url;
-            }
-          }
-
-          final availableLanguages = uniqueLanguages.entries
-              .map((e) => {'name': e.key, 'url': e.value})
-              .toList();
-
-          // Identify best default stream
-          dynamic bestStream = typedManifest.audioStreams.first;
-          String bestUrl = bestStream.url;
-          String currentLanguage = bestStream.languageDisplayName ?? "Default";
-          
-          final bool isApple = Platform.isMacOS || Platform.isIOS;
-          
-          for (final stream in typedManifest.audioStreams) {
-            // Helper to determine if stream is MP4/AAC friendly
-            bool isMp4 = false;
-            
-            // 1. Check container (common in StreamInfo)
-            try {
-               // Check if 'container' property exists and convert to string
-               // It might be an enum or object
-               final container = (stream as dynamic).container.toString().toLowerCase();
-               if (container.contains('mp4')) isMp4 = true;
-            } catch (_) {}
-
-            // 2. Check mimeType (if available)
-            if (!isMp4) {
-              try {
-                 final mime = ((stream as dynamic).mimeType as String?) ?? '';
-                 if (mime.contains('mp4') || mime.contains('audio/mp4')) isMp4 = true;
-              } catch (_) {}
-            }
-
-            // 3. Check codec
-            if (!isMp4) {
-               try {
-                  final codec = ((stream as dynamic).codec as String?) ?? '';
-                  if (codec.contains('mp4') || codec.contains('aac')) isMp4 = true;
-               } catch(_) {}
-            }
-
-            final int bitrate = stream.bitrate;
-            
-            // Check bestStream properties
-            bool bestIsMp4 = false;
-            try {
-               final bContainer = (bestStream as dynamic).container.toString().toLowerCase();
-               if (bContainer.contains('mp4')) bestIsMp4 = true;
-            } catch (_) {}
-            
-            if (!bestIsMp4) {
-               try {
-                  final bMime = ((bestStream as dynamic).mimeType as String?) ?? '';
-                  if (bMime.contains('mp4') || bMime.contains('audio/mp4')) bestIsMp4 = true;
-               } catch (_) {}
-            }
-
-            bool shouldUse = false;
-            final int bestBitrate = bestStream.bitrate;
-
-            if (isApple) {
-              // Prioritize MP4
-              if (isMp4 && !bestIsMp4) {
-                shouldUse = true;
-              } else if (isMp4 == bestIsMp4 && bitrate > bestBitrate) {
-                shouldUse = true;
-              } else if (!isMp4 && !bestIsMp4 && bitrate > bestBitrate) {
-                shouldUse = true;
-              }
-            } else {
-              // Standard bitrate priority
-              if (bitrate > bestBitrate) {
-                shouldUse = true;
-              }
-            }
-
-            if (shouldUse) {
-              bestStream = stream;
-              bestUrl = stream.url;
-              currentLanguage = stream.languageDisplayName ?? "Default";
-            }
-          }
-          
-          debugPrint('Selected stream: URL=$bestUrl, Apple=$isApple');
-
-          audioUri = Uri.parse(bestUrl);
-
-          if (availableLanguages.length > 1) {
-            extras['availableLanguages'] = availableLanguages;
-            extras['currentLanguage'] = currentLanguage;
-          }
-        } else {
-          // Fallback to old method
-          final streamUrl = await _apiService.getStreamUrl(
-            videoId,
-            title: title,
-            artist: artist,
-            onFallback: () => _showFallbackAlert(),
-          );
-          if (streamUrl == null) return null;
-          audioUri = Uri.parse(streamUrl);
-        }
+        if (streamUrl == null) return null;
+        audioUri = Uri.parse(streamUrl);
+        // Log in chunks
+        final pattern = RegExp('.{1,8000}');
+        pattern.allMatches('Playing stream: $streamUrl').forEach((match) => debugPrint(match.group(0)));
       }
 
       return AudioSource.uri(
         audioUri,
         headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         tag: MediaItem(
           id: videoId,
@@ -400,7 +300,6 @@ class AudioHandler {
 
       if (currentSource == null) return;
 
-      // We need to preserve metadata but change URI
       final oldTag = currentSource.tag as MediaItem;
       final newExtras = Map<String, dynamic>.from(oldTag.extras ?? {});
       newExtras['currentLanguage'] = languageName;
@@ -416,8 +315,6 @@ class AudioHandler {
 
       final index = _player.currentIndex;
       if (index != null && index < _playlist.length) {
-        // Optimization: If playlist has only 1 item, we can just set source directly
-        // This is smoother than remove/insert
         if (_playlist.length == 1) {
           await _player.setAudioSource(newSource, initialPosition: currentPos);
           if (playing) {
@@ -425,19 +322,10 @@ class AudioHandler {
           }
           return;
         }
-
-        // Fallback for playlist: Pause, Insert, Seek, Remove, Play
         await _player.pause();
-
-        // Insert at current index (pushes current item down)
         await _playlist.insert(index, newSource);
-
-        // Seek to new source (which is now at index)
         await _player.seek(currentPos, index: index);
-
-        // Remove old source (which is now at index + 1)
         await _playlist.removeAt(index + 1);
-
         if (playing) {
           _player.play();
         }
@@ -450,30 +338,20 @@ class AudioHandler {
   Future<void> playAll(List<YtifyResult> results) async {
     try {
       if (results.isEmpty) return;
-
       await _player.stop();
       try {
         await _player.setShuffleModeEnabled(false);
       } catch (e) {
         debugPrint('Error disabling shuffle: $e');
       }
-
-      // Reallocate playlist
       _playlist = ConcatenatingAudioSource(children: []);
-
-      // Add first item and play immediately
       final firstSource = await _createAudioSource(results.first);
-
       if (firstSource != null) {
-        // Save original data to history (not enriched)
         _storage.addToHistory(results.first);
-
         await _playlist.add(firstSource);
         await _player.setAudioSource(_playlist);
         _player.play();
       }
-
-      // Add the rest in background unawaited
       if (results.length > 1) {
         _queueRestOfPlaylist(results, 0);
       }
@@ -486,32 +364,21 @@ class AudioHandler {
     try {
       if (results.isEmpty) return;
       if (initialIndex < 0 || initialIndex >= results.length) initialIndex = 0;
-
       await _player.stop();
       try {
         await _player.setShuffleModeEnabled(false);
       } catch (e) {
         debugPrint('Error disabling shuffle: $e');
       }
-
-      // Reallocate playlist
       _playlist = ConcatenatingAudioSource(children: []);
-
-      // Optimization: Add ONLY the initial song first, start playing, then add the rest in background
       final initialSong = results[initialIndex];
-
-      // 1. Add and play initial song
       final initialSource = await _createAudioSource(initialSong);
       if (initialSource != null) {
-        // Save original data to history (not enriched)
         _storage.addToHistory(initialSong);
-
         await _playlist.add(initialSource);
         await _player.setAudioSource(_playlist);
         _player.play();
       }
-
-      // 2. Add the rest (before and after) in background unawaited
       _queueRestOfPlaylist(results, initialIndex);
     } catch (e) {
       debugPrint('Error playing playlist: $e');
@@ -520,14 +387,10 @@ class AudioHandler {
 
   Future<void> pause() => _player.pause();
   Future<void> resume() => _player.play();
-  Future<void> seek(Duration position, {int? index}) =>
-      _player.seek(position, index: index);
+  Future<void> seek(Duration position, {int? index}) => _player.seek(position, index: index);
   Future<void> skipToNext() => _player.seekToNext();
   Future<void> skipToPrevious() => _player.seekToPrevious();
-
-  void dispose() {
-    _player.dispose();
-  }
+  void dispose() { _player.dispose(); }
 
   Future<void> playNext(YtifyResult result) async {
     try {
@@ -536,72 +399,16 @@ class AudioHandler {
         await addToQueue(result);
         return;
       }
-
-      // We need to insert after current index
-      // But ConcatenatingAudioSource doesn't support insert at index easily with async logic inside addToQueue
-      // So we'll use a modified version of addToQueue logic here
-
-      String videoId;
-      String title;
-      String artist;
-      String artUri;
-      String resultType = 'video';
-      String? artistId;
-      Duration? duration;
-
-      if (result.videoId == null) return;
-      videoId = result.videoId!;
-      title = result.title;
-      artist =
-          result.artists?.map((a) => a.name).join(', ') ??
-          result.videoType ??
-          'Unknown';
-      artistId = result.artists?.firstOrNull?.id;
-      artUri = result.thumbnails.isNotEmpty ? result.thumbnails.last.url : '';
-      resultType = result.resultType;
-      if (result.durationSeconds != null) {
-        duration = Duration(seconds: result.durationSeconds!);
-      }
-
-      // Check if downloaded
-      final downloadPath = _storage.getDownloadPath(videoId);
-      Uri audioUri;
-
-      if (downloadPath != null && await File(downloadPath).exists()) {
-        audioUri = Uri.file(downloadPath);
-      } else {
-        final streamUrl = await _apiService.getStreamUrl(
-          videoId,
-          title: title,
-          artist: artist,
-          onFallback: () => _showFallbackAlert(),
-        );
-        if (streamUrl == null) return;
-        audioUri = Uri.parse(streamUrl);
-      }
-
-      final audioSource = AudioSource.uri(
-        audioUri,
-        headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
-        },
-        tag: MediaItem(
-          id: videoId,
-          album: "Muzo",
-          title: title,
-          artist: artist,
-          duration: duration,
-          artUri: Uri.parse(artUri),
-          extras: {'resultType': resultType, 'artistId': artistId},
-        ),
-      );
-
-      await _playlist.insert(index + 1, audioSource);
-
-      final context = navigatorKey.currentContext;
-      if (context != null) {
-        showGlassSnackBar(context, 'Song added to play next');
+      
+      // Use lazy loading for play next too? No, usually user wants it ready.
+      // But for consistency we can use defaults.
+      final source = await _createAudioSource(result, lazy: false);
+      if (source != null) {
+         await _playlist.insert(index + 1, source);
+         final context = navigatorKey.currentContext;
+         if (context != null) {
+           showGlassSnackBar(context, 'Song added to play next');
+         }
       }
     } catch (e) {
       debugPrint('Error playing next: $e');
@@ -618,9 +425,7 @@ class AudioHandler {
 
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
     try {
-      if (oldIndex < newIndex) {
-        newIndex -= 1;
-      }
+      if (oldIndex < newIndex) newIndex -= 1;
       await _playlist.move(oldIndex, newIndex);
     } catch (e) {
       debugPrint('Error reordering queue: $e');
@@ -629,21 +434,11 @@ class AudioHandler {
 
   Future<void> clearQueue() async {
     try {
-      // Keep the currently playing item if any
       final currentIndex = _player.currentIndex;
       if (currentIndex != null && _playlist.length > 1) {
-        // We can't easily clear all EXCEPT one in ConcatenatingAudioSource without potentially stopping playback
-        // But we can remove everything after current, and everything before current
-
-        // Remove everything after
         if (currentIndex < _playlist.length - 1) {
-          // removeRange is not available on ConcatenatingAudioSource directly in a way that is atomic for "all after"
-          // We have to remove one by one from the end or use removeRange if supported (it's not in just_audio_background wrapper usually)
-          // Actually ConcatenatingAudioSource has removeRange
           await _playlist.removeRange(currentIndex + 1, _playlist.length);
         }
-
-        // Remove everything before
         if (currentIndex > 0) {
           await _playlist.removeRange(0, currentIndex);
         }
@@ -688,40 +483,30 @@ class AudioHandler {
       final nextSongs = await _musicApiService.getUpNext(videoId);
       debugPrint('AutoQueue: fetched ${nextSongs.length} songs');
 
-      // Check if the current song is still the same as when we started
       final currentTag = _player.sequenceState?.currentSource?.tag;
       if (currentTag is! MediaItem || currentTag.id != videoId) {
-        debugPrint(
-          'AutoQueue: Current song changed, discarding results for $videoId',
-        );
+        debugPrint('AutoQueue: Current song changed, discarding results');
         return;
       }
 
       if (nextSongs.isNotEmpty) {
-        // Filter out current video
-        final filteredSongs = nextSongs
-            .where((s) => s.videoId != videoId)
-            .toList();
-
+        final filteredSongs = nextSongs.where((s) => s.videoId != videoId).toList();
         if (filteredSongs.isEmpty) return;
 
-        // Limit to 5 songs to avoid freezing the UI with excessive network requests
-        final limitedSongs = filteredSongs.take(5).toList();
-
-        // Resolve sources in parallel
-        final futures = limitedSongs.map((song) => _createAudioSource(song));
-        final sources = await Future.wait(futures);
-
-        // Check again before adding
-        final currentTagAfterFetch = _player.sequenceState?.currentSource?.tag;
-        if (currentTagAfterFetch is! MediaItem ||
-            currentTagAfterFetch.id != videoId) {
-          debugPrint(
-            'AutoQueue: Current song changed during source creation, discarding results for $videoId',
-          );
-          return;
+        // Lazy Loading Strategy
+        final futures = <Future<AudioSource?>>[];
+        
+        // 1. Resolve first song immediately
+        futures.add(_createAudioSource(filteredSongs.first, lazy: false));
+        
+        // 2. Add rest as lazy
+        if (filteredSongs.length > 1) {
+          for (int i = 1; i < filteredSongs.length; i++) {
+             futures.add(_createAudioSource(filteredSongs[i], lazy: true));
+          }
         }
 
+        final sources = await Future.wait(futures);
         final validSources = sources.whereType<AudioSource>().toList();
 
         if (validSources.isNotEmpty) {
@@ -735,29 +520,76 @@ class AudioHandler {
     }
   }
 
-  Future<void> _queueRestOfPlaylist(
-    List<YtifyResult> results,
-    int initialIndex,
-  ) async {
+  // JIT Resolution Logic
+  bool _isResolving = false;
+
+  Future<void> _ensureUpcomingResolved(int currentIndex) async {
+    if (_isResolving) return;
+    _isResolving = true;
     try {
-      // Add songs AFTER initial index
-      if (initialIndex < results.length - 1) {
-        for (int i = initialIndex + 1; i < results.length; i++) {
-          final source = await _createAudioSource(results[i]);
-          if (source != null) {
-            await _playlist.add(source);
+      // Buffer horizon: Check next 2-3 songs
+      for (int i = 1; i <= 3; i++) {
+        final targetIndex = currentIndex + i;
+        if (targetIndex >= _playlist.length) break;
+
+        final source = _playlist.children[targetIndex];
+        if (source is UriAudioSource && source.uri.scheme == 'lazy') {
+          // Found lazy source, resolve it
+          final tag = source.tag as MediaItem;
+          // Reconstruct YtifyResult from MediaItem to reuse existing create logic
+          final result = YtifyResult(
+            videoId: tag.id,
+            title: tag.title,
+            artists: [YtifyArtist(name: tag.artist ?? '', id: tag.extras?['artistId'])],
+            thumbnails: [YtifyThumbnail(url: tag.artUri.toString(), width: 0, height: 0)],
+            durationSeconds: tag.duration?.inSeconds,
+            resultType: tag.extras?['resultType'] ?? 'video',
+            isExplicit: false,
+          );
+
+          debugPrint("JIT Resolving: ${tag.title}");
+          final newSource = await _createAudioSource(result, lazy: false);
+          
+          if (newSource != null) {
+            // Replace in playlist
+            // Note: removeAt then insert keeps order
+            await _playlist.removeAt(targetIndex);
+            await _playlist.insert(targetIndex, newSource);
+            debugPrint("JIT Resolved & Replaced: ${tag.title}");
           }
         }
       }
+    } catch (e) {
+      debugPrint("Error in JIT resolution: $e");
+    } finally {
+      _isResolving = false;
+    }
+  }
 
-      // Add songs BEFORE initial index
-      // We insert them at position 0, keeping their relative order
-      // Iterate backwards from initialIndex - 1 to 0
+  Future<void> _queueRestOfPlaylist(List<YtifyResult> results, int initialIndex) async {
+    try {
+      // Add songs AFTER initial index (Lazy)
+      if (initialIndex < results.length - 1) {
+        final futures = <Future<AudioSource?>>[];
+        for (int i = initialIndex + 1; i < results.length; i++) {
+          futures.add(_createAudioSource(results[i], lazy: true));
+        }
+        // Create all lazy sources in parallel (super fast)
+        final sources = await Future.wait(futures);
+        final validSources = sources.whereType<AudioSource>().toList();
+        if (validSources.isNotEmpty) {
+          await _playlist.addAll(validSources);
+        }
+      }
+
+      // Add songs BEFORE initial index (Lazy)
+      // Note: We insert at 0, so iterate in reverse to keep order? 
+      // Original logic: i from initial-1 down to 0, insert at 0. = Reverse order of insertion = Correct order in list.
       if (initialIndex > 0) {
         for (int i = initialIndex - 1; i >= 0; i--) {
-          final source = await _createAudioSource(results[i]);
+          final source = await _createAudioSource(results[i], lazy: true);
           if (source != null) {
-            await _playlist.insert(0, source);
+             await _playlist.insert(0, source);
           }
         }
       }

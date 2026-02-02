@@ -78,14 +78,16 @@ class RectHomeItem extends ConsumerWidget {
       child: GlassContainer(
         blur: 10,
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
+
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        padding: EdgeInsets.zero, // Explicitly remove any default padding
         child: Row(
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                bottomLeft: Radius.circular(4),
+                topLeft: Radius.circular(6),
+                bottomLeft: Radius.circular(6),
               ),
               child: imageUrl.isNotEmpty
                   ? CachedNetworkImage(

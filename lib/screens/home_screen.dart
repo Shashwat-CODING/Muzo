@@ -20,6 +20,8 @@ import 'package:muzo/widgets/rect_home_item.dart';
 import 'package:muzo/widgets/home_item_widget.dart';
 import 'package:muzo/services/ytm_home.dart';
 import 'package:muzo/widgets/skeleton_loader.dart';
+import 'package:muzo/providers/theme_provider.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -44,27 +46,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationIndexProvider);
+    final paletteAsync = ref.watch(currentPaletteProvider);
+    final palette = paletteAsync.asData?.value;
+
+    final Color topColor = palette?.darkMutedColor?.color ??
+        palette?.darkVibrantColor?.color ??
+        palette?.dominantColor?.color ??
+        const Color(0xFF2A2A2A);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: FadeIndexedStack(
-        index: selectedIndex,
-        children: [
-          _buildExploreTab(context, ref),
-          const SearchScreen(),
-          const LibraryScreen(),
-          const SubscribedChannelsScreen(),
-          // Placeholder for Settings (index 4)
-          const SizedBox.shrink(),
-          const SizedBox.shrink(), // Placeholder for About (index 5)
-        ],
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: Colors.black, // Ensure dark base
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              topColor.withValues(alpha: 0.2),
+              topColor.withValues(alpha: 0.2), // Consistent tint
+            ],
+          ),
+        ),
+        child: FadeIndexedStack(
+          index: selectedIndex,
+          children: [
+            _buildExploreTab(context, ref),
+            const SearchScreen(),
+            const LibraryScreen(),
+            const SubscribedChannelsScreen(),
+            const SettingsScreen(), // Added Settings Tab
+            const SizedBox.shrink(), // Placeholder for Sync Dialog
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildExploreTab(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
-
     final homeSectionsAsync = ref.watch(filteredHomeSectionsProvider);
 
     return SafeArea(
@@ -84,10 +106,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // Recents Grid
             _buildRecentsGrid(context, ref),
-
-            // Your Playlists Section
-            // Moved to bottom as per request
-            // _buildYourPlaylistsSection(context, ref),
+            
+            const SliverToBoxAdapter(child: SizedBox(height: 30)),
 
             // Dynamic Sections from YTM
             homeSectionsAsync.when(
@@ -140,15 +160,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+
+
   Widget _buildHeader(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
     final username = storage.username ?? 'User';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PopupMenuButton<String>(
+          Row(
+            children: [
+              PopupMenuButton<String>(
             onOpened: () => HapticFeedback.lightImpact(),
             offset: const Offset(0, 50),
             color: Colors.transparent,
@@ -296,11 +321,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _buildFilterChip(context, ref, 'Albums'),
                   const SizedBox(width: 8),
                   _buildFilterChip(context, ref, 'Playlists'),
-                  const SizedBox(width: 16),
                 ],
               ),
             ),
           ),
+            ],
+          ),
+          // Removed Greeting
         ],
       ),
     );
@@ -312,7 +339,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
+        color: isSelected ? Colors.greenAccent[700] : Colors.white.withValues(alpha: 0.1), // Spotify-like green for selected
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.transparent, width: 0),
       ),
@@ -363,13 +390,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final recentItems = uniqueItems.values.take(6).toList();
 
         return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 260,
-              mainAxisExtent: 60,
-              mainAxisSpacing: 8.0,
-              crossAxisSpacing: 8.0,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisExtent: 56, // Adjusted height (was 64)
+              mainAxisSpacing: 6.0, // Reduced spacing
+              crossAxisSpacing: 6.0, // Reduced spacing
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               return RectHomeItem(item: recentItems[index]);
@@ -418,8 +445,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ? firstSong!.thumbnails.last.url
                         : '';
 
-                    // Construct a YtifyResult-like object or just use HomeItemWidget if adaptable
-                    // HomeItemWidget takes HomeItem. Let's make a HomeItem.
                     final homeItem = HomeItem(
                       title: name,
                       subtitle: '${songs.length} songs',
