@@ -201,7 +201,7 @@ class AudioHandler {
 
   Future<void> addToQueue(dynamic video) async {
     try {
-      final source = await _createAudioSource(video);
+      final source = await _createAudioSource(video, lazy: true);
       if (source != null) {
         await _playlist.add(source);
 
@@ -402,7 +402,7 @@ class AudioHandler {
       
       // Use lazy loading for play next too? No, usually user wants it ready.
       // But for consistency we can use defaults.
-      final source = await _createAudioSource(result, lazy: false);
+      final source = await _createAudioSource(result, lazy: true);
       if (source != null) {
          await _playlist.insert(index + 1, source);
          final context = navigatorKey.currentContext;

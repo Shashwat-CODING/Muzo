@@ -143,7 +143,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         const SizedBox(height: 16),
                         Text(
                           'Muzo',
-                          style: GoogleFonts.bitcount(
+                          style: GoogleFonts.outfit(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -168,7 +168,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                             indicatorSize: TabBarIndicatorSize.tab,
                             labelColor: Colors.black,
                             unselectedLabelColor: Colors.grey,
-                            labelStyle: GoogleFonts.bitcount(
+                            labelStyle: GoogleFonts.outfit(
                               fontWeight: FontWeight.w600,
                             ),
                             dividerColor: Colors.transparent,
@@ -263,7 +263,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                     _tabController.index == 0
                                         ? 'Login'
                                         : 'Create Account',
-                                    style: GoogleFonts.bitcount(
+                                    style: GoogleFonts.outfit(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -281,7 +281,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                     onPressed: _skip,
                     child: Text(
                       'Continue as Guest',
-                      style: GoogleFonts.bitcount(
+                      style: GoogleFonts.outfit(
                         color: Colors.white54,
                         fontSize: 14,
                       ),
@@ -311,10 +311,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
-        style: GoogleFonts.bitcount(color: Colors.white),
+        style: GoogleFonts.outfit(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.bitcount(color: Colors.white38),
+          hintStyle: GoogleFonts.outfit(color: Colors.white38),
           prefixIcon: Icon(icon, color: Colors.white54, size: 20),
           suffixIcon: isPassword
               ? IconButton(

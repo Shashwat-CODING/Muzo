@@ -128,7 +128,7 @@ class StandardPlayer extends ConsumerWidget {
                       child: Padding(
                         padding: EdgeInsets.only(
                           top: MediaQuery.of(context).padding.top + 60,
-                          bottom: 100 + MediaQuery.of(context).padding.bottom,
+                          bottom: 50 + MediaQuery.of(context).padding.bottom,
                         ),
                         child: Center(
                           child: Container(
@@ -162,7 +162,7 @@ class StandardPlayer extends ConsumerWidget {
 
                     Padding(
                       padding: EdgeInsets.only(
-                        bottom: 120 + MediaQuery.of(context).padding.bottom,
+                        bottom: 40 + MediaQuery.of(context).padding.bottom,
                       ),
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 500),
@@ -303,6 +303,25 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
     });
   }
 
+  // Volume Control Variables
+  double? _startVolume;
+  bool _showVolume = false;
+  Timer? _volumeTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize volume (no change needed here, just keeping context)
+  }
+
+  void _showVolumeIndicator() {
+    setState(() => _showVolume = true);
+    _volumeTimer?.cancel();
+    _volumeTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _showVolume = false);
+    });
+  }
+
   @override
   void dispose() {
     _iconTimer?.cancel();
@@ -327,6 +346,11 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               errorWidget: (context, url, error) => Container(color: Colors.black),
             ),
           ),
+          
+        // Black Tint for Controls in Gesture Mode
+        Container(
+          color: Colors.black.withOpacity(0.4),
+        ),
 
         // Gesture Detector covering the screen
         Positioned.fill(
@@ -356,6 +380,17 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                 handler.skipToPrevious();
               }
             },
+            onVerticalDragStart: (details) {
+               _startVolume = ref.read(audioHandlerProvider).player.volume;
+            },
+            onVerticalDragUpdate: (details) {
+              final player = ref.read(audioHandlerProvider).player;
+              // Sensitivity: 1.0 volume over 300 pixels
+              final delta = details.primaryDelta! / -300; 
+              double newVolume = (player.volume + delta).clamp(0.0, 1.0);
+              player.setVolume(newVolume);
+              _showVolumeIndicator();
+            },
             child: Container(color: Colors.transparent),
           ),
         ),
@@ -376,6 +411,52 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                   _isPlaying ? FluentIcons.play_48_filled : FluentIcons.pause_48_filled,
                   color: Colors.white,
                   size: 48,
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Volume Indicator Overlay
+        IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: _showVolume ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: StreamBuilder<double>(
+                  stream: ref.read(audioHandlerProvider).player.volumeStream,
+                  builder: (context, snapshot) {
+                    final vol = snapshot.data ?? ref.read(audioHandlerProvider).player.volume;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          vol == 0
+                              ? FluentIcons.speaker_mute_24_filled
+                              : vol < 0.5
+                                  ? FluentIcons.speaker_1_24_filled
+                                  : FluentIcons.speaker_2_24_filled,
+                          color: Colors.white,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${(vol * 100).round()}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

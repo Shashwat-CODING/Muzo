@@ -240,12 +240,21 @@ class StorageService {
     if (!current.containsKey(name)) {
       current[name] = [];
       _playlistsNotifier.value = current;
+      _savePlaylistsToCache(current);
 
-      // API: Add a song to create? Or just create?
-      // The API docs say "3. Add Song to Playlist ... If the playlist doesn't exist, it will be created automatically".
-      // There is no "Create empty playlist" endpoint explicitly.
-      // So we can't really create an empty playlist on the backend until we add a song.
-      // We'll keep it local until a song is added.
+      // API: Create empty playlist
+      if (_api != null) {
+        isLoadingNotifier.value = true;
+        try {
+          await _api!.createPlaylist(name);
+        } catch (e) {
+          errorNotifier.value = 'Failed to create playlist on server: $e';
+          // Revert local change if strict consistency is needed?
+          // maintaining local change for offline support might be better, but let's just log.
+        } finally {
+          isLoadingNotifier.value = false;
+        }
+      }
     }
   }
 
@@ -260,6 +269,7 @@ class StorageService {
       );
       current.remove(name);
       _playlistsNotifier.value = current;
+      _savePlaylistsToCache(current);
     } catch (e) {
       errorNotifier.value = 'Failed to delete playlist: $e';
     } finally {
@@ -286,6 +296,7 @@ class StorageService {
         songs.add(result);
         current[name] = songs;
         _playlistsNotifier.value = current;
+        _savePlaylistsToCache(current);
       } catch (e) {
         errorNotifier.value = 'Failed to add to playlist: $e';
       } finally {
@@ -304,6 +315,7 @@ class StorageService {
     songs.removeWhere((s) => s.videoId == videoId);
     current[name] = songs;
     _playlistsNotifier.value = current;
+    _savePlaylistsToCache(current);
 
     if (_api == null) return;
 

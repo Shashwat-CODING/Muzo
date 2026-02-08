@@ -198,11 +198,14 @@ class SongOptionsMenu extends ConsumerWidget {
               label: 'Add to playlist',
               onTap: () {
                 onClose?.call();
-                showCupertinoDialog(
-                  context: context,
-                  barrierDismissible: true,
-                  builder: (context) => PlaylistSelectionDialog(song: result),
-                );
+                final ctx = navigatorKey.currentContext;
+                if (ctx != null) {
+                  showCupertinoDialog(
+                    context: ctx,
+                    barrierDismissible: true,
+                    builder: (context) => PlaylistSelectionDialog(song: result),
+                  );
+                }
               },
             ),
             _buildMenuOption(

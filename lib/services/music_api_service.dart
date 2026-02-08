@@ -204,6 +204,20 @@ class MusicApiService {
     }
   }
 
+  Future<void> createPlaylist(String name) async {
+    final response = await _retryWithRefresh(
+      () => http.post(
+        Uri.parse('$_baseUrl/playlists'),
+        headers: _headers,
+        body: jsonEncode({'name': name}),
+      ),
+    );
+
+    if (response.statusCode != 201) {
+      throw Exception('Failed to create playlist');
+    }
+  }
+
   Future<void> deletePlaylist(String playlistName) async {
     final response = await _retryWithRefresh(
       () => http.delete(
