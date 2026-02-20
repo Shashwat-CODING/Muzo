@@ -85,9 +85,17 @@ class PlayerControlWidget extends ConsumerWidget {
                               top: Radius.circular(20),
                             ),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                               child: Container(
-                                color: Colors.black.withOpacity(0.5),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  border: Border(
+                                    top: BorderSide(
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                ),
                                 child: UpNextQueue(
                                   scrollController: scrollController,
                                   onReorderStart: (oldIndex, newIndex) {
@@ -174,8 +182,8 @@ class PlayerControlWidget extends ConsumerWidget {
               builder: (context, ref, child) {
                 final thumbColor = Colors.white;
                 final progressBarColor = Colors.white;
-                final baseBarColor = Colors.white.withOpacity(0.24);
-                final bufferedBarColor = Colors.white.withOpacity(0.38);
+                final baseBarColor = Colors.white.withValues(alpha: 0.24);
+                final bufferedBarColor = Colors.white.withValues(alpha: 0.38);
 
                 return ProgressBar(
                   thumbRadius: 7,

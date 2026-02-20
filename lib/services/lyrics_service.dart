@@ -60,32 +60,82 @@ class LyricsService {
     final cleanTrack = _cleanTitle(trackName);
     final cleanArtist = _cleanTitle(artistName);
 
+    // 1. Try Atomix Lyrics API primary
     try {
-      // 1. Try exact match with cleaned metadata
+      final atomixUri = Uri.parse('https://lyricsplus.atomix.one/v2/lyrics/get').replace(
+        queryParameters: {'title': cleanTrack, 'artist': cleanArtist, 'duration': duration.toString()},
+      );
+
+      debugPrint('LyricsService: Requesting Atomix GET $atomixUri');
+      final atomixRes = await http.get(atomixUri).timeout(const Duration(seconds: 10));
+
+      if (atomixRes.statusCode == 200) {
+        final atomixData = json.decode(atomixRes.body);
+        if (atomixData['type'] == 'Line' && atomixData['lyrics'] != null) {
+          final List<dynamic> lines = atomixData['lyrics'];
+          
+          final StringBuffer syncedBuffer = StringBuffer();
+          final StringBuffer plainBuffer = StringBuffer();
+
+          for (var line in lines) {
+            final int timeMs = line['time'] ?? 0;
+            final String text = line['text'] ?? '';
+            
+            final duration = Duration(milliseconds: timeMs);
+            final minutes = duration.inMinutes.toString().padLeft(2, '0');
+            final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+            final hundredths = ((duration.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
+            
+            syncedBuffer.writeln('[$minutes:$seconds.$hundredths] $text');
+            plainBuffer.writeln(text);
+          }
+
+          if (plainBuffer.isNotEmpty) {
+             debugPrint('LyricsService: Found lyrics via Atomix API');
+             return Lyrics(
+               id: 0,
+               name: cleanTrack,
+               trackName: cleanTrack,
+               artistName: cleanArtist,
+               albumName: '',
+               duration: duration,
+               instrumental: false,
+               plainLyrics: plainBuffer.toString(),
+               syncedLyrics: syncedBuffer.toString(),
+             );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('LyricsService: Error in Atomix GET: $e');
+    }
+
+    // 2. Fallback to LRCLIB Try exact match with cleaned metadata
+    try {
       final uri = Uri.parse('$_baseUrl/get').replace(
         queryParameters: {'track_name': cleanTrack, 'artist_name': cleanArtist},
       );
 
-      debugPrint('LyricsService: Requesting GET $uri');
+      debugPrint('LyricsService: Requesting LRCLIB GET $uri');
 
-      final response = await http.get(uri);
-      debugPrint('LyricsService: GET Response ${response.statusCode}');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      debugPrint('LyricsService: LRCLIB GET Response ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['plainLyrics'] != null || data['syncedLyrics'] != null) {
-          debugPrint('LyricsService: Found exact match via GET');
+          debugPrint('LyricsService: Found exact match via LRCLIB GET');
           return Lyrics.fromJson(data);
         }
       } else if (response.statusCode == 404) {
         // Fallback to search
-        debugPrint('LyricsService: GET failed (404), falling back to SEARCH');
+        debugPrint('LyricsService: LRCLIB GET failed (404), falling back to SEARCH');
         return _searchLyrics(cleanTrack, cleanArtist, duration);
       }
 
       return null;
     } catch (e) {
-      debugPrint('LyricsService: Error in GET: $e');
+      debugPrint('LyricsService: Error in LRCLIB GET: $e');
       // Last resort try search on error too
       return _searchLyrics(cleanTrack, cleanArtist, duration);
     }

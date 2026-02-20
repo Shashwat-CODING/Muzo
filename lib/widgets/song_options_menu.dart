@@ -29,6 +29,8 @@ class SongOptionsMenu extends ConsumerWidget {
     this.onClose,
   });
 
+  static DateTime? _lastShowTime;
+
   /// Show the bottom sheet using the provider (renders in MainLayout's Stack)
   static void show(
     WidgetRef ref,
@@ -36,6 +38,13 @@ class SongOptionsMenu extends ConsumerWidget {
     bool fromHistory = false,
     bool fromPlayer = false,
   }) {
+    final now = DateTime.now();
+    if (_lastShowTime != null &&
+        now.difference(_lastShowTime!) < const Duration(milliseconds: 500)) {
+      return; // Debounce rapid taps
+    }
+    _lastShowTime = now;
+
     ref
         .read(bottomSheetProvider.notifier)
         .show(result, fromHistory: fromHistory, fromPlayer: fromPlayer);
@@ -257,7 +266,7 @@ class SongOptionsMenu extends ConsumerWidget {
                 if (result.videoId != null) {
                   if (storage.isDownloaded(result.videoId!)) {
                     await downloadService.deleteDownload(result.videoId!);
-                    if (ctx != null) {
+                    if (ctx != null && ctx.mounted) {
                       showGlassSnackBar(ctx, 'Removed from downloads');
                     }
                   } else {
@@ -272,7 +281,7 @@ class SongOptionsMenu extends ConsumerWidget {
                         .startDownload(result);
 
                     final ctxAfter = navigatorKey.currentContext;
-                    if (ctxAfter != null) {
+                    if (ctxAfter != null && ctxAfter.mounted) {
                       if (success) {
                         showGlassSnackBar(ctxAfter, 'Download complete');
                       } else {
@@ -363,7 +372,7 @@ class SongOptionsMenu extends ConsumerWidget {
                   onChanged(val);
                 },
                 activeTrackColor: Colors.white,
-                inactiveTrackColor: Colors.grey.withOpacity(0.3),
+                inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
                 thumbColor: Colors.black,
               ),
             ),

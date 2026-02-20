@@ -35,11 +35,10 @@ extension HexColor on Color {
   }
 
   String toHex({bool leadingHashSign = true}) =>
-      '${leadingHashSign ? '#' : ''}'
-      '${alpha.toRadixString(16).padLeft(2, '0')}'
-      '${red.toRadixString(16).padLeft(2, '0')}'
-      '${green.toRadixString(16).padLeft(2, '0')}'
-      '${blue.toRadixString(16).padLeft(2, '0')}';
+      '${((a * 255.0).round() & 0xff).toRadixString(16).padLeft(2, '0')}'
+      '${((r * 255.0).round() & 0xff).toRadixString(16).padLeft(2, '0')}'
+      '${((g * 255.0).round() & 0xff).toRadixString(16).padLeft(2, '0')}'
+      '${((b * 255.0).round() & 0xff).toRadixString(16).padLeft(2, '0')}';
 }
 
 // Current Palette Provider
@@ -108,7 +107,7 @@ class ThemeLogic {
   static MaterialColor createMaterialColor(Color color) {
     List<double> strengths = <double>[.05];
     Map<int, Color> swatch = {};
-    final int r = color.red, g = color.green, b = color.blue;
+    final int r = color.r.toInt(), g = color.g.toInt(), b = color.b.toInt();
 
     for (int i = 1; i < 10; i++) {
       strengths.add(0.1 * i);
@@ -122,7 +121,7 @@ class ThemeLogic {
         1,
       );
     }
-    return MaterialColor(color.value, swatch);
+    return MaterialColor(color.toARGB32(), swatch);
   }
 
   static ThemeData createThemeData(
@@ -138,7 +137,7 @@ class ThemeLogic {
         SystemUiOverlayStyle(
           statusBarIconBrightness: Brightness.light,
           statusBarColor: Colors.transparent,
-          systemNavigationBarColor: Colors.white.withOpacity(0.002),
+          systemNavigationBarColor: Colors.white.withValues(alpha: 0.002),
           systemNavigationBarDividerColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
           systemStatusBarContrastEnforced: false,
@@ -162,7 +161,7 @@ class ThemeLogic {
         scaffoldBackgroundColor: primarySwatch[900], // Darkest shade for bg
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: primarySwatch[600],
-          modalBarrierColor: primarySwatch[400]?.withOpacity(0.5),
+          modalBarrierColor: primarySwatch[400]?.withValues(alpha: 0.5),
         ),
         textTheme: TextTheme(
           titleLarge: const TextStyle(
@@ -243,7 +242,7 @@ class ThemeLogic {
         SystemUiOverlayStyle(
           statusBarIconBrightness: Brightness.light,
           statusBarColor: Colors.transparent,
-          systemNavigationBarColor: Colors.white.withOpacity(0.002),
+          systemNavigationBarColor: Colors.white.withValues(alpha: 0.002),
           systemNavigationBarDividerColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
           systemStatusBarContrastEnforced: false,
@@ -253,21 +252,19 @@ class ThemeLogic {
       final baseTheme = ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        canvasColor: Colors.black,
-        primaryColor: dynamicColorScheme?.primary ?? const Color(0xFF3a506b),
-        scaffoldBackgroundColor:
-            dynamicColorScheme?.surface ??
-            const Color(0xFF0b132b), // Deep bluish black
+        canvasColor: const Color(0xFF121212), // Spotify Dark Gray
+        primaryColor: dynamicColorScheme?.primary ?? const Color(0xFFE2E2E2),
+        scaffoldBackgroundColor: dynamicColorScheme?.surface ?? const Color(0xFF121212),
         colorScheme:
             dynamicColorScheme ??
             const ColorScheme.dark(
-              primary: Color(0xFF5bc0be), // Cyan/Blue accent
-              secondary: Color(0xFF3a506b),
-              surface: Color(0xFF1c2541),
+              primary: Color(0xFFE2E2E2),
+              secondary: Color(0xFF888888),
+              surface: Color(0xFF181818), // Slightly elevated dark gray
               onSurface: Colors.white,
             ),
         progressIndicatorTheme: const ProgressIndicatorThemeData(
-          color: Color(0xFF5bc0be),
+          color: Color(0xFFE2E2E2),
           linearTrackColor: Colors.white10,
         ),
         textTheme: const TextTheme(

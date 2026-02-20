@@ -113,9 +113,9 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
             child: isLiteMode
                 ? Container(color: Colors.black.withValues(alpha: 0.85))
                 : BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // Reduced for 60fps scrolling
                     child: Container(
-                      color: Colors.black.withValues(alpha: 0.7),
+                      color: Colors.black.withValues(alpha: 0.6), // Darkened for text contrast
                     ),
                   ),
           ),
@@ -162,7 +162,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
           Icon(
             FluentIcons.text_quote_24_regular,
             size: 64,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 24),
           const Text(
@@ -177,7 +177,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
           Text(
             "We couldn't find lyrics for this song.",
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 14,
             ),
           ),

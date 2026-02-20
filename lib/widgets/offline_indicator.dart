@@ -22,7 +22,7 @@ class OfflineIndicator extends StatelessWidget {
 
         return Container(
           width: double.infinity,
-          color: Colors.red.withOpacity(0.9),
+          color: Colors.red.withValues(alpha: 0.9),
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

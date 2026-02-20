@@ -83,17 +83,17 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
       height: safeSize,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
-              color: Colors.black45,
-              blurRadius: 20,
-              offset: Offset(0, 10),
+              color: Colors.black54,
+              blurRadius: 30,
+              offset: Offset(0, 15),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
               mediaItemAsync.when(
@@ -125,52 +125,47 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
               // Lyrics Overlay
               if (_showLyrics)
                 Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(
-                      alpha: 0.7,
-                    ), // Semi-transparent overlay
-                    child: _isLoadingLyrics
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                        : _lyrics == null
-                        ? Center(
-                            child: Text(
-                              "No lyrics found",
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // Reduced for performance
+                      child: Container(
+                        color: Colors.black.withValues(
+                          alpha: 0.6,
+                        ), // Darker overlay for better text contrast
+                        child: _isLoadingLyrics
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              )
+                            : _lyrics == null
+                            ? Center(
+                                child: Text(
+                                  "No lyrics found",
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              )
+                            : LyricsView(
+                                lyrics: _lyrics!,
+                                onClose: () => setState(() => _showLyrics = false),
+                                positionStream: audioHandler.player.positionStream,
+                                totalDuration:
+                                    audioHandler.player.duration ?? Duration.zero,
+                                isEmbedded: true,
+                                accentColor:
+                                    ref
+                                        .watch(currentPaletteProvider)
+                                        .asData
+                                        ?.value
+                                        ?.darkVibrantColor
+                                        ?.color ??
+                                    Colors.white,
                               ),
-                            ),
-                          )
-                        : LyricsView(
-                            lyrics: _lyrics!,
-                            onClose: () => setState(() => _showLyrics = false),
-                            positionStream: audioHandler.player.positionStream,
-                            totalDuration:
-                                audioHandler.player.duration ?? Duration.zero,
-                            isEmbedded: true,
-                            accentColor:
-                                ref
-                                    .watch(currentPaletteProvider)
-                                    .asData
-                                    ?.value
-                                    ?.darkVibrantColor
-                                    ?.color ??
-                                ref
-                                    .watch(currentPaletteProvider)
-                                    .asData
-                                    ?.value
-                                    ?.darkMutedColor
-                                    ?.color ??
-                                ref
-                                    .watch(currentPaletteProvider)
-                                    .asData
-                                    ?.value
-                                    ?.dominantColor
-                                    ?.color,
-                          ),
+                      ),
+                    ),
                   ),
                 ),
 
@@ -437,7 +432,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(15),
                                       ),
-                                      color: Colors.black.withOpacity(0),
+                                      color: Colors.black.withValues(alpha: 0),
                                       offset: const Offset(0, -50),
                                       tooltip: 'Select Language',
                                       itemBuilder: (context) {

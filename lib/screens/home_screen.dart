@@ -21,7 +21,6 @@ import 'package:muzo/widgets/home_item_widget.dart';
 import 'package:muzo/services/ytm_home.dart';
 import 'package:muzo/widgets/skeleton_loader.dart';
 import 'package:muzo/providers/theme_provider.dart';
-import 'package:palette_generator/palette_generator.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -65,9 +64,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              topColor.withValues(alpha: 0.2),
-              topColor.withValues(alpha: 0.2), // Consistent tint
+              topColor.withValues(alpha: 0.5),
+              topColor.withValues(alpha: 0.15),
+              Colors.black,
             ],
+            stops: const [0.0, 0.4, 1.0],
           ),
         ),
         child: FadeIndexedStack(
@@ -339,9 +340,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? Colors.greenAccent[700] : Colors.white.withValues(alpha: 0.1), // Spotify-like green for selected
+        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.transparent, width: 0),
+        border: Border.all(
+          color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
       ),
       child: Material(
         color: Colors.transparent,

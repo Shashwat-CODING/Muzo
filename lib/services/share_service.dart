@@ -26,11 +26,13 @@ class ShareService {
               for (final file in value) {
                 if (file.type == SharedMediaType.text ||
                     file.type == SharedMediaType.url) {
+                  if (!context.mounted) return;
                   _handleSharedText(context, file.path);
                 } else {
                   // Fallback: sometimes path contains the URL even if type is not explicitly text/url?
                   // For now, let's assume path is the content.
                   // If it's a file path, _extractVideoId will likely return null.
+                  if (!context.mounted) return;
                   _handleSharedText(context, file.path);
                 }
               }
@@ -48,6 +50,7 @@ class ShareService {
       if (value.isNotEmpty) {
         for (final file in value) {
           // Same logic
+          if (!context.mounted) return;
           _handleSharedText(context, file.path);
         }
         ReceiveSharingIntent.instance.reset();
@@ -72,6 +75,7 @@ class ShareService {
       if (video != null) {
         _audioHandler.playVideo(video);
       } else {
+        if (!context.mounted) return;
         showGlassSnackBar(context, 'Could not find video details');
         // Fallback: try playing with just ID
         final dummyResult = YtifyResult(

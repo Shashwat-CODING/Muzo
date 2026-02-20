@@ -34,6 +34,7 @@ class StorageService {
       ValueNotifier({});
   final ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
   final ValueNotifier<String?> errorNotifier = ValueNotifier(null);
+  Map<String, int> _playlistIds = {};
 
   Future<void> init() async {
     await Hive.initFlutter();
@@ -104,6 +105,15 @@ class StorageService {
       }
     }
 
+    final cachedIds = playlistsBox.get('ids');
+    if (cachedIds != null) {
+      try {
+        _playlistIds = Map<String, int>.from(cachedIds);
+      } catch (e) {
+        debugPrint('Error loading cached playlist IDs: $e');
+      }
+    }
+
     _api = MusicApiService(this);
     debugPrint('StorageService initialized with API');
   }
@@ -125,10 +135,14 @@ class StorageService {
       // Update History
       _historyNotifier.value = userData.history;
       _saveHistoryToCache(userData.history);
+      _historyPage = 1;
+      _hasMoreHistory = userData.history.isNotEmpty;
 
       // Update Favorites
       _favoritesNotifier.value = userData.favorites;
       _saveFavoritesToCache(userData.favorites);
+      _favoritesPage = 1;
+      _hasMoreFavorites = userData.favorites.isNotEmpty;
 
       // Update Subscriptions
       _subscriptionsNotifier.value = userData.subscriptions;
@@ -136,11 +150,16 @@ class StorageService {
 
       // Update Playlists
       final Map<String, List<YtifyResult>> playlistMap = {};
+      final Map<String, int> idsMap = {};
       for (var p in userData.playlists) {
         playlistMap[p.name] = p.songs;
+        idsMap[p.name] = p.id;
+        _playlistPages[p.name] = 1;
+        _hasMorePlaylistSongs[p.name] = p.songs.isNotEmpty;
       }
       _playlistsNotifier.value = playlistMap;
-      _savePlaylistsToCache(playlistMap);
+      _playlistIds = idsMap;
+      _savePlaylistsToCache(playlistMap, idsMap);
     } catch (e) {
       debugPrint('Error refreshing data: $e');
       // Fallback to individual calls if consolidated fails?
@@ -153,6 +172,19 @@ class StorageService {
 
   // Listenables for UI
   ValueListenable<List<YtifyResult>> get historyListenable => _historyNotifier;
+  
+  // Pagination State
+  int _historyPage = 1;
+  bool _isLoadingMoreHistory = false;
+  bool _hasMoreHistory = true;
+
+  int _favoritesPage = 1;
+  bool _isLoadingMoreFavorites = false;
+  bool _hasMoreFavorites = true;
+
+  final Map<String, int> _playlistPages = {};
+  bool _isLoadingMorePlaylistSongs = false;
+  final Map<String, bool> _hasMorePlaylistSongs = {};
   ValueListenable<List<YtifyResult>> get favoritesListenable =>
       _favoritesNotifier;
   ValueListenable<List<YtifyResult>> get subscriptionsListenable =>
@@ -186,6 +218,27 @@ class StorageService {
 
   List<YtifyResult> getHistory() {
     return _historyNotifier.value;
+  }
+
+  Future<void> fetchMoreHistory() async {
+    if (_api == null || _isLoadingMoreHistory || !_hasMoreHistory) return;
+
+    _isLoadingMoreHistory = true;
+    try {
+      final newHistory = await _api!.getHistory(page: _historyPage + 1);
+      if (newHistory.isEmpty) {
+        _hasMoreHistory = false;
+      } else {
+        _historyPage++;
+        final current = List<YtifyResult>.from(_historyNotifier.value);
+        current.addAll(newHistory);
+        _historyNotifier.value = current;
+      }
+    } catch (e) {
+      debugPrint('Error fetching more history: $e');
+    } finally {
+      _isLoadingMoreHistory = false;
+    }
   }
 
   Future<void> removeFromHistory(String videoId) async {
@@ -240,17 +293,17 @@ class StorageService {
     if (!current.containsKey(name)) {
       current[name] = [];
       _playlistsNotifier.value = current;
-      _savePlaylistsToCache(current);
+      _savePlaylistsToCache(current, _playlistIds);
 
       // API: Create empty playlist
       if (_api != null) {
         isLoadingNotifier.value = true;
         try {
           await _api!.createPlaylist(name);
+          // Refetch to get the ID
+          refreshAll(silent: true);
         } catch (e) {
           errorNotifier.value = 'Failed to create playlist on server: $e';
-          // Revert local change if strict consistency is needed?
-          // maintaining local change for offline support might be better, but let's just log.
         } finally {
           isLoadingNotifier.value = false;
         }
@@ -260,16 +313,23 @@ class StorageService {
 
   Future<void> deletePlaylist(String name) async {
     if (_api == null) return;
+    
+    final id = _playlistIds[name];
+    if (id == null) {
+       errorNotifier.value = 'Playlist ID not found locally. Please refresh.';
+       return;
+    }
 
     isLoadingNotifier.value = true;
     try {
-      await _api!.deletePlaylist(name);
+      await _api!.deletePlaylist(id.toString());
       final current = Map<String, List<YtifyResult>>.from(
         _playlistsNotifier.value,
       );
       current.remove(name);
+      _playlistIds.remove(name);
       _playlistsNotifier.value = current;
-      _savePlaylistsToCache(current);
+      _savePlaylistsToCache(current, _playlistIds);
     } catch (e) {
       errorNotifier.value = 'Failed to delete playlist: $e';
     } finally {
@@ -279,6 +339,36 @@ class StorageService {
 
   List<YtifyResult> getPlaylistSongs(String name) {
     return _playlistsNotifier.value[name] ?? [];
+  }
+
+  Future<void> fetchMorePlaylistSongs(String name) async {
+    final id = _playlistIds[name];
+    if (_api == null || id == null || _isLoadingMorePlaylistSongs) return;
+    if (_hasMorePlaylistSongs[name] == false) return;
+
+    final currentPage = _playlistPages[name] ?? 1;
+
+    _isLoadingMorePlaylistSongs = true;
+    try {
+      final newSongs = await _api!.getPlaylistSongs(id.toString(), page: currentPage + 1);
+      if (newSongs.isEmpty) {
+        _hasMorePlaylistSongs[name] = false;
+      } else {
+        _playlistPages[name] = currentPage + 1;
+        final current = Map<String, List<YtifyResult>>.from(_playlistsNotifier.value);
+        final songs = List<YtifyResult>.from(current[name] ?? []);
+        songs.addAll(newSongs);
+        current[name] = songs;
+        _playlistsNotifier.value = current;
+        // Optional: save to cache, but we might only want to save the first page to cache 
+        // to avoid huge cache files. Since it's local storage, saving is fine for now.
+        _savePlaylistsToCache(current, _playlistIds);
+      }
+    } catch (e) {
+      debugPrint('Error fetching more playlist songs: $e');
+    } finally {
+      _isLoadingMorePlaylistSongs = false;
+    }
   }
 
   Future<void> addToPlaylist(String name, YtifyResult result) async {
@@ -296,7 +386,7 @@ class StorageService {
         songs.add(result);
         current[name] = songs;
         _playlistsNotifier.value = current;
-        _savePlaylistsToCache(current);
+        _savePlaylistsToCache(current, _playlistIds);
       } catch (e) {
         errorNotifier.value = 'Failed to add to playlist: $e';
       } finally {
@@ -315,13 +405,19 @@ class StorageService {
     songs.removeWhere((s) => s.videoId == videoId);
     current[name] = songs;
     _playlistsNotifier.value = current;
-    _savePlaylistsToCache(current);
+    _savePlaylistsToCache(current, _playlistIds);
 
     if (_api == null) return;
+    
+    final id = _playlistIds[name];
+    if (id == null) {
+      errorNotifier.value = 'Playlist ID not found locally. Please refresh.';
+      return;
+    }
 
     isLoadingNotifier.value = true;
     try {
-      await _api!.removeSongFromPlaylist(name, videoId);
+      await _api!.removeSongFromPlaylist(id.toString(), videoId);
     } catch (e) {
       errorNotifier.value = 'Failed to remove from playlist: $e';
     } finally {
@@ -332,6 +428,27 @@ class StorageService {
   // Favorites
   List<YtifyResult> getFavorites() {
     return _favoritesNotifier.value;
+  }
+
+  Future<void> fetchMoreFavorites() async {
+    if (_api == null || _isLoadingMoreFavorites || !_hasMoreFavorites) return;
+
+    _isLoadingMoreFavorites = true;
+    try {
+      final newFavorites = await _api!.getFavorites(page: _favoritesPage + 1);
+      if (newFavorites.isEmpty) {
+        _hasMoreFavorites = false;
+      } else {
+        _favoritesPage++;
+        final current = List<YtifyResult>.from(_favoritesNotifier.value);
+        current.addAll(newFavorites);
+        _favoritesNotifier.value = current;
+      }
+    } catch (e) {
+      debugPrint('Error fetching more favorites: $e');
+    } finally {
+      _isLoadingMoreFavorites = false;
+    }
   }
 
   bool isFavorite(String videoId) {
@@ -515,8 +632,8 @@ class StorageService {
 
   Future<void> setAuthToken(String token) async {
     await _settingsBox.put('authToken', token);
-    // Refresh data when token is set (login)
-    await refreshAll();
+    // Refresh data when token is set (login). We don't await this so it doesn't block the UI.
+    refreshAll();
   }
 
   Future<void> clearUserSession() async {
@@ -575,7 +692,7 @@ class StorageService {
       // Let's assume I'll add the import in a separate call.
 
       final url = 'https://api.dicebear.com/9.x/rings/svg?seed=$user';
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         await _userAvatarBox.put('avatar_svg', response.body);
@@ -634,6 +751,7 @@ class StorageService {
 
   Future<void> _savePlaylistsToCache(
     Map<String, List<YtifyResult>> playlists,
+    Map<String, int> ids,
   ) async {
     try {
       final box = Hive.box(_playlistsBoxName);
@@ -642,6 +760,7 @@ class StorageService {
         jsonMap[key] = value.map((e) => e.toJson()).toList();
       });
       await box.put('map', jsonMap);
+      await box.put('ids', ids);
     } catch (e) {
       debugPrint('Error saving playlists cache: $e');
     }

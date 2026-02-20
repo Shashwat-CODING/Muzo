@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,14 +100,36 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Subtle Background
+          // Subtle Dark Background with Blurred Orbs
           Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF121212), Colors.black],
+            child: Container(color: const Color(0xFF121212)),
+          ),
+          Positioned(
+            top: -100,
+            left: -100,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.05), // Spotify-like soft gray
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -50,
+            right: -50,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.03),
                 ),
               ),
             ),
@@ -118,26 +141,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Single Sleek Container
-                  Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                  // Glassmorphic Sleek Container
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                      child: Container(
+                        width: double.infinity,
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF181818).withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                         // Header
                         Image.asset('assets/logo.png', width: 100, height: 100),
                         const SizedBox(height: 16),
@@ -155,7 +182,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         Container(
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0),
+                            color: Colors.black.withValues(alpha: 0),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: TabBar(
@@ -275,6 +302,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       ],
                     ),
                   ),
+                ),
+              ),
 
                   const SizedBox(height: 24),
                   TextButton(
@@ -302,38 +331,45 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     required IconData icon,
     bool isPassword = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword && _obscurePassword,
-        style: GoogleFonts.outfit(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: GoogleFonts.outfit(color: Colors.white38),
-          prefixIcon: Icon(icon, color: Colors.white54, size: 20),
-          suffixIcon: isPassword
-              ? IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? FluentIcons.eye_24_regular
-                        : FluentIcons.eye_off_24_regular,
-                    color: Colors.white38,
-                    size: 20,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+    return TextField(
+      controller: controller,
+      obscureText: isPassword && _obscurePassword,
+      style: GoogleFonts.outfit(color: Colors.white),
+      cursorColor: Colors.white,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.03),
+        hintStyle: GoogleFonts.outfit(color: Colors.white38),
+        prefixIcon: Icon(icon, color: Colors.white54, size: 20),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? FluentIcons.eye_24_regular
+                      : FluentIcons.eye_off_24_regular,
+                  color: Colors.white38,
+                  size: 20,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.transparent),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.transparent),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
         ),
       ),
     );

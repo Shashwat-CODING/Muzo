@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:developer' as dev;
 import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -10,6 +9,7 @@ import 'package:muzo/services/navigator_key.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/services/music_api_service.dart';
+import 'package:muzo/services/ytify_service.dart';
 
 class AudioHandler {
   final AudioPlayer _player = AudioPlayer();
@@ -161,38 +161,6 @@ class AudioHandler {
     }
   }
 
-  /// Saves to history using enriched metadata from the AudioSource's MediaItem tag.
-  void _saveToHistoryFromSource(AudioSource source) {
-    try {
-      final tag = (source as dynamic).tag;
-      if (tag is MediaItem) {
-        final result = YtifyResult(
-          title: tag.title,
-          thumbnails: [
-            YtifyThumbnail(
-              url: tag.artUri?.toString() ?? '',
-              width: 0,
-              height: 0,
-            ),
-          ],
-          resultType: tag.extras?['resultType'] ?? 'song',
-          isExplicit: false,
-          videoId: tag.id,
-          duration: tag.duration != null
-              ? _formatDuration(tag.duration!)
-              : null,
-          durationSeconds: tag.duration?.inSeconds,
-          artists: tag.artist != null
-              ? [YtifyArtist(name: tag.artist!, id: tag.extras?['artistId'])]
-              : null,
-        );
-        _storage.addToHistory(result);
-      }
-    } catch (e) {
-      debugPrint('Error saving to history from source: $e');
-    }
-  }
-
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
@@ -254,7 +222,7 @@ class AudioHandler {
       if (lazy && !isDownloaded) {
         audioUri = Uri.parse('lazy://$videoId');
       } else if (isDownloaded) {
-        audioUri = Uri.file(downloadPath!);
+        audioUri = Uri.file(downloadPath);
       } else {
         // Fetch stream (Expensive)
         final streamUrl = await _apiService.getStreamUrl(
@@ -406,7 +374,7 @@ class AudioHandler {
       if (source != null) {
          await _playlist.insert(index + 1, source);
          final context = navigatorKey.currentContext;
-         if (context != null) {
+         if (context != null && context.mounted) {
            showGlassSnackBar(context, 'Song added to play next');
          }
       }
@@ -480,7 +448,9 @@ class AudioHandler {
 
     _isFetchingAutoQueue = true;
     try {
-      final nextSongs = await _musicApiService.getUpNext(videoId);
+      final artistName = tag.artist ?? 'trending music';
+      // Fallback to searching the artist since UpNext was deprecated
+      final nextSongs = await YtifyApiService().search(artistName, filter: 'songs');
       debugPrint('AutoQueue: fetched ${nextSongs.length} songs');
 
       final currentTag = _player.sequenceState?.currentSource?.tag;

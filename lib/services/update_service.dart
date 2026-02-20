@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class UpdateService {
   // Current app version - Update this when releasing a new version
-  static const String currentAppVersion = '2.1.2';
+  static const String currentAppVersion = '2.1.3';
 
   static const String _repoOwner = 'Shashwat-CODING';
   static const String _repoName = 'Muzo';

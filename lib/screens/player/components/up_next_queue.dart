@@ -48,7 +48,7 @@ class UpNextQueue extends ConsumerWidget {
                     color: Colors.transparent,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: child,
@@ -133,7 +133,7 @@ class UpNextQueue extends ConsumerWidget {
                       boxShadow: const [
                         BoxShadow(blurRadius: 5, color: Colors.black54),
                       ],
-                      color: Theme.of(context).primaryColor.withOpacity(0.5),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
                     ),
                     height: 100, // Adjusted height
                     child: Align(
@@ -164,7 +164,7 @@ class UpNextQueue extends ConsumerWidget {
                                 horizontal: 15,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Center(

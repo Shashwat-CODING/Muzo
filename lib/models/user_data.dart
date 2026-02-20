@@ -22,22 +22,22 @@ class UserData {
       user: User.fromJson(json['user'] ?? {}),
       stats: Stats.fromJson(json['stats'] ?? {}),
       history:
-          (json['history'] as List?)
+          (json['history']?['data'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
       favorites:
-          (json['favorites'] as List?)
+          (json['favorites']?['data'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
       subscriptions:
-          (json['subscriptions'] as List?)
+          (json['subscriptions']?['data'] as List?)
               ?.map((e) => YtifyResult.fromJson(e))
               .toList() ??
           [],
       playlists:
-          (json['playlists'] as List?)
+          (json['playlists']?['data'] as List?)
               ?.map((e) => Playlist.fromJson(e))
               .toList() ??
           [],

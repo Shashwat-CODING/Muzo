@@ -10,7 +10,6 @@ import '../../widgets/song_options_menu.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/providers/settings_provider.dart';
-import 'package:muzo/services/audio_handler.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
@@ -51,21 +50,15 @@ class StandardPlayer extends ConsumerWidget {
             if (artUri != null)
               SizedBox.expand(
                 child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                  child: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      Colors.black.withOpacity(0), // Reduced from 0.4
-                      BlendMode.darken,
-                    ),
-                    child: CachedNetworkImage(
-                      imageUrl: artUri.toString(),
-                      fit: BoxFit.cover,
-                      height: MediaQuery.of(context).size.height,
-                      placeholder: (context, url) =>
-                          Container(color: Colors.black),
-                      errorWidget: (context, url, error) =>
-                          Container(color: Colors.black),
-                    ),
+                  imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                  child: CachedNetworkImage(
+                    imageUrl: artUri.toString(),
+                    fit: BoxFit.cover,
+                    height: MediaQuery.of(context).size.height,
+                    placeholder: (context, url) =>
+                        Container(color: Colors.black),
+                    errorWidget: (context, url, error) =>
+                        Container(color: Colors.black),
                   ),
                 ),
               ),
@@ -77,8 +70,8 @@ class StandardPlayer extends ConsumerWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0), // Reduced from 0.3
-                    Colors.black.withOpacity(0), // Reduced from 0.8
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.8),
                   ],
                 ),
               ),
@@ -347,9 +340,20 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
             ),
           ),
           
-        // Black Tint for Controls in Gesture Mode
+        // Gradient Tint for Controls in Gesture Mode
         Container(
-          color: Colors.black.withOpacity(0.4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.2),
+                Colors.black.withValues(alpha: 0.5),
+                Colors.black.withValues(alpha: 0.8),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
         ),
 
         // Gesture Detector covering the screen
@@ -426,7 +430,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: StreamBuilder<double>(
@@ -479,9 +483,9 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -528,9 +532,17 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                                           top: Radius.circular(20),
                                         ),
                                         child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                                           child: Container(
-                                            color: Colors.black.withOpacity(0.5),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withValues(alpha: 0.75),
+                                              border: Border(
+                                                top: BorderSide(
+                                                  color: Colors.white.withValues(alpha: 0.15),
+                                                  width: 1.0,
+                                                ),
+                                              ),
+                                            ),
                                             child: UpNextQueue(
                                               scrollController: scrollController,
                                               onReorderStart: (oldIndex, newIndex) {
@@ -624,8 +636,8 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                           return ProgressBar(
                             thumbRadius: 5,
                             barHeight: 4,
-                            baseBarColor: Colors.white.withOpacity(0.24),
-                            bufferedBarColor: Colors.white.withOpacity(0.38),
+                            baseBarColor: Colors.white.withValues(alpha: 0.24),
+                            bufferedBarColor: Colors.white.withValues(alpha: 0.38),
                             progressBarColor: Colors.white,
                             thumbColor: Colors.white,
                             timeLabelTextStyle: const TextStyle(

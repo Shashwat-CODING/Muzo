@@ -8,7 +8,7 @@ import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/providers/download_provider.dart';
 import 'package:muzo/widgets/song_options_menu.dart';
 
-class PlaylistDetailsScreen extends ConsumerWidget {
+class PlaylistDetailsScreen extends ConsumerStatefulWidget {
   final String playlistName;
   final bool isSystemPlaylist;
 
@@ -19,16 +19,47 @@ class PlaylistDetailsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlaylistDetailsScreen> createState() => _PlaylistDetailsScreenState();
+}
+
+class _PlaylistDetailsScreenState extends ConsumerState<PlaylistDetailsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final storage = ref.read(storageServiceProvider);
+      if (widget.playlistName == 'Favorites') {
+        storage.fetchMoreFavorites();
+      } else if (widget.playlistName != 'Downloads' && !widget.isSystemPlaylist) {
+        storage.fetchMorePlaylistSongs(widget.playlistName);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final storage = ref.watch(storageServiceProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(playlistName),
+        title: Text(widget.playlistName),
         actions: [
-          if (!isSystemPlaylist)
+          if (!widget.isSystemPlaylist)
             IconButton(
               icon: const Icon(FluentIcons.delete_24_regular),
               onPressed: () {
@@ -52,7 +83,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          storage.deletePlaylist(playlistName);
+                          storage.deletePlaylist(widget.playlistName);
                           Navigator.pop(context); // Close dialog
                           Navigator.pop(context); // Go back to library
                         },
@@ -70,14 +101,14 @@ class PlaylistDetailsScreen extends ConsumerWidget {
       ),
       body: Builder(
         builder: (context) {
-          if (playlistName == 'Favorites') {
+          if (widget.playlistName == 'Favorites') {
             return ValueListenableBuilder<List<YtifyResult>>(
               valueListenable: storage.favoritesListenable,
               builder: (context, favorites, _) {
                 return _buildSongList(context, ref, favorites, storage);
               },
             );
-          } else if (playlistName == 'Downloads') {
+          } else if (widget.playlistName == 'Downloads') {
             return ValueListenableBuilder(
               valueListenable: storage.downloadsListenable,
               builder: (context, box, _) {
@@ -110,7 +141,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
             return ValueListenableBuilder<Map<String, List<YtifyResult>>>(
               valueListenable: storage.playlistsListenable,
               builder: (context, playlistsMap, _) {
-                final songs = storage.getPlaylistSongs(playlistName);
+                final songs = storage.getPlaylistSongs(widget.playlistName);
                 return _buildSongList(context, ref, songs, storage);
               },
             );
@@ -166,6 +197,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
         // Songs List
         Expanded(
           child: ListView.builder(
+            controller: _scrollController,
             itemCount: songs.length,
             itemBuilder: (context, index) {
               final song = songs[index];
@@ -213,21 +245,21 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                       ),
                 trailing: IconButton(
                   icon: Icon(
-                    playlistName == 'Favorites'
+                    widget.playlistName == 'Favorites'
                         ? FluentIcons.heart_24_filled
-                        : playlistName == 'Downloads'
+                        : widget.playlistName == 'Downloads'
                         ? (isDownloading
                               ? FluentIcons.dismiss_circle_24_regular
                               : FluentIcons.delete_24_regular)
                         : FluentIcons.subtract_circle_24_regular,
-                    color: playlistName == 'Favorites'
+                    color: widget.playlistName == 'Favorites'
                         ? const Color(0xFF1ED760)
                         : Colors.grey,
                   ),
                   onPressed: () {
-                    if (playlistName == 'Favorites') {
+                    if (widget.playlistName == 'Favorites') {
                       storage.toggleFavorite(song);
-                    } else if (playlistName == 'Downloads') {
+                    } else if (widget.playlistName == 'Downloads') {
                       if (isDownloading) {
                         ref
                             .read(downloadProvider.notifier)
@@ -237,7 +269,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                       }
                     } else {
                       storage.removeFromPlaylist(
-                        playlistName,
+                        widget.playlistName,
                         song.videoId ?? '',
                       );
                     }

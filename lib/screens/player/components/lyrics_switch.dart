@@ -17,7 +17,7 @@ class LyricsSwitch extends ConsumerWidget {
           Container(
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(18),
             ),
             child: TextButton.icon(

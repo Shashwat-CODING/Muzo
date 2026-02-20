@@ -81,7 +81,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                           CachedNetworkImage(
                             imageUrl: displayThumbnail,
                             fit: BoxFit.cover,
-                            color: Colors.black.withOpacity(0),
+                            color: Colors.black.withValues(alpha: 0),
                             colorBlendMode: BlendMode.darken,
                           )
                         else

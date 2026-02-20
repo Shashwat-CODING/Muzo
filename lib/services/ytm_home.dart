@@ -9,8 +9,12 @@ const String userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
 
 class YouTubeMusicHomeService {
-  final Dio _dio = Dio();
-  String? _visitorId;
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ),
+  );
 
   final Map<String, String> _headers = {
     'user-agent': userAgent,
@@ -46,7 +50,6 @@ class YouTubeMusicHomeService {
 
   Future<void> initialize() async {
     final visitorId = await _generateVisitorId();
-    _visitorId = visitorId;
     if (visitorId != null) {
       _headers['X-Goog-Visitor-Id'] = visitorId;
     }
@@ -187,10 +190,11 @@ class YouTubeMusicHomeService {
       if (browseId != null) {
         if (browseId.startsWith('MPRE')) {
           type = 'album';
-        } else if (browseId.startsWith('UC'))
+        } else if (browseId.startsWith('UC')) {
           type = 'artist';
-        else if (browseId.startsWith('VL'))
+        } else if (browseId.startsWith('VL')) {
           type = 'playlist';
+        }
       }
 
       return HomeItem(

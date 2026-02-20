@@ -61,40 +61,42 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
     final activeColor = widget.accentColor ?? Colors.white;
 
     final customLyricStyle = LyricStyles.default1.copyWith(
-      activeHighlightColor: Colors.white,
+      activeHighlightColor: Colors.white, // Pure white for legibility
       activeStyle: GoogleFonts.outfit(
-        fontSize: 26, // Increased slightly for better focus
-        fontWeight: FontWeight.bold,
+        fontSize: widget.isEmbedded ? 34 : 40, // Increased size for better visibility
+        fontWeight: FontWeight.w800,
         color: Colors.white,
+        height: 1.3,
         shadows: [
           Shadow(
-            offset: const Offset(0, 1),
+            offset: const Offset(0, 2),
             blurRadius: 10.0,
-            color: Colors.black.withOpacity(0),
+            color: Colors.black.withValues(alpha: 0.3), // Stronger shadow
           ),
         ],
       ),
       textStyle: GoogleFonts.outfit(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-        color: activeColor.withOpacity(0.6),
+        fontSize: widget.isEmbedded ? 24 : 28,
+        fontWeight: FontWeight.w700,
+        color: Colors.white.withValues(alpha: 0.3), // Liquid glass look (more translucent)
+        height: 1.3,
          shadows: [
           Shadow(
             offset: const Offset(0, 1),
-            blurRadius: 8.0,
-            color: Colors.black.withOpacity(0),
+            blurRadius: 2.0,
+            color: Colors.black.withValues(alpha: 0.1), // Very soft shadow so it blends
           ),
         ],
       ),
       translationStyle: GoogleFonts.outfit(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: activeColor.withOpacity(0.4),
+        fontSize: widget.isEmbedded ? 18 : 22,
+        fontWeight: FontWeight.w600,
+        color: Colors.white.withValues(alpha: 0.6),
          shadows: [
           Shadow(
             offset: const Offset(0, 1),
-            blurRadius: 8.0,
-            color: Colors.black.withOpacity(0),
+            blurRadius: 5.0,
+            color: Colors.black.withValues(alpha: 0.2),
           ),
         ],
       ),
@@ -125,9 +127,12 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
           ),
 
         Expanded(
-          child: LyricView(
-            controller: _lyricController,
-            style: customLyricStyle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+            child: LyricView(
+              controller: _lyricController,
+              style: customLyricStyle,
+            ),
           ),
         ),
       ],

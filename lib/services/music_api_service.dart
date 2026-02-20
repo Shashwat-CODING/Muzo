@@ -30,48 +30,44 @@ class MusicApiService {
     };
   }
 
-  Future<http.Response> _retryWithRefresh(
+  Future<http.Response> _authRequest(
     Future<http.Response> Function() request,
   ) async {
-    var response = await request();
-
-    if (response.statusCode == 403) {
-      debugPrint('Received 403, attempting token refresh...');
-      final newToken = await _auth.refreshToken();
-      if (newToken != null) {
-        debugPrint('Token refreshed, retrying request...');
-        response = await request();
-      }
+    final response = await request().timeout(const Duration(seconds: 15));
+    if (response.statusCode == 401) {
+      debugPrint('Token invalid or expired. Logging out.');
+      await _auth.logout();
+      // Throw exception so UI layers can react and push to login
+      throw Exception('Session expired');
     }
-
     return response;
   }
 
   // --- User Data ---
 
   Future<UserData> getUserData() async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.get(Uri.parse('$_baseUrl/user/data'), headers: _headers),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return UserData.fromJson(data);
+      final json = jsonDecode(response.body);
+      return UserData.fromJson(json);
     } else {
       throw Exception('Failed to load user data');
     }
   }
 
-  // --- History ---
 
-  Future<List<YtifyResult>> getHistory() async {
-    final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/history'), headers: _headers),
+
+  Future<List<YtifyResult>> getHistory({int page = 1}) async {
+    final response = await _authRequest(
+      () => http.get(Uri.parse('$_baseUrl/history?page=$page'), headers: _headers),
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final List<dynamic> list = data['history'];
+      final List<dynamic> list = data['data'] ?? [];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load history');
@@ -79,11 +75,16 @@ class MusicApiService {
   }
 
   Future<void> addToHistory(YtifyResult song) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.post(
         Uri.parse('$_baseUrl/history'),
         headers: _headers,
-        body: jsonEncode(song.toJson()),
+        body: jsonEncode({
+          'videoId': song.videoId,
+          'title': song.title,
+          'artist': song.artists?.map((a) => a.name).join(', ') ?? song.videoType ?? 'Unknown',
+          'thumbnail': song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '',
+        }),
       ),
     );
 
@@ -93,7 +94,7 @@ class MusicApiService {
   }
 
   Future<void> removeFromHistory(String videoId) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.delete(
         Uri.parse('$_baseUrl/history/$videoId'),
         headers: _headers,
@@ -106,7 +107,7 @@ class MusicApiService {
   }
 
   Future<void> clearHistory() async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.delete(Uri.parse('$_baseUrl/history'), headers: _headers),
     );
 
@@ -117,14 +118,14 @@ class MusicApiService {
 
   // --- Favorites ---
 
-  Future<List<YtifyResult>> getFavorites() async {
-    final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/favorites'), headers: _headers),
+  Future<List<YtifyResult>> getFavorites({int page = 1}) async {
+    final response = await _authRequest(
+      () => http.get(Uri.parse('$_baseUrl/favorites?page=$page'), headers: _headers),
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final List<dynamic> list = data['favorites'];
+      final List<dynamic> list = data['data'] ?? [];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load favorites');
@@ -132,11 +133,16 @@ class MusicApiService {
   }
 
   Future<void> addToFavorites(YtifyResult song) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.post(
         Uri.parse('$_baseUrl/favorites'),
         headers: _headers,
-        body: jsonEncode(song.toJson()),
+        body: jsonEncode({
+          'videoId': song.videoId,
+          'title': song.title,
+          'artist': song.artists?.map((a) => a.name).join(', ') ?? song.videoType ?? 'Unknown',
+          'thumbnail': song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '',
+        }),
       ),
     );
 
@@ -146,7 +152,7 @@ class MusicApiService {
   }
 
   Future<void> removeFromFavorites(String videoId) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.delete(
         Uri.parse('$_baseUrl/favorites/$videoId'),
         headers: _headers,
@@ -160,30 +166,44 @@ class MusicApiService {
 
   // --- Playlists ---
 
-  Future<List<Map<String, dynamic>>> getPlaylists() async {
-    final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/playlists'), headers: _headers),
+  Future<List<Map<String, dynamic>>> getPlaylists({int page = 1}) async {
+    final response = await _authRequest(
+      () => http.get(Uri.parse('$_baseUrl/playlists?page=$page'), headers: _headers),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data['playlists']);
+      final json = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(json['data'] ?? []);
     } else {
       throw Exception('Failed to load playlists');
     }
   }
 
-  Future<List<YtifyResult>> getPlaylistSongs(String playlistName) async {
-    final response = await _retryWithRefresh(
+  Future<void> createPlaylist(String name) async {
+    final response = await _authRequest(
+      () => http.post(
+        Uri.parse('$_baseUrl/playlists'),
+        headers: _headers,
+        body: jsonEncode({'title': name}), // Using title as per convention
+      ),
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Failed to create playlist');
+    }
+  }
+
+  Future<List<YtifyResult>> getPlaylistSongs(String playlistId, {int page = 1}) async {
+    final response = await _authRequest(
       () => http.get(
-        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
+        Uri.parse('$_baseUrl/playlists/$playlistId/songs?page=$page'),
         headers: _headers,
       ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final List<dynamic> list = data['playlist'];
+      final json = jsonDecode(response.body);
+      final List<dynamic> list = json['data'] ?? [];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load playlist songs');
@@ -191,11 +211,16 @@ class MusicApiService {
   }
 
   Future<void> addToPlaylist(String playlistName, YtifyResult song) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.post(
         Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
         headers: _headers,
-        body: jsonEncode(song.toJson()),
+        body: jsonEncode({
+          'videoId': song.videoId,
+          'title': song.title,
+          'artist': song.artists?.map((a) => a.name).join(', ') ?? song.videoType ?? 'Unknown',
+          'thumbnail': song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '',
+        }),
       ),
     );
 
@@ -204,24 +229,10 @@ class MusicApiService {
     }
   }
 
-  Future<void> createPlaylist(String name) async {
-    final response = await _retryWithRefresh(
-      () => http.post(
-        Uri.parse('$_baseUrl/playlists'),
-        headers: _headers,
-        body: jsonEncode({'name': name}),
-      ),
-    );
-
-    if (response.statusCode != 201) {
-      throw Exception('Failed to create playlist');
-    }
-  }
-
-  Future<void> deletePlaylist(String playlistName) async {
-    final response = await _retryWithRefresh(
+  Future<void> deletePlaylist(String playlistId) async {
+    final response = await _authRequest(
       () => http.delete(
-        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
+        Uri.parse('$_baseUrl/playlists/$playlistId'),
         headers: _headers,
       ),
     );
@@ -232,13 +243,13 @@ class MusicApiService {
   }
 
   Future<void> removeSongFromPlaylist(
-    String playlistName,
+    String playlistId,
     String videoId,
   ) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.delete(
         Uri.parse(
-          '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}/songs/$videoId',
+          '$_baseUrl/playlists/$playlistId/songs/$videoId',
         ),
         headers: _headers,
       ),
@@ -251,14 +262,14 @@ class MusicApiService {
 
   // --- Subscriptions ---
 
-  Future<List<YtifyResult>> getSubscriptions() async {
-    final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/subscriptions'), headers: _headers),
+  Future<List<YtifyResult>> getSubscriptions({int page = 1}) async {
+    final response = await _authRequest(
+      () => http.get(Uri.parse('$_baseUrl/subscriptions?page=$page'), headers: _headers),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final List<dynamic> list = data['subscriptions'];
+      final json = jsonDecode(response.body);
+      final List<dynamic> list = json['data'] ?? [];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load subscriptions');
@@ -266,11 +277,15 @@ class MusicApiService {
   }
 
   Future<void> addSubscription(YtifyResult channel) async {
-    final response = await _retryWithRefresh(
+    final response = await _authRequest(
       () => http.post(
         Uri.parse('$_baseUrl/subscriptions'),
         headers: _headers,
-        body: jsonEncode(channel.toJson()),
+        body: jsonEncode({
+          'channelId': channel.videoId, // Assuming videoId holds channelId for channels
+          'channelName': channel.title,
+          'thumbnail': channel.thumbnails.isNotEmpty ? channel.thumbnails.last.url : '',
+        }),
       ),
     );
 
@@ -279,39 +294,16 @@ class MusicApiService {
     }
   }
 
-  Future<void> removeSubscription(String browseId) async {
-    final response = await _retryWithRefresh(
+  Future<void> removeSubscription(String channelId) async {
+    final response = await _authRequest(
       () => http.delete(
-        Uri.parse('$_baseUrl/subscriptions/$browseId'),
+        Uri.parse('$_baseUrl/subscriptions/$channelId'),
         headers: _headers,
       ),
     );
 
     if (response.statusCode != 200) {
       throw Exception('Failed to unsubscribe');
-    }
-  }
-
-  Future<List<YtifyResult>> getUpNext(String videoId) async {
-    try {
-      final uri = Uri.parse(
-        'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task?videoId=$videoId',
-      );
-      final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        debugPrint('UpNext API Error: ${response.statusCode}');
-        return [];
-      }
-
-      final data = jsonDecode(response.body);
-      if (data['success'] != true) return [];
-
-      final List<dynamic> list = data['upNext'];
-      return list.map((e) => YtifyResult.fromJson(e)).toList();
-    } catch (e) {
-      debugPrint('Error fetching Up Next: $e');
-      return [];
     }
   }
 }

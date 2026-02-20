@@ -115,8 +115,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.6), // Visible top
-                          Colors.black.withValues(alpha: 1.0), // Solid bottom
+                          const Color(0xFF121212).withValues(alpha: 0.6), // Visible top
+                          const Color(0xFF121212), // Solid bottom
                         ],
                       ),
                     ),
@@ -210,7 +210,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     final isLoading = isAudioLoading || isStorageLoading;
                     if (!isLoading) return const SizedBox.shrink();
                     return Container(
-                      color: Colors.black.withValues(alpha: 0.5),
+                      color: const Color(0xFF121212).withValues(alpha: 0.5),
                       child: const Center(
                         child: CircularProgressIndicator(color: Colors.white),
                       ),
@@ -276,7 +276,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         return GestureDetector(
           onTap: () => _hideSheetWithAnimation(ref),
           child: Container(
-            color: Colors.black.withValues(
+            color: const Color(0xFF121212).withValues(
               alpha: 0.5 * _sheetFadeAnimation.value,
             ),
             child: Column(
