@@ -21,10 +21,11 @@ class PlayerControlWidget extends ConsumerWidget {
     final audioHandler = ref.watch(audioHandlerProvider);
     final player = audioHandler.player;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
         // Title and Artist
         mediaItemAsync.when(
           data: (mediaItem) => Row(
@@ -34,17 +35,19 @@ class PlayerControlWidget extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Marquee(
-                      delay: const Duration(milliseconds: 300),
-                      duration: const Duration(seconds: 10),
-                      child: Text(
-                        mediaItem?.title ?? "NA",
-                        textAlign: TextAlign.start,
-                        style: Theme.of(context).textTheme.titleMedium!
-                            .copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    SizedBox(
+                      height: 30, // fixed height for marquee to stay stable
+                      child: Marquee(
+                        delay: const Duration(milliseconds: 300),
+                        duration: const Duration(seconds: 10),
+                        child: Text(
+                          mediaItem?.title ?? "NA",
+                          textAlign: TextAlign.start,
+                          style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -57,7 +60,7 @@ class PlayerControlWidget extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(
                           context,
-                        ).textTheme.bodySmall!.copyWith(color: Colors.white70),
+                        ).textTheme.bodyMedium!.copyWith(color: Colors.white70),
                       ),
                     ),
                   ],
@@ -169,7 +172,7 @@ class PlayerControlWidget extends ConsumerWidget {
           error: (_, __) => const SizedBox.shrink(),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
         // Progress Bar
         StreamBuilder<Duration>(
@@ -182,19 +185,22 @@ class PlayerControlWidget extends ConsumerWidget {
               builder: (context, ref, child) {
                 final thumbColor = Colors.white;
                 final progressBarColor = Colors.white;
-                final baseBarColor = Colors.white.withValues(alpha: 0.24);
-                final bufferedBarColor = Colors.white.withValues(alpha: 0.38);
+                final baseBarColor = Colors.white.withValues(alpha: 0.2);
+                final bufferedBarColor = Colors.white.withValues(alpha: 0.35);
 
                 return ProgressBar(
-                  thumbRadius: 7,
-                  barHeight: 4.5,
+                  thumbRadius: 6,
+                  thumbGlowRadius: 15,
+                  barHeight: 5,
                   baseBarColor: baseBarColor,
                   bufferedBarColor: bufferedBarColor,
                   progressBarColor: progressBarColor,
                   thumbColor: thumbColor,
-                  timeLabelTextStyle: Theme.of(
-                    context,
-                  ).textTheme.bodySmall!.copyWith(color: Colors.white),
+                  timeLabelPadding: 10,
+                  timeLabelTextStyle: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Colors.white70),
                   progress: position,
                   total: duration,
                   onSeek: (duration) {
@@ -206,7 +212,8 @@ class PlayerControlWidget extends ConsumerWidget {
           },
         ),
 
-        // Controls
+        const SizedBox(height: 24),
+
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -302,9 +309,10 @@ class PlayerControlWidget extends ConsumerWidget {
                 );
               },
             ),
-          ],
-        ),
-      ],
-    );
+              ],
+            ), // end Row
+          ], // end Column children
+        ), // end Column
+      ); // end SingleChildScrollView
   }
 }

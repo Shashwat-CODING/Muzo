@@ -39,7 +39,7 @@ class HomeItemWidget extends ConsumerWidget {
                         errorWidget: (context, url, error) => Container(
                           color: Colors.grey[900],
                           child: const Icon(
-                            FluentIcons.music_note_2_24_regular,
+                            FluentIcons.music_note_2_24_filled,
                             color: Colors.white,
                           ),
                         ),
@@ -47,7 +47,7 @@ class HomeItemWidget extends ConsumerWidget {
                     : Container(
                         color: Colors.grey[900],
                         child: const Icon(
-                          FluentIcons.music_note_2_24_regular,
+                          FluentIcons.music_note_2_24_filled,
                           color: Colors.white,
                         ),
                       ),

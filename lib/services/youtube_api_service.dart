@@ -15,8 +15,12 @@ class YtifySearchResponse {
 class YouTubeApiService {
   final _client = http.Client();
 
+  // Singleton YoutubeExplode session — created once, reused for all requests.
+  static final YoutubeExplode _yt = YoutubeExplode();
+
   Future<void> dispose() async {
     _client.close();
+    _yt.close();
   }
 
   Future<String?> getStreamUrl(
@@ -31,134 +35,112 @@ class YouTubeApiService {
       return await _getFallbackStreamUrl(videoId, title, artist);
     }
 
+    // Direct API: try up to 2 times before falling back
+    debugPrint('Extracting stream for videoId: $videoId (attempt 1)...');
+    String? streamUrl = await _tryDirectApi(videoId);
+    if (streamUrl == null) {
+      debugPrint('Direct API attempt 1 failed, retrying...');
+      await Future.delayed(const Duration(milliseconds: 500));
+      debugPrint('Direct API attempt 2...');
+      streamUrl = await _tryDirectApi(videoId);
+    }
+
+    if (streamUrl != null) {
+      _logLong('Stream URL extracted directly: $streamUrl');
+      return streamUrl;
+    }
+
+    debugPrint('Both direct API attempts failed — trying YoutubeExplode...');
+    onFallback?.call();
+
+    // Fallback 1: YoutubeExplode (singleton session — no new instance created)
     try {
-      debugPrint('Extracting stream for videoId: $videoId...');
+      final provider = await StreamProvider.fetch(videoId, _yt);
+      if (provider.playable) {
+        final url = provider.highestBitrateMp4aAudio?.url ??
+            provider.highestQualityAudio?.url ??
+            provider.audioFormats?.first.url;
+        if (url != null) {
+          _logLong('Stream URL extracted via YoutubeExplode: $url');
+          return url;
+        }
+      } else {
+        debugPrint('YoutubeExplode status: ${provider.statusMSG}');
+      }
+    } catch (ye) {
+      debugPrint('Error in YoutubeExplode fallback: $ye');
+    }
 
-      // FIX 1: Removed stale API key — keyless endpoint is more stable
-      final url = Uri.parse(
-        "https://www.youtube.com/youtubei/v1/player",
-      );
+    // Fallback 2: Invidious Instances
+    debugPrint('Trying Invidious Fallback...');
+    return await _getFallbackStreamUrl(videoId, title, artist);
+  }
 
+
+
+  /// Attempts a single direct YouTube player API POST call.
+  /// Returns the best stream URL on success, or null on any failure.
+  Future<String?> _tryDirectApi(String videoId) async {
+    try {
+      final url = Uri.parse('https://www.youtube.com/youtubei/v1/player');
       final body = {
-        "context": {
-          "client": {
-            "clientName": "ANDROID",
-            "clientVersion": "19.09.37",
-            "androidSdkVersion": 33,
-            "userAgent":
-                "com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip",
-            "osName": "Android",
-            "osVersion": "13",
-            // FIX 3: Added locale fields
-            "hl": "en",
-            "gl": "US",
+        'context': {
+          'client': {
+            'clientName': 'ANDROID',
+            'clientVersion': '19.09.37',
+            'androidSdkVersion': 33,
+            'userAgent':
+                'com.google.android.youtube/19.09.37 (Linux; U; Android 13) gzip',
+            'osName': 'Android',
+            'osVersion': '13',
+            'hl': 'en',
+            'gl': 'US',
           }
         },
-        "videoId": videoId,
-        "contentCheckOk": true,
-        "racyCheckOk": true
+        'videoId': videoId,
+        'contentCheckOk': true,
+        'racyCheckOk': true,
       };
 
       final response = await _client.post(
         url,
         headers: {
-          "Content-Type": "application/json",
-          "User-Agent":
-              "com.google.android.youtube/19.09.37 (Linux; Android 13)",
+          'Content-Type': 'application/json',
+          'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; Android 13)',
         },
         body: jsonEncode(body),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception(
-            "Failed to fetch stream details: ${response.statusCode}");
-      }
+      if (response.statusCode != 200) return null;
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (data['playabilityStatus']?['status'] != 'OK') return null;
 
-      if (data["playabilityStatus"]?["status"] != "OK") {
-        throw Exception("Video not playable: ${data["playabilityStatus"]}");
-      }
+      final streamingData = data['streamingData'] as Map<String, dynamic>?;
+      if (streamingData == null) return null;
 
-      final streamingData = data["streamingData"];
-
-      if (streamingData == null) {
-        debugPrint(
-            "streamingData is null. Full response: ${response.body}");
-        throw Exception("No streamingData found.");
-      }
-
-      String? streamUrl;
-
-      // Prefer direct formats first
-      if (streamingData["formats"] != null) {
-        for (var format in streamingData["formats"]) {
-          if (format["url"] != null) {
-            streamUrl = format["url"];
-            break;
-          }
+      // Prefer muxed formats (audio+video) first
+      final formats = streamingData['formats'] as List?;
+      if (formats != null) {
+        for (final fmt in formats) {
+          final u = fmt['url'] as String?;
+          if (u != null) return u;
         }
       }
 
-      // Fallback to adaptiveFormats
-      if (streamUrl == null && streamingData["adaptiveFormats"] != null) {
-        for (var format in streamingData["adaptiveFormats"]) {
-          if (format["url"] != null) {
-            streamUrl = format["url"];
-            break;
-          }
+      // Fall back to adaptive audio-only formats
+      final adaptive = streamingData['adaptiveFormats'] as List?;
+      if (adaptive != null) {
+        for (final fmt in adaptive) {
+          final u = fmt['url'] as String?;
+          if (u != null) return u;
         }
       }
 
-      if (streamUrl != null) {
-        // Pre-flight check to prevent ExoPlayer 403 crashes
-        try {
-          debugPrint('Pre-flight checking stream URL...');
-          final checkResponse = await _client.get(
-            Uri.parse(streamUrl),
-            headers: {'Range': 'bytes=0-1'},
-          );
-          if (checkResponse.statusCode == 403) {
-            throw Exception('Stream URL returned 403 Forbidden on pre-flight check');
-          }
-        } catch (e) {
-          debugPrint('Pre-flight check failed: $e');
-          throw Exception('Pre-flight check failed or forbidden: $e');
-        }
-
-        _logLong('Stream URL extracted and validated: $streamUrl');
-        return streamUrl;
-      } else {
-        throw Exception(
-            "No direct stream URL found — may require signature deciphering");
-      }
+      return null;
     } catch (e) {
-      debugPrint("Error extracting stream directly: $e");
-      onFallback?.call();
-
-      // Fallback 1: YoutubeExplode
-      try {
-        debugPrint("Trying YoutubeExplode Fallback...");
-        final provider = await StreamProvider.fetch(videoId);
-        if (provider.playable) {
-          final url = provider.highestBitrateMp4aAudio?.url ??
-              provider.highestQualityAudio?.url ??
-              provider.audioFormats?.first.url;
-
-          if (url != null) {
-            _logLong('Stream URL extracted via YoutubeExplode: $url');
-            return url;
-          }
-        } else {
-          debugPrint("YoutubeExplode status: ${provider.statusMSG}");
-        }
-      } catch (ye) {
-        debugPrint("Error in YoutubeExplode fallback: $ye");
-      }
-
-      // Fallback 2: Invidious Instances
-      debugPrint("Trying Invidious Fallback...");
-      return await _getFallbackStreamUrl(videoId, title, artist);
+      debugPrint('_tryDirectApi error: $e');
+      return null;
     }
   }
 
@@ -321,10 +303,10 @@ class YouTubeApiService {
       }
 
       if (filter == 'videos' || filter == 'channels') {
-        uri = Uri.parse('https://ytify-backend.vercel.app/api/yt_search')
+        uri = Uri.parse('https://ytify-backend.zeabur.app/api/yt_search')
             .replace(queryParameters: queryParams);
       } else if (filter == 'albums') {
-        uri = Uri.parse('https://ytify-backend.vercel.app/api/search')
+        uri = Uri.parse('https://ytify-backend.zeabur.app/api/search')
             .replace(queryParameters: queryParams);
       } else {
         uri = Uri.parse(
@@ -354,7 +336,7 @@ class YouTubeApiService {
   Future<List<YtifyResult>> getChannelVideos(String channelId) async {
     try {
       final uri = Uri.parse(
-          'https://ytify-backend.vercel.app/api/feed/channels=$channelId');
+          'https://ytify-backend.zeabur.app/api/feed/channels=$channelId');
       final response = await http.get(uri);
       if (response.statusCode != 200) return [];
       final List<dynamic> data = jsonDecode(response.body);
@@ -370,7 +352,7 @@ class YouTubeApiService {
     try {
       final ids = channelIds.join(',');
       final uri = Uri.parse(
-              'https://ytify-backend.vercel.app/api/feed/channels=$ids')
+              'https://ytify-backend.zeabur.app/api/feed/channels=$ids')
           .replace(queryParameters: {'preview': '1'});
       final response = await http.get(uri);
       if (response.statusCode != 200) return [];
@@ -384,7 +366,7 @@ class YouTubeApiService {
   Future<List<String>> getSearchSuggestions(String query) async {
     try {
       final uri = Uri.parse(
-              'https://ytify-backend.vercel.app/api/search/suggestions')
+              'https://ytify-backend.zeabur.app/api/search/suggestions')
           .replace(queryParameters: {'q': query, 'music': '1'});
       final response = await http.get(uri);
       if (response.statusCode != 200) return [];
@@ -400,7 +382,7 @@ class YouTubeApiService {
   Future<List<YtifyResult>> getRelatedVideos(String videoId) async {
     try {
       final uri = Uri.parse(
-          'https://ytify-backend.vercel.app/api/related/$videoId');
+          'https://ytify-backend.zeabur.app/api/related/$videoId');
       final response = await http.get(uri);
       if (response.statusCode != 200) return [];
       final data = jsonDecode(response.body);
@@ -416,7 +398,7 @@ class YouTubeApiService {
   Future<Map<String, List<YtifyResult>>> getTrendingContent() async {
     try {
       final uri =
-          Uri.parse('https://ytify-backend.vercel.app/api/trending');
+          Uri.parse('https://ytify-backend.zeabur.app/api/trending');
       final response = await http.get(uri);
       if (response.statusCode != 200) {
         return {'songs': [], 'videos': [], 'playlists': []};
@@ -459,57 +441,43 @@ class StreamProvider {
   StreamProvider(
       {required this.playable, this.audioFormats, this.statusMSG = ""});
 
-  static Future<StreamProvider> fetch(String videoId) async {
-    final yt = YoutubeExplode();
-    
+  /// Fetches stream info using the provided [yt] singleton session.
+  /// The caller is responsible for the lifecycle of [yt] — do NOT close it here.
+  static Future<StreamProvider> fetch(String videoId, YoutubeExplode yt) async {
     try {
       final res = await yt.videos.streamsClient.getManifest(videoId);
       final audio = res.audioOnly;
       return StreamProvider(
           playable: true,
-          statusMSG: "OK",
+          statusMSG: 'OK',
           audioFormats: audio
               .map((e) => Audio(
                   itag: e.tag,
                   audioCodec:
                       e.audioCodec.contains('mp') ? Codec.mp4a : Codec.opus,
                   bitrate: e.bitrate.bitsPerSecond,
-                  duration: 0, // Not available directly on stream info in latest package
-                  loudnessDb: 0.0, // Not available directly in latest stream info
+                  duration: 0,
+                  loudnessDb: 0.0,
                   url: e.url.toString(),
                   size: e.size.totalBytes))
               .toList());
     } catch (e) {
       if (e is SocketException) {
-        return StreamProvider(
-          playable: false,
-          statusMSG: "networkError",
-        );
+        return StreamProvider(playable: false, statusMSG: 'networkError');
       } else if (e is VideoUnplayableException) {
         return StreamProvider(
-          playable: false,
-          statusMSG: e.message ?? "Song is unplayable",
-        );
+            playable: false, statusMSG: e.message);
       } else if (e is VideoRequiresPurchaseException) {
         return StreamProvider(
-          playable: false,
-          statusMSG: "Song requires purchase",
-        );
+            playable: false, statusMSG: 'Song requires purchase');
       } else if (e is VideoUnavailableException) {
-        return StreamProvider(
-          playable: false,
-          statusMSG: "Song is unavailable",
-        );
+        return StreamProvider(playable: false, statusMSG: 'Song is unavailable');
       } else if (e is YoutubeExplodeException) {
         return StreamProvider(
-          playable: false,
-          statusMSG: e.message ?? "YoutubeExplodeException",
-        );
+            playable: false,
+            statusMSG: e.message);
       } else {
-        return StreamProvider(
-          playable: false,
-          statusMSG: "Unknown error occurred",
-        );
+        return StreamProvider(playable: false, statusMSG: 'Unknown error: $e');
       }
     }
   }
@@ -567,7 +535,7 @@ class Audio {
         "size": size
       };
 
-  factory Audio.fromJson(json) => Audio(
+  factory Audio.fromJson(Map<String, dynamic> json) => Audio(
       audioCodec: (json["audioCodec"] as String).contains("mp4a")
           ? Codec.mp4a
           : Codec.opus,

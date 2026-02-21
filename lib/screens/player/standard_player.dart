@@ -16,6 +16,9 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:widget_marquee/widget_marquee.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
+import 'package:muzo/services/lyrics_service.dart';
+import 'package:muzo/widgets/lyrics_view.dart';
+import 'package:muzo/providers/theme_provider.dart';
 
 class StandardPlayer extends ConsumerWidget {
   const StandardPlayer({super.key});
@@ -28,7 +31,7 @@ class StandardPlayer extends ConsumerWidget {
 
     double playerArtImageSize = size.width - 50;
     final spaceAvailableForArtImage =
-        size.height - (70 + MediaQuery.of(context).padding.bottom + 330);
+        size.height - (70 + MediaQuery.of(context).padding.bottom + 260);
     playerArtImageSize = playerArtImageSize > spaceAvailableForArtImage
         ? spaceAvailableForArtImage
         : playerArtImageSize;
@@ -84,7 +87,7 @@ class StandardPlayer extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final isLandscape = size.width > size.height && size.width > 800;
+              final isLandscape = size.width > size.height;
 
               if (isLandscape) {
                 // Landscape Layout (Row)
@@ -137,7 +140,7 @@ class StandardPlayer extends ConsumerWidget {
                 // Portrait Layout (Column)
                 return Column(
                   children: [
-                    SizedBox(height: size.height < 750 ? 110 : 140),
+                    SizedBox(height: MediaQuery.of(context).padding.top + 76),
 
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -151,15 +154,18 @@ class StandardPlayer extends ConsumerWidget {
                       ],
                     ),
 
-                    Expanded(child: Container()),
-
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: 40 + MediaQuery.of(context).padding.bottom,
-                      ),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 500),
-                        child: const PlayerControlWidget(),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: 10,
+                          bottom: MediaQuery.of(context).padding.bottom,
+                        ),
+                        child: Center(
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 500),
+                            child: const PlayerControlWidget(),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -297,14 +303,51 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
   }
 
   // Volume Control Variables
-  double? _startVolume;
   bool _showVolume = false;
+  double _currentVolume = 1.0;
+  bool _isRightSideDrag = false;
   Timer? _volumeTimer;
+
+  // Lyrics Variables
+  bool _showLyrics = false;
+  bool _isLoadingLyrics = false;
+  Lyrics? _lyrics;
+  String? _lastFetchedTitle;
+
+  Future<void> _fetchLyrics(MediaItem mediaItem) async {
+    if (_lyrics != null && _lastFetchedTitle == mediaItem.title) return;
+    if (_isLoadingLyrics) return;
+    setState(() => _isLoadingLyrics = true);
+    try {
+      final lyrics = await ref.read(lyricsServiceProvider).fetchLyrics(
+            mediaItem.title,
+            mediaItem.artist ?? '',
+            mediaItem.duration?.inSeconds ??
+                ref.read(audioHandlerProvider).player.duration?.inSeconds ??
+                0,
+          );
+      if (mounted) {
+        setState(() {
+          _lyrics = lyrics;
+          _lastFetchedTitle = mediaItem.title;
+          _isLoadingLyrics = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingLyrics = false);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    // Initialize volume (no change needed here, just keeping context)
+    // Initialize current volume
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final vol = ref.read(audioHandlerProvider).player.volume;
+        setState(() => _currentVolume = vol);
+      }
+    });
   }
 
   void _showVolumeIndicator() {
@@ -318,6 +361,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
   @override
   void dispose() {
     _iconTimer?.cancel();
+    _volumeTimer?.cancel();
     super.dispose();
   }
 
@@ -326,9 +370,11 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
     // Watch settings to ensure rebuilds if needed
     final artUri = widget.mediaItemAsync.value?.artUri;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Stack(
       children: [
-        // Full Screen Background (No Blur)
+        // Full Screen Background (No Blur, No Tint)
         if (artUri != null)
           SizedBox.expand(
             child: CachedNetworkImage(
@@ -339,22 +385,6 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               errorWidget: (context, url, error) => Container(color: Colors.black),
             ),
           ),
-          
-        // Gradient Tint for Controls in Gesture Mode
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.2),
-                Colors.black.withValues(alpha: 0.5),
-                Colors.black.withValues(alpha: 0.8),
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-        ),
 
         // Gesture Detector covering the screen
         Positioned.fill(
@@ -385,21 +415,92 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               }
             },
             onVerticalDragStart: (details) {
-               _startVolume = ref.read(audioHandlerProvider).player.volume;
+              // Only activate volume control when drag starts on right half
+              _isRightSideDrag = details.globalPosition.dx > screenWidth / 2;
             },
             onVerticalDragUpdate: (details) {
+              if (!_isRightSideDrag) return;
               final player = ref.read(audioHandlerProvider).player;
               // Sensitivity: 1.0 volume over 300 pixels
-              final delta = details.primaryDelta! / -300; 
+              final delta = details.primaryDelta! / -300;
               double newVolume = (player.volume + delta).clamp(0.0, 1.0);
               player.setVolume(newVolume);
+              setState(() => _currentVolume = newVolume);
               _showVolumeIndicator();
+            },
+            onVerticalDragEnd: (details) {
+              // Swipe down on left half to close player
+              if (!_isRightSideDrag &&
+                  (details.primaryVelocity ?? 0) > 400) {
+                ref.read(isPlayerExpandedProvider.notifier).state = false;
+                Navigator.of(context).pop();
+              }
+              _isRightSideDrag = false;
             },
             child: Container(color: Colors.transparent),
           ),
         ),
 
-        // Play/Pause Animation Overlay
+        // Cloud-style Lyrics Overlay (above controls)
+        if (_showLyrics)
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 80 + MediaQuery.of(context).padding.bottom + 155,
+            top: MediaQuery.of(context).padding.top + 72,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              // Double-tap on lyrics → play/pause (same as background)
+              onDoubleTap: () {
+                final handler = ref.read(audioHandlerProvider);
+                final player = handler.player;
+                final willPlay = !player.playing;
+                if (player.playing) {
+                  player.pause();
+                } else {
+                  player.play();
+                }
+                _triggerAnimation(willPlay);
+              },
+              // Right-side vertical drag → volume (same as background)
+              onVerticalDragStart: (details) {
+                _isRightSideDrag = details.globalPosition.dx > screenWidth / 2;
+              },
+              onVerticalDragUpdate: (details) {
+                if (!_isRightSideDrag) return;
+                final player = ref.read(audioHandlerProvider).player;
+                final delta = details.primaryDelta! / -300;
+                double newVolume = (player.volume + delta).clamp(0.0, 1.0);
+                player.setVolume(newVolume);
+                setState(() => _currentVolume = newVolume);
+                _showVolumeIndicator();
+              },
+              onVerticalDragEnd: (details) {
+                // Swipe down on left half to close player
+                if (!_isRightSideDrag &&
+                    (details.primaryVelocity ?? 0) > 400) {
+                  ref.read(isPlayerExpandedProvider.notifier).state = false;
+                  Navigator.of(context).pop();
+                }
+                _isRightSideDrag = false;
+              },
+              child: _CloudLyricsOverlay(
+                isLoading: _isLoadingLyrics,
+                lyrics: _lyrics,
+                audioHandler: ref.watch(audioHandlerProvider),
+                accentColor: ref
+                        .watch(currentPaletteProvider)
+                        .asData
+                        ?.value
+                        ?.darkVibrantColor
+                        ?.color ??
+                    Colors.white,
+                onClose: () => setState(() => _showLyrics = false),
+              ),
+            ),
+          ),
+
+        // Play/Pause Animation Overlay — always on top of lyrics
         Center(
           child: IgnorePointer(
             child: AnimatedOpacity(
@@ -421,60 +522,108 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
           ),
         ),
 
-        // Volume Indicator Overlay
-        IgnorePointer(
-          child: AnimatedOpacity(
-            opacity: _showVolume ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: StreamBuilder<double>(
-                  stream: ref.read(audioHandlerProvider).player.volumeStream,
-                  builder: (context, snapshot) {
-                    final vol = snapshot.data ?? ref.read(audioHandlerProvider).player.volume;
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          vol == 0
-                              ? FluentIcons.speaker_mute_24_filled
-                              : vol < 0.5
-                                  ? FluentIcons.speaker_1_24_filled
-                                  : FluentIcons.speaker_2_24_filled,
-                          color: Colors.white,
-                          size: 48,
+        // Vertical Volume Bar Overlay (right side) — always on top
+        Positioned(
+          right: 20,
+          top: 0,
+          bottom: 0,
+          child: IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _showVolume ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      width: 52,
+                      height: 220,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 0.8,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${(vol * 100).round()}%',
-                          style: const TextStyle(
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(
+                            _currentVolume == 0
+                                ? FluentIcons.speaker_mute_24_filled
+                                : _currentVolume < 0.5
+                                    ? FluentIcons.speaker_1_24_filled
+                                    : FluentIcons.speaker_2_24_filled,
                             color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            size: 22,
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Stack(
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  FractionallySizedBox(
+                                    heightFactor: _currentVolume,
+                                    child: Container(
+                                      width: 6,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.white.withValues(alpha: 0.6),
+                                            blurRadius: 6,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${(_currentVolume * 100).round()}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
 
-        // Small Popup (Title, Artist, Progress) - Left Aligned with Fav
+
         Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: EdgeInsets.only(
-              bottom: 120 + MediaQuery.of(context).padding.bottom, 
-              left: 30,
-              right: 30,
+              bottom: 40 + MediaQuery.of(context).padding.bottom, 
+              left: 20,
+              right: 20,
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -483,7 +632,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
                   ),
@@ -557,6 +706,27 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                                   );
                                 },
                               );
+                            },
+                          ),
+                          // Lyrics Button
+                          IconButton(
+                            icon: Icon(
+                              _showLyrics
+                                  ? FluentIcons.text_quote_20_filled
+                                  : FluentIcons.text_quote_20_regular,
+                              color: _showLyrics
+                                  ? Colors.blueAccent.shade100
+                                  : Colors.white,
+                            ),
+                            onPressed: () {
+                              final mediaItem = widget.mediaItemAsync.value;
+                              if (mediaItem == null) return;
+                              if (!_showLyrics) {
+                                setState(() => _showLyrics = true);
+                                _fetchLyrics(mediaItem);
+                              } else {
+                                setState(() => _showLyrics = false);
+                              }
                             },
                           ),
                           // Favorite Button
@@ -660,6 +830,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
             ),
           ),
         ),
+
         // Header (Minimize, Options)
         Padding(
           padding: EdgeInsets.only(
@@ -705,3 +876,119 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
 }
 
 
+
+// Cloud-style lyrics overlay for gesture player
+class _CloudLyricsOverlay extends StatelessWidget {
+  final bool isLoading;
+  final Lyrics? lyrics;
+  final dynamic audioHandler;
+  final Color accentColor;
+  final VoidCallback onClose;
+
+  const _CloudLyricsOverlay({
+    required this.isLoading,
+    required this.lyrics,
+    required this.audioHandler,
+    required this.accentColor,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header — identical padding/style to controls popup title row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          FluentIcons.text_quote_20_filled,
+                          color: Colors.white.withValues(alpha: 0.75),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Lyrics',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: onClose,
+                    ),
+                  ],
+                ),
+              ),
+              // Lyrics body — isEmbedded:false hides LyricsView's own header
+              Expanded(
+                child: isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : lyrics == null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              FluentIcons.text_quote_20_regular,
+                              color: Colors.white.withValues(alpha: 0.3),
+                              size: 40,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No lyrics found',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : LyricsView(
+                        lyrics: lyrics!,
+                        onClose: onClose,
+                        positionStream: audioHandler.player.positionStream,
+                        totalDuration:
+                            audioHandler.player.duration ?? Duration.zero,
+                        isEmbedded: false,
+                        scrollable: false,
+                        accentColor: accentColor,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

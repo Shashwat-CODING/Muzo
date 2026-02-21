@@ -40,7 +40,10 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
           .fetchLyrics(
             mediaItem.title,
             mediaItem.artist ?? '',
-            mediaItem.duration?.inSeconds ?? 0,
+            // mediaItem.duration may be null before stream loads; fall back to player's actual duration
+            mediaItem.duration?.inSeconds ??
+                ref.read(audioHandlerProvider).player.duration?.inSeconds ??
+                0,
           );
       if (mounted) {
         setState(() {
@@ -83,7 +86,11 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
       height: safeSize,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
           boxShadow: const [
             BoxShadow(
               color: Colors.black54,
@@ -93,7 +100,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(23),
           child: Stack(
             children: [
               mediaItemAsync.when(
@@ -126,7 +133,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
               if (_showLyrics)
                 Positioned.fill(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(23),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // Reduced for performance
                       child: Container(

@@ -89,6 +89,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildExploreTab(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
     final homeSectionsAsync = ref.watch(filteredHomeSectionsProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 600;
 
     return SafeArea(
       bottom: false,
@@ -96,19 +98,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         color: Colors.white,
         backgroundColor: const Color(0xFF1E1E1E),
         onRefresh: () async {
-          // Force refresh (bypass cache)
           await ref.read(homeSectionsProvider.notifier).refresh();
           await storage.refreshAll();
         },
         child: CustomScrollView(
           slivers: [
             // Header Section
-            SliverToBoxAdapter(child: _buildHeader(context, ref)),
+            SliverToBoxAdapter(child: _buildHeader(context, ref, isDesktop)),
 
-            // Recents Grid
-            _buildRecentsGrid(context, ref),
-            
-            const SliverToBoxAdapter(child: SizedBox(height: 30)),
+            // Filter chips row
+            SliverToBoxAdapter(
+              child: _buildFilterChipsRow(context, ref, isDesktop),
+            ),
+
+            // "Speed dial" big label
+            if (ref.watch(storageServiceProvider).historyListenable.value.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 20, 16, 10),
+                  child: Row(
+                    children: [
+                      const Icon(FluentIcons.flash_24_filled, color: Colors.white70, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Speed Dial',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Speed dial grid — constrained on desktop
+            _buildRecentsGrid(context, ref, isDesktop),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
             // Dynamic Sections from YTM
             homeSectionsAsync.when(
@@ -163,18 +191,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, bool isDesktop) {
     final storage = ref.watch(storageServiceProvider);
     final username = storage.username ?? 'User';
+    final hPad = isDesktop ? 24.0 : 16.0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.fromLTRB(hPad, isDesktop ? 28 : 20, hPad, 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Logo + Muzo title
           Row(
             children: [
-              PopupMenuButton<String>(
+              Image.asset(
+                'assets/logo.png',
+                height: isDesktop ? 34 : 28,
+                width: isDesktop ? 34 : 28,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Muzo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isDesktop ? 24 : 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+
+          // Avatar with popup menu
+          PopupMenuButton<String>(
             onOpened: () => HapticFeedback.lightImpact(),
             offset: const Offset(0, 50),
             color: Colors.transparent,
@@ -191,18 +240,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     ListTile(
                       dense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      leading: const Icon(
-                        FluentIcons.person_24_regular,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      title: const Text(
-                        'Account Info',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      leading: const Icon(FluentIcons.person_24_filled, color: Colors.white, size: 20),
+                      title: const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 14)),
                       onTap: () {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
@@ -221,28 +261,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Account Info',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 16),
-                                  Text(
-                                    'Username: $username',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
+                                  Text('Username: $username', style: const TextStyle(color: Colors.white70)),
                                   const SizedBox(height: 24),
                                   Align(
                                     alignment: Alignment.centerRight,
-                                    child: TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Close'),
-                                    ),
+                                    child: TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
                                   ),
                                 ],
                               ),
@@ -253,27 +278,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     ListTile(
                       dense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      leading: const Icon(
-                        FluentIcons.settings_24_regular,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      title: const Text(
-                        'Settings',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      leading: const Icon(FluentIcons.settings_24_filled, color: Colors.white, size: 20),
+                      title: const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 14)),
                       onTap: () {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsScreen(),
-                          ),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
                       },
                     ),
                   ],
@@ -286,50 +297,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 builder: (context, box, _) {
                   final cachedSvg = storage.getUserAvatar();
                   if (cachedSvg != null) {
-                    return SvgPicture.string(
-                      cachedSvg,
-                      height: 32,
-                      width: 32,
-                      placeholderBuilder: (BuildContext context) => Container(
-                        padding: const EdgeInsets.all(10.0),
-                        child: const CircularProgressIndicator(),
-                      ),
-                    );
+                    return SvgPicture.string(cachedSvg,
+                        height: isDesktop ? 40 : 32, width: isDesktop ? 40 : 32,
+                        placeholderBuilder: (context) => Container(
+                            padding: const EdgeInsets.all(10),
+                            child: const CircularProgressIndicator()));
                   }
                   return SvgPicture.network(
                     'https://api.dicebear.com/9.x/rings/svg?seed=$username',
-                    height: 32,
-                    width: 32,
-                    placeholderBuilder: (BuildContext context) => Container(
-                      padding: const EdgeInsets.all(10.0),
-                      child: const CircularProgressIndicator(),
-                    ),
+                    height: isDesktop ? 40 : 32, width: isDesktop ? 40 : 32,
+                    placeholderBuilder: (context) => Container(
+                        padding: const EdgeInsets.all(10),
+                        child: const CircularProgressIndicator()),
                   );
                 },
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip(context, ref, 'All'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(context, ref, 'Songs'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(context, ref, 'Albums'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(context, ref, 'Playlists'),
-                ],
-              ),
-            ),
-          ),
-            ],
-          ),
-          // Removed Greeting
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChipsRow(BuildContext context, WidgetRef ref, bool isDesktop) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 12, isDesktop ? 24 : 16, 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: ['All', 'Songs', 'Podcasts', 'Albums', 'Playlists']
+              .map((label) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _buildFilterChip(context, ref, label),
+                  ))
+              .toList(),
+        ),
       ),
     );
   }
@@ -341,7 +343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
           width: 0.5,
@@ -350,7 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
           onTap: () {
             ref.read(homeFilterProvider.notifier).state = label;
           },
@@ -370,8 +372,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildRecentsGrid(BuildContext context, WidgetRef ref) {
+  Widget _buildRecentsGrid(BuildContext context, WidgetRef ref, bool isDesktop) {
     final storage = ref.watch(storageServiceProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine responsive grid parameters
+    int crossAxisCount;
+    double hPad;
+    if (screenWidth >= 1200) {
+      crossAxisCount = 6;
+      hPad = 24;
+    } else if (screenWidth >= 800) {
+      crossAxisCount = 4;
+      hPad = 24;
+    } else if (screenWidth >= 600) {
+      crossAxisCount = 3;
+      hPad = 20;
+    } else {
+      crossAxisCount = 3;
+      hPad = 16;
+    }
+
     return ValueListenableBuilder<List<YtifyResult>>(
       valueListenable: storage.historyListenable,
       builder: (context, history, _) {
@@ -383,24 +404,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final uniqueItems = <String, YtifyResult>{};
         for (var item in history) {
           if (item.videoId != null && !uniqueItems.containsKey(item.videoId)) {
-            // Only show songs, exclude videos
             if (item.resultType != 'video') {
               uniqueItems[item.videoId!] = item;
             }
           }
         }
 
-        // Take top 6 unique items
-        final recentItems = uniqueItems.values.take(6).toList();
+        final recentItems = uniqueItems.values.take(isDesktop ? 12 : 9).toList();
 
         return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 0.0),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisExtent: 56, // Adjusted height (was 64)
-              mainAxisSpacing: 6.0, // Reduced spacing
-              crossAxisSpacing: 6.0, // Reduced spacing
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: 1.0,
+              mainAxisSpacing: isDesktop ? 8.0 : 4.0,
+              crossAxisSpacing: isDesktop ? 8.0 : 4.0,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               return RectHomeItem(item: recentItems[index]);

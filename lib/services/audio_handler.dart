@@ -9,7 +9,6 @@ import 'package:muzo/services/navigator_key.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/services/music_api_service.dart';
-import 'package:muzo/services/ytify_service.dart';
 
 class AudioHandler {
   final AudioPlayer _player = AudioPlayer();
@@ -84,7 +83,7 @@ class AudioHandler {
       final sequence = state.sequence;
       final index = state.currentIndex;
 
-      if (sequence.isEmpty || index >= sequence.length - 1) {
+      if (sequence.isEmpty || index == null || index >= sequence.length - 1) {
         if (_storage.isAutoQueueEnabled) {
           _handleAutoQueue();
         }
@@ -97,6 +96,64 @@ class AudioHandler {
         _ensureUpcomingResolved(index);
       }
     });
+
+    // Listen for playback errors (e.g. 403 expired stream) and auto-retry
+    _player.playbackEventStream.listen(
+      (_) {},
+      onError: (Object e, StackTrace st) async {
+        final errorStr = e.toString();
+        // Check for ExoPlayer source errors (403, network failure, etc.)
+        final is403 = errorStr.contains('Response code: 403') ||
+            errorStr.contains('TYPE_SOURCE') ||
+            errorStr.contains('InvalidResponseCodeException');
+        if (!is403) return;
+
+        debugPrint('Playback 403 detected, re-fetching stream...');
+
+        try {
+          final currentSource = _player.sequenceState?.currentSource;
+          final tag = currentSource?.tag;
+          if (tag is! MediaItem) return;
+
+          final videoId = tag.id;
+          final index = _player.currentIndex;
+          if (index == null) return;
+
+          // Re-fetch a fresh stream URL using the fallback chain
+          final freshUrl = await _apiService.getStreamUrl(
+            videoId,
+            title: tag.title,
+            artist: tag.artist ?? '',
+            onFallback: () => _showFallbackAlert(),
+          );
+
+          if (freshUrl == null) {
+            debugPrint('403 retry: Could not get fresh URL, skipping.');
+            return;
+          }
+
+          final position = _player.position;
+          final wasPlaying = _player.playing;
+
+          final newSource = AudioSource.uri(
+            Uri.parse(freshUrl),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+            tag: tag,
+          );
+
+          // Swap in the new source at same index
+          await _playlist.removeAt(index);
+          await _playlist.insert(index, newSource);
+          await _player.seek(position, index: index);
+          if (wasPlaying) await _player.play();
+          debugPrint('403 retry: Successfully replaced stream for $videoId');
+        } catch (retryError) {
+          debugPrint('403 retry failed: $retryError');
+        }
+      },
+    );
 
     // Listen to settings changes for real-time Lofi updates
     _storage.settingsListenable.addListener(() {
@@ -448,9 +505,7 @@ class AudioHandler {
 
     _isFetchingAutoQueue = true;
     try {
-      final artistName = tag.artist ?? 'trending music';
-      // Fallback to searching the artist since UpNext was deprecated
-      final nextSongs = await YtifyApiService().search(artistName, filter: 'songs');
+      final nextSongs = await _musicApiService.getUpNext(videoId);
       debugPrint('AutoQueue: fetched ${nextSongs.length} songs');
 
       final currentTag = _player.sequenceState?.currentSource?.tag;

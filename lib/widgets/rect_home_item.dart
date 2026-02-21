@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:muzo/widgets/glass_container.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,18 +18,16 @@ class RectHomeItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = item.thumbnails.isNotEmpty ? item.thumbnails.last.url : '';
+    final isPlaylistOrAlbum =
+        item.resultType == 'playlist' || item.resultType == 'album';
 
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         if (item.resultType == 'song' || item.resultType == 'video') {
           ref.read(audioHandlerProvider).playVideo(item);
-        } else if (item.resultType == 'playlist' ||
-            item.resultType == 'album') {
-          final idToUse =
-              item.browseId; // YtifyResult uses browseId for playlists/albums
-
-          // Check local
+        } else if (isPlaylistOrAlbum) {
+          final idToUse = item.browseId;
           final storage = ref.read(storageServiceProvider);
           final localPlaylists = storage.getPlaylistNames();
           final title = item.title;
@@ -57,7 +54,6 @@ class RectHomeItem extends ConsumerWidget {
               ),
             );
           } else {
-            // Fallback
             ref.read(audioHandlerProvider).playVideo(item);
           }
         } else if (item.resultType == 'artist' && item.browseId != null) {
@@ -75,63 +71,80 @@ class RectHomeItem extends ConsumerWidget {
           );
         }
       },
-      child: GlassContainer(
-        blur: 10,
-        color: Colors.white.withValues(alpha: 0.04),
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 0.5),
-        padding: EdgeInsets.zero, // Explicitly remove any default padding
-        child: Row(
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                bottomLeft: Radius.circular(8),
-              ),
-              child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      height: 56,
-                      width: 56,
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(
-                        height: 56,
-                        width: 56,
-                        color: Colors.grey[800],
-                        child: const Icon(
-                          FluentIcons.music_note_2_24_regular,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      height: 56,
-                      width: 56,
-                      color: Colors.grey[800],
+            // Album art
+            imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[850],
                       child: const Icon(
-                        FluentIcons.music_note_2_24_regular,
-                        color: Colors.white,
-                        size: 20,
+                        FluentIcons.music_note_2_24_filled,
+                        color: Colors.white54,
+                        size: 28,
                       ),
                     ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  )
+                : Container(
+                    color: Colors.grey[850],
+                    child: const Icon(
+                      FluentIcons.music_note_2_24_filled,
+                      color: Colors.white54,
+                      size: 28,
+                    ),
+                  ),
+            // Gradient + title overlay at bottom
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(7, 18, 7, 7),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.82),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
                 child: Text(
                   item.title,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
                   ),
                 ),
               ),
             ),
+            // Playlist/album arrow badge
+            if (isPlaylistOrAlbum)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

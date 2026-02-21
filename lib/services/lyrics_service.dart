@@ -3,6 +3,22 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// A single syllable/word within a karaoke lyric line
+class KaraokeSyllable {
+  final Duration time;
+  final Duration duration;
+  final String text;
+  const KaraokeSyllable({required this.time, required this.duration, required this.text});
+}
+
+/// A complete lyric line with optional word-level timing for karaoke
+class KaraokeLine {
+  final Duration lineStart;
+  final String fullText;
+  final List<KaraokeSyllable> syllables;
+  const KaraokeLine({required this.lineStart, required this.fullText, required this.syllables});
+}
+
 class Lyrics {
   final int id;
   final String name;
@@ -13,6 +29,8 @@ class Lyrics {
   final bool instrumental;
   final String plainLyrics;
   final String syncedLyrics;
+  /// Non-null when Atomix returns type:Word — enables karaoke word highlighting
+  final List<KaraokeLine>? karaokeLines;
 
   Lyrics({
     required this.id,
@@ -24,15 +42,10 @@ class Lyrics {
     required this.instrumental,
     required this.plainLyrics,
     required this.syncedLyrics,
+    this.karaokeLines,
   });
 
   factory Lyrics.fromJson(Map<String, dynamic> json) {
-    // Check if essential fields are present, if not consider it invalid/empty
-    if (json['plainLyrics'] == null && json['syncedLyrics'] == null) {
-      // Return empty or handle as needed, but for now populating with defaults
-      // The service might check this.
-    }
-
     return Lyrics(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -71,27 +84,54 @@ class LyricsService {
 
       if (atomixRes.statusCode == 200) {
         final atomixData = json.decode(atomixRes.body);
-        if (atomixData['type'] == 'Line' && atomixData['lyrics'] != null) {
+        final String responseType = atomixData['type'] ?? '';
+        // Handle both 'Line' (line-level) and 'Word' (word-level syllable) responses
+        final bool isSupported = (responseType == 'Line' || responseType == 'Word') &&
+            atomixData['lyrics'] != null;
+
+        if (isSupported) {
           final List<dynamic> lines = atomixData['lyrics'];
           
           final StringBuffer syncedBuffer = StringBuffer();
           final StringBuffer plainBuffer = StringBuffer();
+          final List<KaraokeLine>? karaokeLines = responseType == 'Word' ? [] : null;
 
           for (var line in lines) {
-            final int timeMs = line['time'] ?? 0;
-            final String text = line['text'] ?? '';
-            
-            final duration = Duration(milliseconds: timeMs);
-            final minutes = duration.inMinutes.toString().padLeft(2, '0');
-            final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-            final hundredths = ((duration.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
-            
+            final int rawMs = line['time'] ?? 0;
+            // No offset — use raw timestamps from API
+            final String text = (line['text'] as String? ?? '').trim();
+            if (text.isEmpty) continue;
+
+            final lineDuration = Duration(milliseconds: rawMs);
+            final minutes = lineDuration.inMinutes.toString().padLeft(2, '0');
+            final seconds = (lineDuration.inSeconds % 60).toString().padLeft(2, '0');
+            final hundredths = ((lineDuration.inMilliseconds % 1000) ~/ 10).toString().padLeft(2, '0');
+
             syncedBuffer.writeln('[$minutes:$seconds.$hundredths] $text');
             plainBuffer.writeln(text);
+
+            // For Word-type: parse syllable-level data into KaraokeLine
+            if (responseType == 'Word') {
+              final List<dynamic> syllabi = (line['syllabus'] as List<dynamic>?) ?? [];
+              final List<KaraokeSyllable> syllables = syllabi.map((s) {
+                return KaraokeSyllable(
+                  time: Duration(milliseconds: (s['time'] as num?)?.toInt() ?? rawMs),
+                  duration: Duration(milliseconds: (s['duration'] as num?)?.toInt() ?? 300),
+                  text: s['text'] as String? ?? '',
+                );
+              }).toList();
+              karaokeLines!.add(KaraokeLine(
+                lineStart: Duration(milliseconds: rawMs),
+                fullText: text,
+                syllables: syllables.isEmpty
+                    ? [KaraokeSyllable(time: Duration(milliseconds: rawMs), duration: const Duration(milliseconds: 2000), text: text)]
+                    : syllables,
+              ));
+            }
           }
 
           if (plainBuffer.isNotEmpty) {
-             debugPrint('LyricsService: Found lyrics via Atomix API');
+             debugPrint('LyricsService: Found lyrics via Atomix API (type: $responseType)');
              return Lyrics(
                id: 0,
                name: cleanTrack,
@@ -102,6 +142,7 @@ class LyricsService {
                instrumental: false,
                plainLyrics: plainBuffer.toString(),
                syncedLyrics: syncedBuffer.toString(),
+               karaokeLines: karaokeLines,
              );
           }
         }

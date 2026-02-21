@@ -10,17 +10,17 @@ class YtifyApiService {
   static const String _baseUrl =
       'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/ytmusic-search';
   static const String _ytSearchBaseUrl =
-      'https://ytify-backend.vercel.app/api/yt_search';
+      'https://ytify-backend.zeabur.app/api/yt_search';
   static const String _artistBaseUrl =
-      'https://ytify-backend.vercel.app/api/artist';
+      'https://ytify-backend.zeabur.app/api/artist';
   static const String _playlistBaseUrl =
-      'https://ytify-backend.vercel.app/api/playlist';
+      'https://ytify-backend.zeabur.app/api/playlist';
   static const String _albumBaseUrl =
-      'https://ytify-backend.vercel.app/api/album';
+      'https://ytify-backend.zeabur.app/api/album';
   static const String _searchBaseUrl =
-      'https://ytify-backend.vercel.app/api/search';
+      'https://ytify-backend.zeabur.app/api/search';
   static const String _suggestionsBaseUrl =
-      'https://ytify-backend.vercel.app/api/search/suggestions';
+      'https://ytify-backend.zeabur.app/api/search/suggestions';
 
   Future<AlbumDetails?> getAlbumDetails(String albumId) async {
     try {
