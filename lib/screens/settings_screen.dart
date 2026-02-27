@@ -8,6 +8,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:muzo/screens/about_screen.dart';
 import 'package:muzo/services/auth_service.dart';
 import 'package:muzo/screens/auth_screen.dart';
+import 'package:muzo/screens/settings/components/font_picker_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -16,7 +18,6 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsState = ref.watch(settingsProvider);
     final currentQuality = settingsState.audioQuality;
-    final isLiteMode = settingsState.isLiteMode;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -31,45 +32,54 @@ class SettingsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSection('Appearance', [
+              _buildSection(context, 'Appearance', [
                 ListTile(
-                  title: const Text(
+                  title: Text(
                     'App Theme',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   subtitle: Text(
-                    settingsState.themeType.name.toUpperCase(),
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    _themeLabel(settingsState.themeType),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                   ),
-                  trailing: const Icon(
+                  trailing: Icon(
                     FluentIcons.paint_brush_24_regular,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   onTap: () =>
                       _showThemeDialog(context, ref, settingsState.themeType),
                 ),
-                const Divider(height: 1, color: Colors.white10),
-                ListTile(
-                  title: const Text(
-                    'Lite Mode',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Text(
-                    'Disable blur and effects for better performance',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                  trailing: Switch(
-                    value: isLiteMode,
-                    onChanged: (value) {
-                      ref.read(settingsProvider.notifier).setLiteMode(value);
-                    },
-                    activeThumbColor: Colors.white,
-                    activeTrackColor: Colors.grey[700],
-                  ),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final currentFont = ref.watch(settingsProvider).appFontFamily;
+                    return ListTile(
+                      title: Text(
+                        'App Font',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                      ),
+                      subtitle: Text(
+                        currentFont,
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+                      ),
+                      trailing: Icon(
+                        FluentIcons.text_font_24_regular,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => const FontPickerDialog(),
+                        );
+                      },
+                    );
+                  },
                 ),
               ]),
 
-              _buildSection('Audio Quality', [
+              _buildSection(context, 'Audio Quality', [
                 _buildQualityOption(
                   context,
                   ref,
@@ -77,7 +87,7 @@ class SettingsScreen extends ConsumerWidget {
                   AudioQuality.high,
                   currentQuality,
                 ),
-                const Divider(height: 1, color: Colors.white10),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
                 _buildQualityOption(
                   context,
                   ref,
@@ -85,7 +95,7 @@ class SettingsScreen extends ConsumerWidget {
                   AudioQuality.medium,
                   currentQuality,
                 ),
-                const Divider(height: 1, color: Colors.white10),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
                 _buildQualityOption(
                   context,
                   ref,
@@ -101,34 +111,34 @@ class SettingsScreen extends ConsumerWidget {
                   return ValueListenableBuilder(
                     valueListenable: storage.settingsListenable,
                     builder: (context, box, _) {
-                      return _buildSection('Playback', [
+                      return _buildSection(context, 'Playback', [
                         ListTile(
-                          title: const Text(
+                          title: Text(
                             'Lofi Mode Settings',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           ),
-                          subtitle: const Text(
+                          subtitle: Text(
                             'Adjust Speed and Pitch',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                           ),
-                          trailing: const Icon(
+                          trailing: Icon(
                             FluentIcons.music_note_2_24_regular,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           onTap: () {
                             _showLofiSettingsDialog(context, storage);
                           },
                         ),
-                        const Divider(height: 1, color: Colors.white10),
+                        Divider(height: 1, color: Theme.of(context).dividerColor),
                         ListTile(
-                          title: const Text(
+                          title: Text(
                             'Auto Queue',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           ),
                           subtitle: Text(
                             'Automatically add recommended songs to queue',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 12,
                             ),
                           ),
@@ -136,26 +146,26 @@ class SettingsScreen extends ConsumerWidget {
                             value: storage.isAutoQueueEnabled,
                             onChanged: (value) =>
                                 storage.setAutoQueueEnabled(value),
-                            activeThumbColor: Colors.white,
-                            activeTrackColor: Colors.grey[700],
+                            activeThumbColor: Theme.of(context).colorScheme.primary,
+                            activeTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                           ),
                         ),
-                        const Divider(height: 1, color: Colors.white10),
+                        Divider(height: 1, color: Theme.of(context).dividerColor),
                         ListTile(
-                          title: const Text(
+                          title: Text(
                             'Ignore Battery Optimizations',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           ),
                           subtitle: Text(
                             'Prevent app from being suspended',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 12,
                             ),
                           ),
-                          trailing: const Icon(
+                          trailing: Icon(
                             FluentIcons.battery_warning_24_regular,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           onTap: () async => await Permission
                               .ignoreBatteryOptimizations
@@ -173,17 +183,17 @@ class SettingsScreen extends ConsumerWidget {
                   return ValueListenableBuilder(
                     valueListenable: storage.settingsListenable,
                     builder: (context, box, _) {
-                      return _buildSection('Account', [
+                      return _buildSection(context, 'Account', [
                         // Show User Info if logged in
                         if (storage.username != null) ...[
                           ListTile(
-                            leading: const Icon(
+                            leading: Icon(
                               FluentIcons.person_24_regular,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             title: Text(
                               'Logged in as ${storage.username}',
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             ),
                             subtitle: Text(
                               storage.email ?? '',
@@ -209,13 +219,13 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ] else ...[
                           ListTile(
-                            leading: const Icon(
+                            leading: Icon(
                               FluentIcons.person_add_24_regular,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            title: const Text(
+                            title: Text(
                               'Login / Signup',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             ),
                             onTap: () {
                               Navigator.of(context).push(
@@ -232,24 +242,45 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
 
-              _buildSection('App Info', [
+              _buildSection(context, 'App Info', [
                 ListTile(
-                  title: const Text(
+                  title: Text(
                     'About',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   subtitle: Text(
-                    'Version 1.2.0',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    'Version 2.1.6',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                   ),
-                  trailing: const Icon(
+                  trailing: Icon(
                     FluentIcons.info_24_regular,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    );
+                  },
+                ),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
+                ListTile(
+                  title: Text(
+                    'Source Code (GitHub)',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                  ),
+                  subtitle: Text(
+                    'View the source code on GitHub',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+                  ),
+                  trailing: Icon(
+                    FluentIcons.code_24_regular,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  onTap: () {
+                    launchUrl(
+                      Uri.parse('https://github.com/Shashwat-CODING/Muzo'),
+                      mode: LaunchMode.externalApplication,
                     );
                   },
                 ),
@@ -263,7 +294,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
+  Widget _buildSection(BuildContext context, String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -271,8 +302,8 @@ class SettingsScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(left: 8, bottom: 8),
           child: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -280,9 +311,9 @@ class SettingsScreen extends ConsumerWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
           ),
           child: Column(children: children),
         ),
@@ -305,7 +336,7 @@ class SettingsScreen extends ConsumerWidget {
       title: Text(
         title,
         style: TextStyle(
-          color: isSelected ? Colors.white : Colors.grey,
+          color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
@@ -328,17 +359,17 @@ class SettingsScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(title, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Theme.of(context).dialogTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+        title: Text(title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         content: TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          decoration: InputDecoration(
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
         ),
@@ -366,24 +397,24 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            backgroundColor: Colors.grey[900],
-            title: const Text(
+            backgroundColor: Theme.of(context).dialogTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+            title: Text(
               'Lofi Mode Settings',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Playback Speed',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
                 Row(
                   children: [
                     Text(
                       '${storage.lofiSpeed.toStringAsFixed(2)}x',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                     ),
                     Expanded(
                       child: Slider(
@@ -391,8 +422,8 @@ class SettingsScreen extends ConsumerWidget {
                         min: 0.5,
                         max: 1.5,
                         divisions: 20,
-                        activeColor: Colors.white,
-                        inactiveColor: Colors.grey[800],
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        inactiveColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                         onChanged: (value) {
                           setState(() {
                             storage.setLofiSpeed(value);
@@ -403,15 +434,15 @@ class SettingsScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Playback Pitch',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                 ),
                 Row(
                   children: [
                     Text(
                       '${storage.lofiPitch.toStringAsFixed(2)}x',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                     ),
                     Expanded(
                       child: Slider(
@@ -419,8 +450,8 @@ class SettingsScreen extends ConsumerWidget {
                         min: 0.5,
                         max: 1.5,
                         divisions: 20,
-                        activeColor: Colors.white,
-                        inactiveColor: Colors.grey[800],
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        inactiveColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                         onChanged: (value) {
                           setState(() {
                             storage.setLofiPitch(value);
@@ -444,6 +475,14 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  String _themeLabel(ThemeType t) {
+    switch (t) {
+      case ThemeType.auto: return 'Auto (System)';
+      case ThemeType.dark: return 'Dark';
+      case ThemeType.light: return 'Light';
+    }
+  }
+
   void _showThemeDialog(
     BuildContext context,
     WidgetRef ref,
@@ -451,44 +490,222 @@ class SettingsScreen extends ConsumerWidget {
   ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text(
-          'Select Theme',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: ThemeType.values.map((theme) {
-            final isSelected = theme == currentTheme;
-            return ListTile(
-              title: Text(
-                theme.name.toUpperCase(),
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      useRootNavigator: true,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final currentTheme = ref.watch(settingsProvider).themeType;
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'App Theme',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        _buildThemeCard(context, ref, ThemeType.auto, currentTheme,
+                            icon: FluentIcons.phone_24_regular,
+                            label: 'Auto',
+                            sublabel: 'Follow system',
+                            topColor: const Color(0xFF1a1a2e),
+                            bottomColor: const Color(0xFFf0f4ff),
+                            splitDiagonal: true),
+                        const SizedBox(width: 12),
+                        _buildThemeCard(context, ref, ThemeType.dark, currentTheme,
+                            icon: Icons.brightness_3,
+                            label: 'Dark',
+                            sublabel: 'Always dark',
+                            topColor: const Color(0xFF1a1a2e),
+                            bottomColor: const Color(0xFF2d2d44),
+                            splitDiagonal: false),
+                        const SizedBox(width: 12),
+                        _buildThemeCard(context, ref, ThemeType.light, currentTheme,
+                            icon: FluentIcons.weather_sunny_24_regular,
+                            label: 'Light',
+                            sublabel: 'Always light',
+                            topColor: const Color(0xFFfafafa),
+                            bottomColor: const Color(0xFFe8eaf6),
+                            splitDiagonal: false),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              trailing: isSelected
-                  ? const Icon(
-                      FluentIcons.checkmark_24_regular,
-                      color: Colors.white,
-                    )
-                  : null,
-              onTap: () {
-                ref.read(settingsProvider.notifier).setThemeType(theme);
-                Navigator.pop(context);
-              },
             );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeCard(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeType theme,
+    ThemeType currentTheme, {
+    required IconData icon,
+    required String label,
+    required String sublabel,
+    required Color topColor,
+    required Color bottomColor,
+    required bool splitDiagonal,
+  }) {
+    final isSelected = theme == currentTheme;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          ref.read(settingsProvider.notifier).setThemeType(theme);
+          Navigator.pop(context);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+              width: isSelected ? 2.5 : 1.5,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : [],
           ),
-        ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              children: [
+                // Preview background
+                SizedBox(
+                  height: 120,
+                  child: splitDiagonal
+                      ? CustomPaint(
+                          size: const Size(double.infinity, 120),
+                          painter: _DiagonalSplitPainter(topColor, bottomColor),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [topColor, bottomColor],
+                            ),
+                          ),
+                        ),
+                ),
+                // Checkmark badge top-right
+                if (isSelected)
+                  Positioned(
+                    top: 8, right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(FluentIcons.checkmark_circle_24_filled,
+                          size: 16, color: Theme.of(context).colorScheme.onSurface),
+                    ),
+                  ),
+                // Label block at bottom
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icon, size: 13, color: Theme.of(context).colorScheme.onSurface),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          sublabel,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
+}
+
+/// Paints a diagonal split with two colors (top-left dark, bottom-right light)
+class _DiagonalSplitPainter extends CustomPainter {
+  final Color top;
+  final Color bottom;
+  const _DiagonalSplitPainter(this.top, this.bottom);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paintTop = Paint()..color = top;
+    final paintBottom = Paint()..color = bottom;
+    final path1 = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(0, size.height)
+      ..close();
+    final path2 = Path()
+      ..moveTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path1, paintTop);
+    canvas.drawPath(path2, paintBottom);
+  }
+
+  @override
+  bool shouldRepaint(_DiagonalSplitPainter old) => old.top != top || old.bottom != bottom;
 }

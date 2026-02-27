@@ -56,36 +56,30 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     final audioHandler = ref.watch(audioHandlerProvider);
-    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             FluentIcons.chevron_down_24_regular,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
           children: [
-            const Text(
+            Text(
               "Lyrics",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             Text(
               "${widget.title} • ${widget.artist}",
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
               ),
@@ -110,9 +104,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
                 : Container(color: Colors.black),
           ),
           Positioned.fill(
-            child: isLiteMode
-                ? Container(color: Colors.black.withValues(alpha: 0.85))
-                : BackdropFilter(
+            child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // Reduced for 60fps scrolling
                     child: Container(
                       color: Colors.black.withValues(alpha: 0.6), // Darkened for text contrast
@@ -165,21 +157,14 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
             color: Colors.white.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             "Lyrics not found",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             "We couldn't find lyrics for this song.",
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
           ),
         ],
       ),

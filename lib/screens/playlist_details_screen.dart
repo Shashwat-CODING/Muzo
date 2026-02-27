@@ -36,10 +36,10 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E1E1E),
-                    title: const Text(
+                    backgroundColor: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
+                    title: Text(
                       'Delete Playlist?',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     ),
                     content: const Text(
                       'This cannot be undone.',
@@ -145,10 +145,10 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                 ref.read(audioHandlerProvider).playAll(songs);
               },
               icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
-              label: const Text(
+              label: Text(
                 'Play All',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.surface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -193,7 +193,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                   song.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 subtitle: isDownloading
                     ? LinearProgressIndicator(

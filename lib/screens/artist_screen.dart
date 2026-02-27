@@ -122,12 +122,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                           right: 20,
                           child: Text(
                             displayName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 42,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
-                            ),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -144,7 +139,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                       child: Text(
                         'Featured On',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -173,7 +168,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                       child: Text(
                         'Fans Also Like',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -203,7 +198,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                       child: Text(
                         'Top Songs',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -255,18 +250,18 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                     height: 140,
                     width: 140,
                     color: Colors.grey[900],
-                    child: const Icon(
+                    child: Icon(
                       FluentIcons.music_note_2_24_regular,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     height: 140,
                     width: 140,
                     color: Colors.grey[900],
-                    child: const Icon(
+                    child: Icon(
                       FluentIcons.music_note_2_24_regular,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -274,11 +269,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
               const SizedBox(height: 8),
               Text(
                 playlist.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -319,9 +310,9 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                 fit: BoxFit.cover,
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[900],
-                  child: const Icon(
+                  child: Icon(
                     FluentIcons.person_24_regular,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -329,11 +320,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
             const SizedBox(height: 8),
             Text(
               artist.name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,

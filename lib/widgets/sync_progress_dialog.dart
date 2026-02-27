@@ -84,30 +84,30 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
           if (_isSyncing)
-            const SizedBox(
+            SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             )
           else
             const Icon(Icons.check_circle, color: Colors.green),
           const SizedBox(width: 12),
-          const Text('Cloud Sync', style: TextStyle(color: Colors.white)),
+          Text('Cloud Sync', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         ],
       ),
       content: Container(
         width: double.maxFinite,
         height: 300,
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
@@ -135,7 +135,7 @@ class _SyncProgressDialogState extends ConsumerState<SyncProgressDialog> {
         if (!_isSyncing)
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Colors.white)),
+            child: Text('Close', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
           ),
       ],
     );

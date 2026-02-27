@@ -38,17 +38,17 @@ class HomeItemWidget extends ConsumerWidget {
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
                           color: Colors.grey[900],
-                          child: const Icon(
+                          child: Icon(
                             FluentIcons.music_note_2_24_filled,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       )
                     : Container(
                         color: Colors.grey[900],
-                        child: const Icon(
+                        child: Icon(
                           FluentIcons.music_note_2_24_filled,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
               ),
@@ -59,11 +59,7 @@ class HomeItemWidget extends ConsumerWidget {
                 item.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
             ),
             if (item.subtitle != null) ...[
@@ -73,7 +69,7 @@ class HomeItemWidget extends ConsumerWidget {
                   item.subtitle!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                 ),
               ),
             ],

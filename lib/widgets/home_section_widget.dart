@@ -20,7 +20,7 @@ class HomeSectionWidget extends StatelessWidget {
             section.title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               letterSpacing: 0.5,
             ),
           ),

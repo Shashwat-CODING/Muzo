@@ -119,11 +119,7 @@ class RectHomeItem extends ConsumerWidget {
                   item.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),

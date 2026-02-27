@@ -20,7 +20,7 @@ import 'package:muzo/widgets/rect_home_item.dart';
 import 'package:muzo/widgets/home_item_widget.dart';
 import 'package:muzo/services/ytm_home.dart';
 import 'package:muzo/widgets/skeleton_loader.dart';
-import 'package:muzo/providers/theme_provider.dart';
+
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -45,32 +45,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(navigationIndexProvider);
-    final paletteAsync = ref.watch(currentPaletteProvider);
-    final palette = paletteAsync.asData?.value;
-
-    final Color topColor = palette?.darkMutedColor?.color ??
-        palette?.darkVibrantColor?.color ??
-        palette?.dominantColor?.color ??
-        const Color(0xFF2A2A2A);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: Colors.black, // Ensure dark base
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              topColor.withValues(alpha: 0.5),
-              topColor.withValues(alpha: 0.15),
-              Colors.black,
-            ],
-            stops: const [0.0, 0.4, 1.0],
-          ),
-        ),
+      body: ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: FadeIndexedStack(
           index: selectedIndex,
           children: [
@@ -95,8 +74,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return SafeArea(
       bottom: false,
       child: RefreshIndicator(
-        color: Colors.white,
-        backgroundColor: const Color(0xFF1E1E1E),
+        color: Theme.of(context).colorScheme.onSurface,
+        backgroundColor: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
         onRefresh: () async {
           await ref.read(homeSectionsProvider.notifier).refresh();
           await storage.refreshAll();
@@ -118,12 +97,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 20, 16, 10),
                   child: Row(
                     children: [
-                      const Icon(FluentIcons.flash_24_filled, color: Colors.white70, size: 18),
+                      Icon(FluentIcons.flash_24_filled, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), size: 18),
                       const SizedBox(width: 8),
                       Text(
                         'Speed Dial',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.3,
                         ),
@@ -179,6 +158,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
+            // Favorites Section
+            _buildFavoritesSection(context, ref),
+
             // Your Playlists Section (At Bottom)
             _buildYourPlaylistsSection(context, ref),
 
@@ -213,10 +195,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Text(
                 'Muzo',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isDesktop ? 24 : 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: isDesktop ? 26 : 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
                 ),
               ),
             ],
@@ -241,8 +223,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ListTile(
                       dense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(FluentIcons.person_24_filled, color: Colors.white, size: 20),
-                      title: const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      leading: Icon(FluentIcons.person_24_filled, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                      title: Text('Account Info', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                       onTap: () {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
@@ -254,16 +236,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             content: GlassContainer(
                               blur: 15,
                               opacity: 0.2,
-                              color: const Color(0xFF1E1E1E),
+                              color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
                               borderRadius: BorderRadius.circular(24),
                               padding: const EdgeInsets.all(24),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Account Info', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                                  Text('Account Info', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                   const SizedBox(height: 16),
-                                  Text('Username: $username', style: const TextStyle(color: Colors.white70)),
+                                  Text('Username: $username', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                                   const SizedBox(height: 24),
                                   Align(
                                     alignment: Alignment.centerRight,
@@ -279,8 +261,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ListTile(
                       dense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: const Icon(FluentIcons.settings_24_filled, color: Colors.white, size: 20),
-                      title: const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      leading: Icon(FluentIcons.settings_24_filled, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                      title: Text('Settings', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                       onTap: () {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
@@ -342,10 +324,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
+        color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
+          color: isSelected ? Colors.transparent : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
           width: 0.5,
         ),
       ),
@@ -361,7 +343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.black : Colors.white,
+                color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -449,7 +431,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   "Your Playlists",
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -480,6 +462,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       playlistId: name,
                     );
 
+                    return HomeItemWidget(item: homeItem);
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFavoritesSection(BuildContext context, WidgetRef ref) {
+    final storage = ref.watch(storageServiceProvider);
+    return SliverToBoxAdapter(
+      child: ValueListenableBuilder<List<YtifyResult>>(
+        valueListenable: storage.favoritesListenable,
+        builder: (context, favorites, _) {
+          if (favorites.isEmpty) return const SizedBox.shrink();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                child: Text(
+                  "Favorites",
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 240,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: favorites.length,
+                  itemBuilder: (context, index) {
+                    final item = favorites[index];
+                    final imageUrl = item.thumbnails.isNotEmpty ? item.thumbnails.last.url : '';
+                    final homeItem = HomeItem(
+                      title: item.title,
+                      subtitle: (item.artists != null && item.artists!.isNotEmpty) ? item.artists!.first.name : 'Unknown Artist',
+                      thumbnails: imageUrl.isNotEmpty ? [{'url': imageUrl, 'width': 500, 'height': 500}] : [],
+                      type: item.resultType == 'song' ? 'song' : 'video',
+                      videoId: item.videoId,
+                    );
                     return HomeItemWidget(item: homeItem);
                   },
                 ),

@@ -54,13 +54,13 @@ class _PlaylistSelectionDialogState
                       itemBuilder: (context, index) {
                         final name = playlists[index];
                         return ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             FluentIcons.music_note_2_24_regular,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           title: Text(
                             name,
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -79,16 +79,16 @@ class _PlaylistSelectionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         ),
         TextButton(
           onPressed: () {
             Navigator.pop(context);
             _showCreatePlaylistDialog(context, storage);
           },
-          child: const Text(
+          child: Text(
             'New Playlist',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
       ],
@@ -116,7 +116,7 @@ class _PlaylistSelectionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         ),
         TextButton(
           onPressed: () {
@@ -128,9 +128,9 @@ class _PlaylistSelectionDialogState
               showGlassSnackBar(context, 'Added to ${controller.text}');
             }
           },
-          child: const Text(
+          child: Text(
             'Create',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
       ],

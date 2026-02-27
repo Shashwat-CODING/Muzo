@@ -36,18 +36,14 @@ class LyricsSwitch extends ConsumerWidget {
                   );
                 }
               },
-              icon: const Icon(
+              icon: Icon(
                 FluentIcons.text_quote_20_regular,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 size: 16,
               ),
-              label: const Text(
+              label: Text(
                 "Lyrics",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

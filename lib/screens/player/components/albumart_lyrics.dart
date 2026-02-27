@@ -64,7 +64,6 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
   @override
   Widget build(BuildContext context) {
     final mediaItemAsync = ref.watch(currentMediaItemProvider);
-    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
     final audioHandler = ref.watch(audioHandlerProvider);
 
     // Reset lyrics if song changes (optional, but good UX to clear old lyrics)
@@ -115,10 +114,10 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                     fit: BoxFit.cover,
                     width: widget.playerArtImageSize,
                     height: widget.playerArtImageSize,
-                    errorWidget: (context, url, error) => const Icon(
+                    errorWidget: (context, url, error) => Icon(
                       Icons.music_note,
                       size: 50,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   );
                 },
@@ -137,22 +136,20 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // Reduced for performance
                       child: Container(
-                        color: Colors.black.withValues(
-                          alpha: 0.6,
-                        ), // Darker overlay for better text contrast
+                        color: (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white).withValues(alpha: 0.7),
                         child: _isLoadingLyrics
-                            ? const Center(
+                            ? Center(
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               )
                             : _lyrics == null
                             ? Center(
                                 child: Text(
                                   "No lyrics found",
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.7),
-                                  ),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                                 ),
                               )
                             : LyricsView(
@@ -183,59 +180,8 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                   right: 12,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: isLiteMode
-                        ? Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
-                              ),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(20),
-                                onTap: () {
-                                  final mediaItem = mediaItemAsync.value;
-                                  if (mediaItem != null) {
-                                    setState(() {
-                                      _showLyrics = true;
-                                    });
-                                    _fetchLyrics(mediaItem);
-                                  }
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        FluentIcons.text_quote_20_filled,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        "Lyrics",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        : BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.15),
@@ -265,20 +211,15 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           FluentIcons.text_quote_20_filled,
-                                          color: Colors.white,
+                                          color: Theme.of(context).colorScheme.onSurface,
                                           size: 16,
                                         ),
                                         const SizedBox(width: 8),
-                                        const Text(
+                                        Text(
                                           "Lyrics",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.5,
-                                          ),
+                                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                                         ),
                                       ],
                                     ),
@@ -289,260 +230,6 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                           ),
                   ),
                 ),
-
-              // Language Button Overlay
-              mediaItemAsync.when(
-                data: (mediaItem) {
-                  final availableLanguages =
-                      (mediaItem?.extras?['availableLanguages'] as List?)
-                          ?.cast<Map<String, dynamic>>() ??
-                      [];
-                  final currentLanguage =
-                      mediaItem?.extras?['currentLanguage'] as String? ??
-                      'Default';
-
-                  if (availableLanguages.length <= 1) {
-                    return const SizedBox.shrink();
-                  }
-
-                  return Positioned(
-                    bottom: 12,
-                    left: 12,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: isLiteMode
-                          ? Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: IgnorePointer(
-                                  ignoring: _isSwitchingLanguage,
-                                  child: PopupMenuButton<String>(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    color: const Color(0xFF1E1E1E),
-                                    offset: const Offset(0, -50),
-                                    tooltip: 'Select Language',
-                                    onSelected: (_) async {},
-                                    itemBuilder: (context) {
-                                      return availableLanguages.map((lang) {
-                                        final name = lang['name'] as String;
-                                        final url = lang['url'] as String;
-                                        final isSelected =
-                                            name == currentLanguage;
-
-                                        return PopupMenuItem<String>(
-                                          value: url,
-                                          child: Row(
-                                            children: [
-                                              if (isSelected)
-                                                const Icon(
-                                                  Icons.check,
-                                                  color: Colors.white,
-                                                  size: 16,
-                                                )
-                                              else
-                                                const SizedBox(width: 16),
-                                              const SizedBox(width: 10),
-                                              Text(
-                                                name,
-                                                style: TextStyle(
-                                                  color: isSelected
-                                                      ? Colors.white
-                                                      : Colors.white70,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          onTap: () async {
-                                            if (!isSelected) {
-                                              setState(
-                                                () =>
-                                                    _isSwitchingLanguage = true,
-                                              );
-                                              await ref
-                                                  .read(audioHandlerProvider)
-                                                  .setAudioLanguage(url, name);
-                                              if (mounted) {
-                                                setState(
-                                                  () => _isSwitchingLanguage =
-                                                      false,
-                                                );
-                                              }
-                                            }
-                                          },
-                                        );
-                                      }).toList();
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 8,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (_isSwitchingLanguage)
-                                            const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          else
-                                            const Icon(
-                                              Ionicons.language,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            currentLanguage,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            )
-                          : BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                  ),
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: IgnorePointer(
-                                    ignoring: _isSwitchingLanguage,
-                                    child: PopupMenuButton<String>(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                      color: Colors.black.withValues(alpha: 0),
-                                      offset: const Offset(0, -50),
-                                      tooltip: 'Select Language',
-                                      itemBuilder: (context) {
-                                        return availableLanguages.map((lang) {
-                                          final name = lang['name'] as String;
-                                          final url = lang['url'] as String;
-                                          final isSelected =
-                                              name == currentLanguage;
-
-                                          return PopupMenuItem<String>(
-                                            value: url,
-                                            child: Row(
-                                              children: [
-                                                if (isSelected)
-                                                  const Icon(
-                                                    Icons.check,
-                                                    color: Colors.white,
-                                                    size: 16,
-                                                  )
-                                                else
-                                                  const SizedBox(width: 16),
-                                                const SizedBox(width: 10),
-                                                Text(
-                                                  name,
-                                                  style: TextStyle(
-                                                    color: isSelected
-                                                        ? Colors.white
-                                                        : Colors.white70,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            onTap: () async {
-                                              if (!isSelected) {
-                                                setState(
-                                                  () => _isSwitchingLanguage =
-                                                      true,
-                                                );
-                                                await ref
-                                                    .read(audioHandlerProvider)
-                                                    .setAudioLanguage(
-                                                      url,
-                                                      name,
-                                                    );
-                                                if (mounted) {
-                                                  setState(
-                                                    () => _isSwitchingLanguage =
-                                                        false,
-                                                  );
-                                                }
-                                              }
-                                            },
-                                          );
-                                        }).toList();
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            if (_isSwitchingLanguage)
-                                              const SizedBox(
-                                                width: 16,
-                                                height: 16,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.white,
-                                                    ),
-                                              )
-                                            else
-                                              const Icon(
-                                                Ionicons.language,
-                                                color: Colors.white,
-                                                size: 16,
-                                              ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              currentLanguage,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                    ),
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
             ],
           ),
         ),

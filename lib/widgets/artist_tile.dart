@@ -7,6 +7,7 @@ import 'package:muzo/screens/artist_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/utils/page_routes.dart';
+import 'package:muzo/services/ytify_service.dart';
 
 class ArtistTile extends ConsumerStatefulWidget {
   final String artistName;
@@ -23,7 +24,7 @@ class ArtistTile extends ConsumerStatefulWidget {
 }
 
 class _ArtistTileState extends ConsumerState<ArtistTile> {
-  final _apiService = YouTubeApiService();
+  final _ytifyService = YtifyApiService();
   String? _avatarUrl;
   late String _navChannelId;
 
@@ -52,31 +53,42 @@ class _ArtistTileState extends ConsumerState<ArtistTile> {
 
     if (mounted) {
       try {
-        final response = await _apiService.search(
-          widget.artistName,
-          filter: 'artists',
-        );
-        if (mounted && response.results.isNotEmpty) {
-          final result = response.results.first;
-
-          setState(() {
-            if (result.thumbnails.isNotEmpty) {
-              // Try to get high-res image by replacing size param
-              final highResUrl = result.thumbnails.last.url.replaceAll(
+        if (_navChannelId.isNotEmpty) {
+          final details = await _ytifyService.getArtistDetails(_navChannelId);
+          if (mounted && details != null && details.artistAvatar.isNotEmpty) {
+            setState(() {
+              // Try to get high-res image
+              final highResUrl = details.artistAvatar.replaceAll(
                 RegExp(r'=[sw]\d+(-h\d+)?'),
                 '=s800',
               );
               _avatarUrl = highResUrl;
-              // Cache the image
               storage.setArtistImage(widget.artistName, highResUrl);
-            }
-            // If we didn't have a valid ID (or even if we did, the search result might be more accurate/canonical), update it.
-            // Especially important for split names where we pass empty ID.
-            // Only update ID if we didn't have one
-            if (_navChannelId.isEmpty && result.browseId != null) {
-              _navChannelId = result.browseId!;
-            }
-          });
+            });
+          }
+        } else {
+          // Fallback if we only have the artistName (rare but possible)
+          final _apiService = YouTubeApiService();
+          final response = await _apiService.search(
+            widget.artistName,
+            filter: 'artists',
+          );
+          if (mounted && response.results.isNotEmpty) {
+            final result = response.results.first;
+            setState(() {
+              if (result.thumbnails.isNotEmpty) {
+                final highResUrl = result.thumbnails.last.url.replaceAll(
+                  RegExp(r'=[sw]\d+(-h\d+)?'),
+                  '=s800',
+                );
+                _avatarUrl = highResUrl;
+                storage.setArtistImage(widget.artistName, highResUrl);
+              }
+              if (_navChannelId.isEmpty && result.browseId != null) {
+                _navChannelId = result.browseId!;
+              }
+            });
+          }
         }
       } catch (e) {
         // Ignore error

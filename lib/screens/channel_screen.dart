@@ -120,12 +120,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                             children: [
                               Text(
                                 widget.title ?? 'Unknown Artist',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
-                                ),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -134,7 +129,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                 Text(
                                   '${widget.subscriberCount} Subscribers',
                                   style: TextStyle(
-                                    color: Colors.grey[400],
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -191,7 +186,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                             side: BorderSide(
                                               color: isSubscribed
                                                   ? Colors.grey
-                                                  : Colors.white,
+                                                  : Theme.of(context).colorScheme.onSurface,
                                             ),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
@@ -210,8 +205,8 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                                 : 'FOLLOW',
                                             style: TextStyle(
                                               color: isSubscribed
-                                                  ? Colors.white
-                                                  : Colors.white,
+                                                  ? Theme.of(context).colorScheme.onSurface
+                                                  : Theme.of(context).colorScheme.onSurface,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 12,
                                               letterSpacing: 1.0,
@@ -238,13 +233,9 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Popular',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         ),
                         IconButton(
                           onPressed: () {
@@ -272,13 +263,13 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                     }, childCount: _videos.length),
                   )
                 else
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(
                         child: Text(
                           'No videos found',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ),

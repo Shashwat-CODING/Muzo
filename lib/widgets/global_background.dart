@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/providers/settings_provider.dart';
 
 class GlobalBackground extends ConsumerWidget {
   final Widget child;
@@ -9,17 +8,6 @@ class GlobalBackground extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
-
-    if (isLiteMode) {
-      return Stack(
-        children: [
-          Container(color: Colors.black),
-          child,
-        ],
-      );
-    }
-
     return Stack(
       children: [
         // Dynamic Gradient Background

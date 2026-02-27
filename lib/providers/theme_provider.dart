@@ -7,7 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:muzo/providers/settings_provider.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:muzo/providers/player_provider.dart';
-import 'package:muzo/utils/app_colors.dart'; // Add import
+import 'package:muzo/utils/app_colors.dart'; 
+import 'package:muzo/services/storage_service.dart';
 
 // Extensions from the user's snippet
 extension ColorWithHSL on Color {
@@ -131,8 +132,9 @@ class ThemeLogic {
     Color? textColor,
     Brightness? systemBrightness,
     ColorScheme? dynamicColorScheme,
+    String fontFamily = 'Archivo Black',
   }) {
-    if (themeType == ThemeType.dynamic && primarySwatch != null) {
+    if (themeType == ThemeType.dark && primarySwatch != null) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
           statusBarIconBrightness: Brightness.light,
@@ -198,8 +200,8 @@ class ThemeLogic {
           backgroundColor: primarySwatch[700],
           selectedIconTheme: const IconThemeData(color: Colors.white),
           unselectedIconTheme: IconThemeData(color: primarySwatch[100]),
-          selectedLabelTextStyle: const TextStyle(
-            color: Colors.white,
+          selectedLabelTextStyle: TextStyle(
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 15,
           ),
@@ -235,7 +237,88 @@ class ThemeLogic {
         tabBarTheme: TabBarThemeData(indicatorColor: Colors.white),
       );
       return baseTheme.copyWith(
-        textTheme: GoogleFonts.outfitTextTheme(baseTheme.textTheme),
+        textTheme: GoogleFonts.getTextTheme(fontFamily, baseTheme.textTheme),
+      );
+    } else if (themeType == ThemeType.light) {
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarIconBrightness: Brightness.dark,
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.black.withValues(alpha: 0.002),
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.dark,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarContrastEnforced: true,
+        ),
+      );
+      final baseTheme = ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        canvasColor: const Color(0xFFFFFFFF),
+        primaryColor: dynamicColorScheme?.primary ?? const Color(0xFF1DB954),
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+        colorScheme: ((dynamicColorScheme?.brightness == Brightness.light 
+                ? dynamicColorScheme 
+                : (dynamicColorScheme != null 
+                    ? ColorScheme.fromSeed(seedColor: dynamicColorScheme.primary, brightness: Brightness.light) 
+                    : null))?.copyWith(
+              surface: const Color(0xFFFFFFFF),
+            )) ??
+            const ColorScheme.light(
+              primary: Color(0xFF1DB954),
+              secondary: Color(0xFF888888),
+              surface: Color(0xFFFFFFFF),
+              onSurface: Colors.black,
+            ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Color(0xFF1DB954),
+          linearTrackColor: Colors.black12,
+        ),
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(
+            fontSize: 23,
+            fontWeight: FontWeight.bold,
+            color: _lightPrimaryText,
+          ),
+          titleMedium: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: _lightPrimaryText,
+          ),
+          labelMedium: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 23,
+            color: _lightPrimaryText,
+          ),
+          labelSmall: TextStyle(
+            fontSize: 15,
+            color: _lightSecondaryText,
+            letterSpacing: 0,
+            fontWeight: FontWeight.bold,
+          ),
+          bodyMedium: TextStyle(color: _lightSecondaryText),
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: Color(0xFFFFFFFF),
+          modalBarrierColor: Colors.black26,
+        ),
+        sliderTheme: const SliderThemeData(
+          thumbColor: Colors.black,
+          activeTrackColor: Color(0xFF5bc0be),
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          focusColor: Colors.black,
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.black),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF5bc0be), // Static bluish color
+          ),
+        ),
+      );
+      return baseTheme.copyWith(
+        textTheme: GoogleFonts.getTextTheme(fontFamily, baseTheme.textTheme),
       );
     } else {
       SystemChrome.setSystemUIOverlayStyle(
@@ -254,9 +337,11 @@ class ThemeLogic {
         brightness: Brightness.dark,
         canvasColor: const Color(0xFF121212), // Spotify Dark Gray
         primaryColor: dynamicColorScheme?.primary ?? const Color(0xFFE2E2E2),
-        scaffoldBackgroundColor: dynamicColorScheme?.surface ?? const Color(0xFF121212),
+        scaffoldBackgroundColor: const Color(0xFF121212),
         colorScheme:
-            dynamicColorScheme ??
+            dynamicColorScheme?.copyWith(
+              surface: const Color(0xFF121212),
+            ) ??
             const ColorScheme.dark(
               primary: Color(0xFFE2E2E2),
               secondary: Color(0xFF888888),
@@ -311,7 +396,7 @@ class ThemeLogic {
         ),
       );
       return baseTheme.copyWith(
-        textTheme: GoogleFonts.outfitTextTheme(baseTheme.textTheme),
+        textTheme: GoogleFonts.getTextTheme(fontFamily, baseTheme.textTheme),
       );
     }
   }
@@ -321,34 +406,30 @@ class ThemeLogic {
 final themeProvider = Provider<ThemeData>((ref) {
   final settings = ref.watch(settingsProvider);
   final themeType = settings.themeType;
+  final fontFamily = settings.appFontFamily;
   final dynamicColorScheme = ref.watch(dynamicColorSchemeProvider);
 
-  if (themeType == ThemeType.dynamic) {
-    // Watch stable color
-    final activeColor = ref.watch(themeColorProvider);
+  // Resolve auto → system brightness
+  final effectiveType = themeType == ThemeType.auto
+      ? (WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.light
+          ? ThemeType.light
+          : ThemeType.dark)
+      : themeType;
 
-    if (activeColor != null) {
-      Color primaryColor = activeColor;
-      // Custom Luminance Logic
-      if (activeColor.computeLuminance() > 0.10) {
-        primaryColor = activeColor.withLightness(0.10);
-      }
-      final primarySwatch = ThemeLogic.createMaterialColor(primaryColor);
-
-      return ThemeLogic.createThemeData(primarySwatch, ThemeType.dynamic);
-    }
-    // Fallback to dark with dynamic color if available
+  if (effectiveType == ThemeType.light) {
     return ThemeLogic.createThemeData(
       null,
-      ThemeType.dark,
+      ThemeType.light,
       dynamicColorScheme: dynamicColorScheme,
+      fontFamily: fontFamily,
     );
   } else {
-    // Static themes (Now only Dark)
+    // Return static dark mode theme without album art color overriding
     return ThemeLogic.createThemeData(
       null,
       ThemeType.dark,
       dynamicColorScheme: dynamicColorScheme,
+      fontFamily: fontFamily,
     );
   }
 });

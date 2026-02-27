@@ -114,7 +114,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                           Text(
                             author,
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 14,
                             ),
                           ),
@@ -130,14 +130,14 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                                     .playAll(_playlistDetails!.tracks);
                               }
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               FluentIcons.play_24_filled,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.surface,
                             ),
-                            label: const Text(
+                            label: Text(
                               'Play All',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: Theme.of(context).colorScheme.surface,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -164,13 +164,13 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     }, childCount: _playlistDetails!.tracks.length),
                   )
                 else
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(
                         child: Text(
                           'No tracks found',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                         ),
                       ),
                     ),

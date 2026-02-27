@@ -22,10 +22,17 @@ class YtifyApiService {
   static const String _suggestionsBaseUrl =
       'https://ytify-backend.zeabur.app/api/search/suggestions';
 
+  static const Map<String, String> _headers = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  };
+
   Future<AlbumDetails?> getAlbumDetails(String albumId) async {
     try {
       final uri = Uri.parse('$_albumBaseUrl/$albumId');
-      final response = await http.get(uri);
+      debugPrint('YTIFY ALBUM API Request: $uri');
+      final response = await http.get(uri, headers: _headers);
+      debugPrint('YTIFY ALBUM API Response [${response.statusCode}]: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}...');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -83,7 +90,9 @@ class YtifyApiService {
       } else {
         uri = Uri.parse('$_baseUrl?q=$query&filter=$filter');
       }
-      final response = await http.get(uri);
+      debugPrint('YTIFY SEARCH API Request: $uri');
+      final response = await http.get(uri, headers: _headers);
+      debugPrint('YTIFY SEARCH API Response [${response.statusCode}]: ${response.body.length > 200 ? response.body.substring(0, 200) + '...' : response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -106,7 +115,9 @@ class YtifyApiService {
     if (query.isEmpty) return [];
     try {
       final uri = Uri.parse('$_suggestionsBaseUrl?q=$query&music=1');
-      final response = await http.get(uri);
+      debugPrint('YTIFY SUGGESTIONS API Request: $uri');
+      final response = await http.get(uri, headers: _headers);
+      debugPrint('YTIFY SUGGESTIONS API Response [${response.statusCode}]');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -124,7 +135,9 @@ class YtifyApiService {
   Future<ArtistDetails?> getArtistDetails(String browseId) async {
     try {
       final uri = Uri.parse('$_artistBaseUrl/$browseId');
-      final response = await http.get(uri);
+      debugPrint('YTIFY ARTIST API Request: $uri');
+      final response = await http.get(uri, headers: _headers);
+      debugPrint('YTIFY ARTIST API Response [${response.statusCode}]');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -143,7 +156,9 @@ class YtifyApiService {
   Future<PlaylistDetails?> getPlaylistDetails(String playlistId) async {
     try {
       final uri = Uri.parse('$_playlistBaseUrl/$playlistId');
-      final response = await http.get(uri);
+      debugPrint('YTIFY PLAYLIST API Request: $uri');
+      final response = await http.get(uri, headers: _headers);
+      debugPrint('YTIFY PLAYLIST API Response [${response.statusCode}]');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

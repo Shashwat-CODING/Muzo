@@ -15,14 +15,14 @@ class AudioHandler {
   final YouTubeApiService _apiService = YouTubeApiService();
   late final MusicApiService _musicApiService;
   final StorageService _storage;
-
+  
   // Playlist for queue management
-  ConcatenatingAudioSource _playlist = ConcatenatingAudioSource(
-    children: [],
-  );
+  final ConcatenatingAudioSource _playlist = ConcatenatingAudioSource(children: []);
 
   // Loading state
   final ValueNotifier<bool> isLoadingStream = ValueNotifier(false);
+  
+
 
   AudioPlayer get player => _player;
   ConcatenatingAudioSource get playlist => _playlist;
@@ -41,13 +41,11 @@ class AudioHandler {
   Future<void> toggleLofiMode() async {
     isLofiModeNotifier.value = !isLofiModeNotifier.value;
     final enable = isLofiModeNotifier.value;
-
+    
     // Apply speed/pitch
     if (enable) {
-      final speed = _storage.lofiSpeed;
-      final pitch = _storage.lofiPitch;
-      await _player.setSpeed(speed);
-      await _player.setPitch(pitch);
+      await _player.setSpeed(0.90);
+      await _player.setPitch(0.90);
     } else {
       await _player.setSpeed(1.0);
       await _player.setPitch(1.0);
@@ -55,7 +53,7 @@ class AudioHandler {
 
     // Apply native reverb
     if (Platform.isAndroid) {
-      final sessionId = _player.androidAudioSessionId;
+      final sessionId = await _player.androidAudioSessionId;
       if (sessionId != null) {
         await _applyReverb(sessionId, enable);
       }
@@ -65,115 +63,64 @@ class AudioHandler {
   Future<void> _init() async {
     // Listen to player state to manage loading indicator
     _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.ready ||
-          state == ProcessingState.completed) {
+      if (state == ProcessingState.ready || state == ProcessingState.completed) {
         isLoadingStream.value = false;
       }
     });
 
+
     // Listen to session ID changes to re-apply reverb
     _player.androidAudioSessionIdStream.listen((sessionId) {
-      if (sessionId != null && isLofiModeNotifier.value) {
-        _applyReverb(sessionId, true);
-      }
+       if (sessionId != null && isLofiModeNotifier.value) {
+         _applyReverb(sessionId, true);
+       }
     });
 
     _player.sequenceStateStream.listen((state) {
       if (state == null) return;
       final sequence = state.sequence;
       final index = state.currentIndex;
-
-      if (sequence.isEmpty || index == null || index >= sequence.length - 1) {
+      
+      if (sequence.isEmpty || (index != null && index >= sequence.length - 1)) {
         if (_storage.isAutoQueueEnabled) {
           _handleAutoQueue();
         }
       }
     });
 
-    // JIT: Listen for index changes to resolve upcoming lazy sources
+    // Listen for index changes to add songs to history
     _player.currentIndexStream.listen((index) {
       if (index != null) {
-        _ensureUpcomingResolved(index);
-      }
-    });
-
-    // Listen for playback errors (e.g. 403 expired stream) and auto-retry
-    _player.playbackEventStream.listen(
-      (_) {},
-      onError: (Object e, StackTrace st) async {
-        final errorStr = e.toString();
-        // Check for ExoPlayer source errors (403, network failure, etc.)
-        final is403 = errorStr.contains('Response code: 403') ||
-            errorStr.contains('TYPE_SOURCE') ||
-            errorStr.contains('InvalidResponseCodeException');
-        if (!is403) return;
-
-        debugPrint('Playback 403 detected, re-fetching stream...');
-
-        try {
-          final currentSource = _player.sequenceState?.currentSource;
-          final tag = currentSource?.tag;
-          if (tag is! MediaItem) return;
-
-          final videoId = tag.id;
-          final index = _player.currentIndex;
-          if (index == null) return;
-
-          // Re-fetch a fresh stream URL using the fallback chain
-          final freshUrl = await _apiService.getStreamUrl(
-            videoId,
-            title: tag.title,
-            artist: tag.artist ?? '',
-            onFallback: () => _showFallbackAlert(),
-          );
-
-          if (freshUrl == null) {
-            debugPrint('403 retry: Could not get fresh URL, skipping.');
-            return;
+        final sequence = _player.sequenceState?.sequence;
+        if (sequence != null && index < sequence.length) {
+          final source = sequence[index];
+          final tag = source.tag;
+          if (tag is MediaItem) {
+            final result = YtifyResult(
+              videoId: tag.id,
+              title: tag.title,
+              artists: [YtifyArtist(name: tag.artist ?? '', id: '')],
+              thumbnails: [YtifyThumbnail(url: tag.artUri?.toString() ?? '', width: 0, height: 0)],
+              resultType: tag.extras?['resultType'] ?? 'song',
+              isExplicit: false,
+            );
+            _storage.addToHistory(result);
+          } else if (tag is YtifyResult) {
+            _storage.addToHistory(tag);
+          } else if (tag is Map<String, dynamic> && tag['result'] is YtifyResult) {
+            _storage.addToHistory(tag['result']);
           }
-
-          final position = _player.position;
-          final wasPlaying = _player.playing;
-
-          final newSource = AudioSource.uri(
-            Uri.parse(freshUrl),
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            },
-            tag: tag,
-          );
-
-          // Swap in the new source at same index
-          await _playlist.removeAt(index);
-          await _playlist.insert(index, newSource);
-          await _player.seek(position, index: index);
-          if (wasPlaying) await _player.play();
-          debugPrint('403 retry: Successfully replaced stream for $videoId');
-        } catch (retryError) {
-          debugPrint('403 retry failed: $retryError');
         }
-      },
-    );
-
-    // Listen to settings changes for real-time Lofi updates
-    _storage.settingsListenable.addListener(() {
-      if (isLofiModeNotifier.value) {
-        _player.setSpeed(_storage.lofiSpeed);
-        _player.setPitch(_storage.lofiPitch);
       }
     });
   }
-
-  /// Reverb intensity (0.0 = off, 1.0 = maximum)
-  static const double _reverbIntensity = 0.4; // 40% reverb
-
+  
   Future<void> _applyReverb(int sessionId, bool enable) async {
     if (!Platform.isAndroid) return;
     try {
       await platform.invokeMethod('enableReverb', {
         'sessionId': sessionId,
         'enable': enable,
-        'intensity': _reverbIntensity,
       });
     } catch (e) {
       debugPrint("Error toggling reverb: $e");
@@ -183,53 +130,32 @@ class AudioHandler {
   Future<void> playVideo(dynamic video) async {
     try {
       isLoadingStream.value = true;
-
+      
+      String? videoId;
+      if (video is YtifyResult) {
+        videoId = video.videoId;
+      }
+      
       // Clear queue and play single video
-      // Stop and disable shuffle to prevent RangeError during switch
-      await _player.stop();
-      try {
-        await _player.setShuffleModeEnabled(false);
-      } catch (e) {
-        debugPrint('Error disabling shuffle: $e');
-      }
-
-      // Reallocate playlist to avoid race conditions with old list indices
-      _playlist = ConcatenatingAudioSource(children: []);
-
-      // Create source (this enriches metadata)
-      final source = await _createAudioSource(video);
-      if (source != null) {
-        // Save original data to history (not enriched)
-        if (video is YtifyResult) {
-          _storage.addToHistory(video);
-        }
-
-        await _playlist.add(source);
-        // Always set the new audio source
-        await _player.setAudioSource(_playlist);
-        await _player.play();
-      } else {
-        debugPrint('Error: Could not create audio source');
-        isLoadingStream.value = false;
-      }
+      await _playlist.clear();
+      await addToQueue(video);
+      await _player.setAudioSource(_playlist);
+      await _player.play();
+      isLoadingStream.value = false;
     } catch (e) {
       debugPrint('Error playing video: $e');
       isLoadingStream.value = false; // Hide spinner on error
     }
   }
 
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes;
-    final seconds = d.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+
 
   Future<void> addToQueue(dynamic video) async {
     try {
-      final source = await _createAudioSource(video, lazy: true);
+      final source = await _createAudioSource(video);
       if (source != null) {
         await _playlist.add(source);
-
+        
         // If player is not set to this playlist (e.g. first item), set it
         if (_player.audioSource != _playlist) {
           await _player.setAudioSource(_playlist);
@@ -240,7 +166,7 @@ class AudioHandler {
     }
   }
 
-  Future<AudioSource?> _createAudioSource(dynamic video, {bool lazy = false}) async {
+  Future<AudioSource?> _createAudioSource(dynamic video) async {
     try {
       String videoId;
       String title;
@@ -248,6 +174,7 @@ class AudioHandler {
       String artUri;
       String resultType = 'video';
       String? artistId;
+
       Duration? duration;
 
       if (video is YtifyResult) {
@@ -265,41 +192,25 @@ class AudioHandler {
         return null;
       }
 
-      final Map<String, dynamic> extras = {
-        'resultType': resultType,
-        'artistId': artistId,
-      };
-
+      final downloadPath = _storage.getDownloadPath(videoId);
       Uri audioUri;
       
-      // Lazy Loading: Return dummy URI immediately if not downloaded
-      final downloadPath = _storage.getDownloadPath(videoId);
-      final isDownloaded = downloadPath != null && await File(downloadPath).exists();
-
-      if (lazy && !isDownloaded) {
-        audioUri = Uri.parse('lazy://$videoId');
-      } else if (isDownloaded) {
+      if (downloadPath != null && await File(downloadPath).exists()) {
         audioUri = Uri.file(downloadPath);
       } else {
-        // Fetch stream (Expensive)
         final streamUrl = await _apiService.getStreamUrl(
-          videoId,
-          title: title,
+          videoId, 
+          title: title, 
           artist: artist,
-          onFallback: () => _showFallbackAlert(),
         );
-
         if (streamUrl == null) return null;
         audioUri = Uri.parse(streamUrl);
-        // Log in chunks
-        final pattern = RegExp('.{1,8000}');
-        pattern.allMatches('Playing stream: $streamUrl').forEach((match) => debugPrint(match.group(0)));
       }
 
       return AudioSource.uri(
         audioUri,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
         },
         tag: MediaItem(
           id: videoId,
@@ -308,7 +219,10 @@ class AudioHandler {
           artist: artist,
           duration: duration,
           artUri: Uri.parse(artUri),
-          extras: extras,
+          extras: {
+            'resultType': resultType,
+            'artistId': artistId,
+          },
         ),
       );
     } catch (e) {
@@ -317,127 +231,47 @@ class AudioHandler {
     }
   }
 
-  Future<void> setAudioLanguage(String url, String languageName) async {
-    try {
-      final currentSource = _player.sequenceState?.currentSource;
-      final currentPos = _player.position;
-      final playing = _player.playing;
-
-      if (currentSource == null) return;
-
-      final oldTag = currentSource.tag as MediaItem;
-      final newExtras = Map<String, dynamic>.from(oldTag.extras ?? {});
-      newExtras['currentLanguage'] = languageName;
-
-      final newSource = AudioSource.uri(
-        Uri.parse(url),
-        headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
-        },
-        tag: oldTag.copyWith(extras: newExtras),
-      );
-
-      final index = _player.currentIndex;
-      if (index != null && index < _playlist.length) {
-        if (_playlist.length == 1) {
-          await _player.setAudioSource(newSource, initialPosition: currentPos);
-          if (playing) {
-            _player.play();
-          }
-          return;
-        }
-        await _player.pause();
-        await _playlist.insert(index, newSource);
-        await _player.seek(currentPos, index: index);
-        await _playlist.removeAt(index + 1);
-        if (playing) {
-          _player.play();
-        }
-      }
-    } catch (e) {
-      debugPrint("Error changing language: $e");
-    }
-  }
-
   Future<void> playAll(List<YtifyResult> results) async {
     try {
       if (results.isEmpty) return;
+
       await _player.stop();
-      try {
-        await _player.setShuffleModeEnabled(false);
-      } catch (e) {
-        debugPrint('Error disabling shuffle: $e');
+      await _playlist.clear();
+      
+      // Add first item and play immediately
+      await addToQueue(results.first);
+      
+      if (_playlist.length > 0) {
+         await _player.setAudioSource(_playlist);
+         _player.play(); 
       }
-      _playlist = ConcatenatingAudioSource(children: []);
-      final firstSource = await _createAudioSource(results.first);
-      if (firstSource != null) {
-        _storage.addToHistory(results.first);
-        await _playlist.add(firstSource);
-        await _player.setAudioSource(_playlist);
-        _player.play();
-      }
+
+      // Add the rest in background, but await to ensure order
       if (results.length > 1) {
-        _queueRestOfPlaylist(results, 0);
+        for (int i = 1; i < results.length; i++) {
+          await addToQueue(results[i]); 
+        }
       }
     } catch (e) {
       debugPrint('Error playing all: $e');
     }
   }
 
-  Future<void> playPlaylist(List<YtifyResult> results, int initialIndex) async {
-    try {
-      if (results.isEmpty) return;
-      if (initialIndex < 0 || initialIndex >= results.length) initialIndex = 0;
-      await _player.stop();
-      try {
-        await _player.setShuffleModeEnabled(false);
-      } catch (e) {
-        debugPrint('Error disabling shuffle: $e');
-      }
-      _playlist = ConcatenatingAudioSource(children: []);
-      final initialSong = results[initialIndex];
-      final initialSource = await _createAudioSource(initialSong);
-      if (initialSource != null) {
-        _storage.addToHistory(initialSong);
-        await _playlist.add(initialSource);
-        await _player.setAudioSource(_playlist);
-        _player.play();
-      }
-      _queueRestOfPlaylist(results, initialIndex);
-    } catch (e) {
-      debugPrint('Error playing playlist: $e');
-    }
-  }
-
   Future<void> pause() => _player.pause();
   Future<void> resume() => _player.play();
   Future<void> seek(Duration position, {int? index}) => _player.seek(position, index: index);
-  Future<void> skipToNext() => _player.seekToNext();
-  Future<void> skipToPrevious() => _player.seekToPrevious();
-  void dispose() { _player.dispose(); }
+  Future<void> skipToNext() async {
+    await _player.seekToNext();
+    _player.play();
+  }
+  
+  Future<void> skipToPrevious() async {
+    await _player.seekToPrevious();
+    _player.play();
+  }
 
-  Future<void> playNext(YtifyResult result) async {
-    try {
-      final index = _player.currentIndex;
-      if (index == null) {
-        await addToQueue(result);
-        return;
-      }
-      
-      // Use lazy loading for play next too? No, usually user wants it ready.
-      // But for consistency we can use defaults.
-      final source = await _createAudioSource(result, lazy: true);
-      if (source != null) {
-         await _playlist.insert(index + 1, source);
-         final context = navigatorKey.currentContext;
-         if (context != null && context.mounted) {
-           showGlassSnackBar(context, 'Song added to play next');
-         }
-      }
-    } catch (e) {
-      debugPrint('Error playing next: $e');
-    }
+  void dispose() {
+    _player.dispose();
   }
 
   Future<void> removeQueueItem(int index) async {
@@ -450,7 +284,9 @@ class AudioHandler {
 
   Future<void> reorderQueue(int oldIndex, int newIndex) async {
     try {
-      if (oldIndex < newIndex) newIndex -= 1;
+      if (oldIndex < newIndex) {
+        newIndex -= 1;
+      }
       await _playlist.move(oldIndex, newIndex);
     } catch (e) {
       debugPrint('Error reordering queue: $e');
@@ -459,40 +295,112 @@ class AudioHandler {
 
   Future<void> clearQueue() async {
     try {
+      // Keep the currently playing item if any
       final currentIndex = _player.currentIndex;
       if (currentIndex != null && _playlist.length > 1) {
+        // Remove everything after
         if (currentIndex < _playlist.length - 1) {
-          await _playlist.removeRange(currentIndex + 1, _playlist.length);
+           await _playlist.removeRange(currentIndex + 1, _playlist.length);
         }
+        
+        // Remove everything before
         if (currentIndex > 0) {
-          await _playlist.removeRange(0, currentIndex);
+           await _playlist.removeRange(0, currentIndex);
         }
       } else {
-        await _player.stop();
         await _playlist.clear();
-        try {
-          await _player.setShuffleModeEnabled(false);
-        } catch (e) {
-          debugPrint('Error disabling shuffle: $e');
-        }
       }
     } catch (e) {
       debugPrint('Error clearing queue: $e');
     }
   }
 
-  void _showFallbackAlert() {
-    final context = navigatorKey.currentContext;
-    if (context != null) {
-      showGlassSnackBar(context, 'Using fallback playback API');
+  Future<void> playNext(YtifyResult result) async {
+    try {
+      final index = _player.currentIndex;
+      if (index == null) {
+        await addToQueue(result);
+        return;
+      }
+
+      // We need to insert after current index
+      // But ConcatenatingAudioSource doesn't support insert at index easily with async logic inside addToQueue
+      // So we'll use a modified version of addToQueue logic here
+      
+      String videoId;
+      String title;
+      String artist;
+      String artUri;
+      String resultType = 'video';
+      String? artistId;
+      Duration? duration;
+
+      if (result.videoId == null) return;
+      videoId = result.videoId!;
+      title = result.title;
+      artist = result.artists?.map((a) => a.name).join(', ') ?? result.videoType ?? 'Unknown';
+      artistId = result.artists?.firstOrNull?.id;
+      artUri = result.thumbnails.isNotEmpty ? result.thumbnails.last.url : '';
+      resultType = result.resultType;
+      if (result.durationSeconds != null) {
+          duration = Duration(seconds: result.durationSeconds!);
+      }
+
+      // Check if downloaded
+      final downloadPath = _storage.getDownloadPath(videoId);
+      Uri audioUri;
+      
+      if (downloadPath != null && await File(downloadPath).exists()) {
+        audioUri = Uri.file(downloadPath);
+      } else {
+        final streamUrl = await _apiService.getStreamUrl(
+          videoId, 
+          title: title, 
+          artist: artist,
+        );
+        if (streamUrl == null) return;
+        audioUri = Uri.parse(streamUrl);
+      }
+      
+      final audioSource = AudioSource.uri(
+        audioUri,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Mobile Safari/537.36',
+        },
+        tag: MediaItem(
+          id: videoId,
+          album: "Muzo",
+          title: title,
+          artist: artist,
+          duration: duration,
+          artUri: Uri.parse(artUri),
+          extras: {
+            'resultType': resultType,
+            'artistId': artistId,
+          },
+        ),
+      );
+
+      await _playlist.insert(index + 1, audioSource);
+      
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        showGlassSnackBar(context, 'Song added to play next');
+      }
+
+    } catch (e) {
+      debugPrint('Error playing next: $e');
     }
   }
+
+  // Removed fallback alert method
+
 
   bool _isFetchingAutoQueue = false;
 
   Future<void> _handleAutoQueue() async {
     if (_isFetchingAutoQueue) return;
-
+    
     final currentSource = _player.sequenceState?.currentSource;
     final tag = currentSource?.tag;
     if (tag is! MediaItem) {
@@ -502,38 +410,38 @@ class AudioHandler {
 
     final videoId = tag.id;
     debugPrint('AutoQueue: Fetching suggestions for $videoId');
-
+    
     _isFetchingAutoQueue = true;
     try {
       final nextSongs = await _musicApiService.getUpNext(videoId);
       debugPrint('AutoQueue: fetched ${nextSongs.length} songs');
-
+      
+      // Check if the current song is still the same as when we started
       final currentTag = _player.sequenceState?.currentSource?.tag;
       if (currentTag is! MediaItem || currentTag.id != videoId) {
-        debugPrint('AutoQueue: Current song changed, discarding results');
+        debugPrint('AutoQueue: Current song changed, discarding results for $videoId');
         return;
       }
 
       if (nextSongs.isNotEmpty) {
-        final filteredSongs = nextSongs.where((s) => s.videoId != videoId).toList();
+        // Filter out current video, also skipping the first song as API gives playing song as first
+        final filteredSongs = nextSongs.skip(1).where((s) => s.videoId != videoId).toList();
+        
         if (filteredSongs.isEmpty) return;
 
-        // Lazy Loading Strategy
-        final futures = <Future<AudioSource?>>[];
+        // Resolve sources in parallel
+        final futures = filteredSongs.map((song) => _createAudioSource(song));
+        final sources = await Future.wait(futures);
         
-        // 1. Resolve first song immediately
-        futures.add(_createAudioSource(filteredSongs.first, lazy: false));
-        
-        // 2. Add rest as lazy
-        if (filteredSongs.length > 1) {
-          for (int i = 1; i < filteredSongs.length; i++) {
-             futures.add(_createAudioSource(filteredSongs[i], lazy: true));
-          }
+        // Check again before adding
+        final currentTagAfterFetch = _player.sequenceState?.currentSource?.tag;
+        if (currentTagAfterFetch is! MediaItem || currentTagAfterFetch.id != videoId) {
+             debugPrint('AutoQueue: Current song changed during source creation, discarding results for $videoId');
+             return;
         }
 
-        final sources = await Future.wait(futures);
         final validSources = sources.whereType<AudioSource>().toList();
-
+        
         if (validSources.isNotEmpty) {
           await _playlist.addAll(validSources);
         }
@@ -542,84 +450,6 @@ class AudioHandler {
       debugPrint('Error in auto queue: $e');
     } finally {
       _isFetchingAutoQueue = false;
-    }
-  }
-
-  // JIT Resolution Logic
-  bool _isResolving = false;
-
-  Future<void> _ensureUpcomingResolved(int currentIndex) async {
-    if (_isResolving) return;
-    _isResolving = true;
-    try {
-      // Buffer horizon: Check next 2-3 songs
-      for (int i = 1; i <= 3; i++) {
-        final targetIndex = currentIndex + i;
-        if (targetIndex >= _playlist.length) break;
-
-        final source = _playlist.children[targetIndex];
-        if (source is UriAudioSource && source.uri.scheme == 'lazy') {
-          // Found lazy source, resolve it
-          final tag = source.tag as MediaItem;
-          // Reconstruct YtifyResult from MediaItem to reuse existing create logic
-          final result = YtifyResult(
-            videoId: tag.id,
-            title: tag.title,
-            artists: [YtifyArtist(name: tag.artist ?? '', id: tag.extras?['artistId'])],
-            thumbnails: [YtifyThumbnail(url: tag.artUri.toString(), width: 0, height: 0)],
-            durationSeconds: tag.duration?.inSeconds,
-            resultType: tag.extras?['resultType'] ?? 'video',
-            isExplicit: false,
-          );
-
-          debugPrint("JIT Resolving: ${tag.title}");
-          final newSource = await _createAudioSource(result, lazy: false);
-          
-          if (newSource != null) {
-            // Replace in playlist
-            // Note: removeAt then insert keeps order
-            await _playlist.removeAt(targetIndex);
-            await _playlist.insert(targetIndex, newSource);
-            debugPrint("JIT Resolved & Replaced: ${tag.title}");
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("Error in JIT resolution: $e");
-    } finally {
-      _isResolving = false;
-    }
-  }
-
-  Future<void> _queueRestOfPlaylist(List<YtifyResult> results, int initialIndex) async {
-    try {
-      // Add songs AFTER initial index (Lazy)
-      if (initialIndex < results.length - 1) {
-        final futures = <Future<AudioSource?>>[];
-        for (int i = initialIndex + 1; i < results.length; i++) {
-          futures.add(_createAudioSource(results[i], lazy: true));
-        }
-        // Create all lazy sources in parallel (super fast)
-        final sources = await Future.wait(futures);
-        final validSources = sources.whereType<AudioSource>().toList();
-        if (validSources.isNotEmpty) {
-          await _playlist.addAll(validSources);
-        }
-      }
-
-      // Add songs BEFORE initial index (Lazy)
-      // Note: We insert at 0, so iterate in reverse to keep order? 
-      // Original logic: i from initial-1 down to 0, insert at 0. = Reverse order of insertion = Correct order in list.
-      if (initialIndex > 0) {
-        for (int i = initialIndex - 1; i >= 0; i--) {
-          final source = await _createAudioSource(results[i], lazy: true);
-          if (source != null) {
-             await _playlist.insert(0, source);
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("Error in background queueing: $e");
     }
   }
 }

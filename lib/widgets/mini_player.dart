@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/screens/player_screen.dart';
@@ -61,9 +62,9 @@ class MiniPlayer extends ConsumerWidget {
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
                           color: Colors.grey[800],
-                          child: const Icon(
+                          child: Icon(
                             FluentIcons.music_note_2_24_regular,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -78,20 +79,13 @@ class MiniPlayer extends ConsumerWidget {
                             mediaItem.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           ),
                           Text(
                             mediaItem.artist ?? '',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12),
                           ),
                         ],
                       ),
@@ -110,7 +104,7 @@ class MiniPlayer extends ConsumerWidget {
                                 isFav
                                     ? FluentIcons.heart_24_filled
                                     : FluentIcons.heart_24_regular,
-                                color: isFav ? Colors.red : Colors.white,
+                                color: isFav ? Colors.red : Theme.of(context).colorScheme.onSurface,
                                 size: 24,
                               ),
                               onPressed: () {
@@ -141,33 +135,43 @@ class MiniPlayer extends ConsumerWidget {
                         );
                       },
                     ),
-                    isPlayingAsync.when(
-                      data: (isPlaying) => IconButton(
-                        icon: Icon(
-                          isPlaying
-                              ? FluentIcons.pause_24_filled
-                              : FluentIcons.play_24_filled,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          if (isPlaying) {
-                            audioHandler.pause();
-                          } else {
-                            audioHandler.resume();
-                          }
-                        },
-                      ),
-                      loading: () => const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      error: (_, __) => const Icon(
-                        FluentIcons.error_circle_24_regular,
-                        size: 24,
-                      ),
+                    StreamBuilder<PlayerState>(
+                      stream: audioHandler.player.playerStateStream,
+                      builder: (context, snapshot) {
+                        final playerState = snapshot.data;
+                        final processingState = playerState?.processingState;
+                        final isPlaying = playerState?.playing ?? false;
+                        final isLoading = processingState == ProcessingState.loading || processingState == ProcessingState.buffering;
+
+                        if (isLoading) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12.0),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        return IconButton(
+                          icon: Icon(
+                            isPlaying
+                                ? FluentIcons.pause_24_filled
+                                : FluentIcons.play_24_filled,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            size: 28,
+                          ),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            if (isPlaying) {
+                              audioHandler.pause();
+                            } else {
+                              audioHandler.resume();
+                            }
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -193,14 +197,14 @@ class MiniPlayer extends ConsumerWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(1.5),
                         child: LinearProgressIndicator(
-                          value: value,
-                          minHeight:
-                              3, // Slightly thicker for visibility if shorter
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
+                           value: value,
+                           minHeight:
+                               3, // Slightly thicker for visibility if shorter
+                           backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
+                           valueColor: AlwaysStoppedAnimation<Color>(
+                             Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
+                           ),
+                         ),
                       ),
                     ),
                   );

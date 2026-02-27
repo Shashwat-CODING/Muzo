@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,6 +18,9 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen>
     with SingleTickerProviderStateMixin {
+  // 0 = intro, 1 = auth form
+  int _page = 0;
+
   late TabController _tabController;
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -37,6 +41,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _goToAuth({int tab = 0}) {
+    _tabController.animateTo(tab);
+    setState(() => _page = 1);
+  }
+
+  void _back() => setState(() => _page = 0);
+
+  void _skip() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => MainLayout(child: const HomeScreen())),
+    );
   }
 
   Future<void> _handleAuth() async {
@@ -70,7 +87,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       }
 
       if (mounted) {
-        showGlassSnackBar(context, 'Success! Welcome.');
+        showGlassSnackBar(context, 'Welcome to Muzo!');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => MainLayout(child: const HomeScreen()),
@@ -82,239 +99,465 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         showGlassSnackBar(context, e.toString().replaceAll('Exception: ', ''));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _skip() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => MainLayout(child: const HomeScreen())),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = Theme.of(context).colorScheme.surface;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
+    final orbColor1 = isDark
+        ? Colors.white.withValues(alpha: 0.04)
+        : const Color(0xFF6c63ff).withValues(alpha: 0.12);
+    final orbColor2 = isDark
+        ? Colors.white.withValues(alpha: 0.025)
+        : const Color(0xFF43c9b0).withValues(alpha: 0.10);
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: surface,
       body: Stack(
         children: [
-          // Subtle Dark Background with Blurred Orbs
-          Positioned.fill(
-            child: Container(color: const Color(0xFF121212)),
-          ),
+          // Background decorative orbs
           Positioned(
-            top: -100,
-            left: -100,
+            top: -120, left: -80,
             child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              imageFilter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
               child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05), // Spotify-like soft gray
-                ),
+                width: 340, height: 340,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: orbColor1),
               ),
             ),
           ),
           Positioned(
-            bottom: -50,
-            right: -50,
+            bottom: -80, right: -60,
             child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              imageFilter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
               child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.03),
-                ),
+                width: 280, height: 280,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: orbColor2),
               ),
             ),
           ),
 
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Glassmorphic Sleek Container
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                      child: Container(
-                        width: double.infinity,
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF181818).withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 30,
-                              offset: const Offset(0, 15),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                        // Header
-                        Image.asset('assets/logo.png', width: 100, height: 100),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Muzo',
-                          style: GoogleFonts.outfit(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+          // Page content
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 320),
+            transitionBuilder: (child, anim) => SlideTransition(
+              position: Tween<Offset>(
+                begin: _page == 0
+                    ? const Offset(-1, 0)
+                    : const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+              child: child,
+            ),
+            child: _page == 0
+                ? _IntroPage(
+                    key: const ValueKey('intro'),
+                    onLogin: () => _goToAuth(tab: 0),
+                    onSignup: () => _goToAuth(tab: 1),
+                    onGuest: _skip,
+                    onSurface: onSurface,
+                    isDark: isDark,
+                  )
+                : _AuthPage(
+                    key: const ValueKey('auth'),
+                    tabController: _tabController,
+                    usernameController: _usernameController,
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    isLoading: _isLoading,
+                    obscurePassword: _obscurePassword,
+                    onTogglePassword: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                    onAuth: _handleAuth,
+                    onBack: _back,
+                    onSurface: onSurface,
+                    isDark: isDark,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-                        // Tabs
-                        Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: TabBar(
-                            controller: _tabController,
-                            indicator: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            indicatorPadding: const EdgeInsets.all(4),
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            labelColor: Colors.black,
-                            unselectedLabelColor: Colors.grey,
-                            labelStyle: GoogleFonts.outfit(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            dividerColor: Colors.transparent,
-                            tabs: const [
-                              Tab(text: 'Login'),
-                              Tab(text: 'Sign Up'),
-                            ],
-                          ),
+// ─────────────────────────────────────────────
+// INTRO PAGE
+// ─────────────────────────────────────────────
+class _IntroPage extends ConsumerWidget {
+  final VoidCallback onLogin;
+  final VoidCallback onSignup;
+  final VoidCallback onGuest;
+  final Color onSurface;
+  final bool isDark;
+
+  const _IntroPage({
+    super.key,
+    required this.onLogin,
+    required this.onSignup,
+    required this.onGuest,
+    required this.onSurface,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Spacer(flex: 2),
+
+            // Logo + wordmark
+            Row(
+              children: [
+                Image.asset('assets/logo.png', width: 52, height: 52),
+                const SizedBox(width: 14),
+                Text(
+                  'Muzo',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                    color: onSurface,
+                    letterSpacing: -1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+
+            // Tagline
+            Text(
+              'Music without\nlimits.',
+              style: TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.w800,
+                color: onSurface,
+                height: 1.1,
+                letterSpacing: -1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Stream, discover, and vibe — all in one place. Free, forever.',
+              style: TextStyle(
+                fontSize: 15,
+                color: onSurface.withValues(alpha: 0.55),
+                height: 1.5,
+              ),
+            ),
+
+            // Feature pills
+            const SizedBox(height: 32),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _pill(context, Icons.music_note_rounded, 'Millions of songs'),
+                _pill(context, Icons.lyrics_rounded, 'Live lyrics'),
+                _pill(context, Icons.queue_music_rounded, 'Smart queue'),
+                _pill(context, Icons.offline_bolt_rounded, 'No ads'),
+              ],
+            ),
+
+            const Spacer(flex: 3),
+
+            // CTA Buttons
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () async {
+                  final authService = ref.read(authServiceProvider);
+                  try {
+                    await authService.loginWithGoogle();
+                    if (context.mounted) {
+                      showGlassSnackBar(context, 'Signed in with Google');
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => MainLayout(child: const HomeScreen()),
                         ),
-                        const SizedBox(height: 32),
-
-                        // Form Fields
-                        SizedBox(
-                          height: 200,
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              // Login
-                              Column(
-                                children: [
-                                  _buildTextField(
-                                    controller: _emailController,
-                                    hint: 'Email',
-                                    icon: FluentIcons.mail_24_regular,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildTextField(
-                                    controller: _passwordController,
-                                    hint: 'Password',
-                                    icon: FluentIcons.lock_closed_24_regular,
-                                    isPassword: true,
-                                  ),
-                                ],
-                              ),
-                              // Signup
-                              Column(
-                                children: [
-                                  _buildTextField(
-                                    controller: _usernameController,
-                                    hint: 'Username',
-                                    icon: FluentIcons.person_24_regular,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildTextField(
-                                    controller: _emailController,
-                                    hint: 'Email',
-                                    icon: FluentIcons.mail_24_regular,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildTextField(
-                                    controller: _passwordController,
-                                    hint: 'Password',
-                                    icon: FluentIcons.lock_closed_24_regular,
-                                    isPassword: true,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Action Button
-                        if (_isLoading)
-                          const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: _handleAuth,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: AnimatedBuilder(
-                                animation: _tabController,
-                                builder: (context, child) {
-                                  return Text(
-                                    _tabController.index == 0
-                                        ? 'Login'
-                                        : 'Create Account',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                      ],
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      showGlassSnackBar(context, e.toString().replaceAll('Exception: ', ''));
+                    }
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: onSurface,
+                  foregroundColor: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/google_logo.svg',
+                      width: 20,
+                      height: 20,
                     ),
+                    const SizedBox(width: 8),
+                    Text('Continue with Google',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton(
+                onPressed: onSignup,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: onSurface.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text('Sign up with Email',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton(
+                onPressed: onLogin,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: onSurface.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text('Log in',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: onSurface,
+                    )),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: onGuest,
+                child: Text(
+                  'Continue as Guest',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: onSurface.withValues(alpha: 0.45),
+                    decoration: TextDecoration.underline,
+                    decorationColor: onSurface.withValues(alpha: 0.25),
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
 
-                  const SizedBox(height: 24),
-                  TextButton(
-                    onPressed: _skip,
-                    child: Text(
-                      'Continue as Guest',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white54,
-                        fontSize: 14,
-                      ),
+  Widget _pill(BuildContext context, IconData icon, String label) {
+    final onSurf = Theme.of(context).colorScheme.onSurface;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: onSurf.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: onSurf.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: onSurf.withValues(alpha: 0.7)),
+          const SizedBox(width: 6),
+          Text(label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: onSurf.withValues(alpha: 0.7),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// AUTH FORM PAGE (Login / Signup tabs)
+// ─────────────────────────────────────────────
+class _AuthPage extends StatelessWidget {
+  final TabController tabController;
+  final TextEditingController usernameController;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool isLoading;
+  final bool obscurePassword;
+  final VoidCallback onTogglePassword;
+  final VoidCallback onAuth;
+  final VoidCallback onBack;
+  final Color onSurface;
+  final bool isDark;
+
+  const _AuthPage({
+    super.key,
+    required this.tabController,
+    required this.usernameController,
+    required this.emailController,
+    required this.passwordController,
+    required this.isLoading,
+    required this.obscurePassword,
+    required this.onTogglePassword,
+    required this.onAuth,
+    required this.onBack,
+    required this.onSurface,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          // Back button
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: onSurface, size: 20),
+              onPressed: onBack,
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+
+                  // Heading
+                  Text(
+                    'Welcome back',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: onSurface,
+                      letterSpacing: -1,
                     ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sign in to your account or create a new one',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Tab bar
+                  Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: onSurface.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: TabBar(
+                      controller: tabController,
+                      indicator: BoxDecoration(
+                        color: onSurface,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      indicatorPadding: const EdgeInsets.all(4),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: Theme.of(context).colorScheme.surface,
+                      unselectedLabelColor: onSurface.withValues(alpha: 0.5),
+                      labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                      dividerColor: Colors.transparent,
+                      tabs: const [Tab(text: 'Log in'), Tab(text: 'Sign up')],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Forms
+                  SizedBox(
+                    height: 220,
+                    child: TabBarView(
+                      controller: tabController,
+                      children: [
+                        // Login tab
+                        Column(
+                          children: [
+                            _buildField(context, controller: emailController,
+                                hint: 'Email', icon: FluentIcons.mail_24_regular),
+                            const SizedBox(height: 14),
+                            _buildField(context, controller: passwordController,
+                                hint: 'Password', icon: FluentIcons.lock_closed_24_regular,
+                                isPassword: true,
+                                obscure: obscurePassword,
+                                onToggle: onTogglePassword),
+                          ],
+                        ),
+                        // Signup tab
+                        Column(
+                          children: [
+                            _buildField(context, controller: usernameController,
+                                hint: 'Username', icon: FluentIcons.person_24_regular),
+                            const SizedBox(height: 14),
+                            _buildField(context, controller: emailController,
+                                hint: 'Email', icon: FluentIcons.mail_24_regular),
+                            const SizedBox(height: 14),
+                            _buildField(context, controller: passwordController,
+                                hint: 'Password', icon: FluentIcons.lock_closed_24_regular,
+                                isPassword: true,
+                                obscure: obscurePassword,
+                                onToggle: onTogglePassword),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Submit button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: isLoading
+                        ? Center(
+                            child: SizedBox(
+                              height: 24, width: 24,
+                              child: CircularProgressIndicator(
+                                  color: onSurface, strokeWidth: 2),
+                            ),
+                          )
+                        : FilledButton(
+                            onPressed: onAuth,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: onSurface,
+                              foregroundColor: Theme.of(context).colorScheme.surface,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: AnimatedBuilder(
+                              animation: tabController,
+                              builder: (_, __) => Text(
+                                tabController.index == 0 ? 'Log in' : 'Create account',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -325,52 +568,52 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildField(
+    BuildContext context, {
     required TextEditingController controller,
     required String hint,
     required IconData icon,
     bool isPassword = false,
+    bool obscure = false,
+    VoidCallback? onToggle,
   }) {
+    final onSurf = Theme.of(context).colorScheme.onSurface;
     return TextField(
       controller: controller,
-      obscureText: isPassword && _obscurePassword,
-      style: GoogleFonts.outfit(color: Colors.white),
-      cursorColor: Colors.white,
+      obscureText: isPassword && obscure,
+      style: TextStyle(color: onSurf),
+      cursorColor: onSurf,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.03),
-        hintStyle: GoogleFonts.outfit(color: Colors.white38),
-        prefixIcon: Icon(icon, color: Colors.white54, size: 20),
+        fillColor: onSurf.withValues(alpha: 0.06),
+        hintStyle: TextStyle(color: onSurf.withValues(alpha: 0.35)),
+        prefixIcon: Icon(icon, color: onSurf.withValues(alpha: 0.45), size: 20),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
-                  _obscurePassword
+                  obscure
                       ? FluentIcons.eye_24_regular
                       : FluentIcons.eye_off_24_regular,
-                  color: Colors.white38,
+                  color: onSurf.withValues(alpha: 0.4),
                   size: 20,
                 ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: onToggle,
               )
             : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: onSurf.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: onSurf.withValues(alpha: 0.35), width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

@@ -19,19 +19,16 @@ class HistoryScreen extends ConsumerWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            const SliverAppBar(
+            SliverAppBar(
               backgroundColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
               floating: true,
               pinned: false,
               title: Text(
                 'History',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
-              iconTheme: IconThemeData(color: Colors.white),
+              iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
             ),
 
             // Header / Clear Button
@@ -57,16 +54,16 @@ class HistoryScreen extends ConsumerWidget {
                         showAppAlertDialog(
                           context: context,
                           title: 'Clear History',
-                          content: const Text(
+                          content: Text(
                             'Are you sure you want to clear your listening history?',
-                            style: TextStyle(color: Colors.white70),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text(
+                              child: Text(
                                 'Cancel',
-                                style: TextStyle(color: Colors.white70),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                               ),
                             ),
                             TextButton(

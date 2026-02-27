@@ -27,12 +27,12 @@ class OfflineIndicator extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 14),
+              Icon(Icons.wifi_off_rounded, color: Theme.of(context).colorScheme.onSurface, size: 14),
               const SizedBox(width: 8),
               Text(
                 'You are offline',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),

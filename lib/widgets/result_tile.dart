@@ -164,12 +164,7 @@ class ResultTile extends ConsumerWidget {
                       result.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
-                      ),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -199,7 +194,7 @@ class ResultTile extends ConsumerWidget {
                         return subtitle;
                       }(),
                       style: TextStyle(
-                        color: Colors.grey[400],
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
                       ),
@@ -222,9 +217,9 @@ class ResultTile extends ConsumerWidget {
                       }
 
                       return IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           FluentIcons.more_vertical_24_regular,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 20,
                         ),
                         onPressed: () {

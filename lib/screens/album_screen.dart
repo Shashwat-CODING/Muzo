@@ -58,8 +58,8 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
         future: _albumFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            return Center(
+              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.onSurface),
             );
           }
           if (snapshot.hasError || snapshot.data == null) {
@@ -76,11 +76,11 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                 slivers: [
                   // App Bar (Hidden initially)
                   SliverAppBar(
-                    backgroundColor: Colors.black.withValues(alpha: 0.8),
+                    backgroundColor: (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.8),
                     pinned: true,
                     expandedHeight: 350,
                     leading: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
                       onPressed: () => Navigator.pop(context),
                     ),
                     flexibleSpace: FlexibleSpaceBar(
@@ -89,10 +89,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                         opacity: _opacity,
                         child: Text(
                           album.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         ),
                       ),
                       background: _buildHeader(album),
@@ -125,12 +122,12 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        leading: const BackButton(color: Colors.white),
+        leading: BackButton(color: Theme.of(context).colorScheme.onSurface),
       ),
-      body: const Center(
+      body: Center(
         child: Text(
           "Could not load album",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
     );
@@ -164,19 +161,12 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                       album.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${album.artist} • ${album.year}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                     ),
                   ],
                 ),
@@ -218,10 +208,10 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                 ref.read(audioHandlerProvider).playAll(tracksWithArt);
               },
               icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
-              label: const Text(
+              label: Text(
                 "Play",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.surface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -236,9 +226,9 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
           ),
           const SizedBox(width: 12),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               FluentIcons.arrow_download_24_regular,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             onPressed: () {
               // Future: Download album
@@ -253,27 +243,21 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
     return ListTile(
       leading: Text(
         '${index + 1}',
-        style: const TextStyle(color: Colors.grey, fontSize: 14),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 14),
       ),
       title: Text(
         song.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
       ),
       subtitle: Text(
         album.artist,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.7),
-          fontSize: 12,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 12),
       ),
       trailing: Text(
         song.duration ?? '',
-        style: const TextStyle(color: Colors.grey, fontSize: 12),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
       ),
       onTap: () {
         // Play single song - don't queue entire album

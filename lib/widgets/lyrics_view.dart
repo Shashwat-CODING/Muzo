@@ -62,12 +62,16 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+
     final customLyricStyle = LyricStyles.default1.copyWith(
-      activeHighlightColor: Colors.white,
-      activeStyle: GoogleFonts.outfit(
+      disableTouchEvent: !widget.scrollable,
+      activeHighlightColor: Theme.of(context).colorScheme.onSurface,
+      activeStyle: TextStyle(
+        fontFamily: fontFamily,
         fontSize: widget.isEmbedded ? 22 : 26,
         fontWeight: FontWeight.w800,
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.onSurface,
         height: 1.3,
         shadows: [
           Shadow(
@@ -77,10 +81,11 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
           ),
         ],
       ),
-      textStyle: GoogleFonts.outfit(
+      textStyle: TextStyle(
+        fontFamily: fontFamily,
         fontSize: widget.isEmbedded ? 17 : 20,
         fontWeight: FontWeight.w700,
-        color: Colors.white.withValues(alpha: 0.3),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
         height: 1.3,
         shadows: [
           Shadow(
@@ -90,10 +95,11 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
           ),
         ],
       ),
-      translationStyle: GoogleFonts.outfit(
+      translationStyle: TextStyle(
+        fontFamily: fontFamily,
         fontSize: widget.isEmbedded ? 14 : 16,
         fontWeight: FontWeight.w600,
-        color: Colors.white.withValues(alpha: 0.6),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
         shadows: [
           Shadow(
             offset: const Offset(0, 1),
@@ -114,14 +120,14 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
               children: [
                 Text(
                   "Lyrics",
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface),
                   onPressed: widget.onClose,
                 ),
               ],
@@ -136,23 +142,13 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
                   isEmbedded: widget.isEmbedded,
                   scrollable: widget.scrollable,
                 )
-              : widget.scrollable
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 14.0),
-                      child: LyricView(
-                        controller: _lyricController,
-                        style: customLyricStyle,
-                      ),
-                    )
-                  : AbsorbPointer(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 14.0),
-                        child: LyricView(
-                          controller: _lyricController,
-                          style: customLyricStyle,
-                        ),
-                      ),
-                    ),
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 14.0),
+                  child: LyricView(
+                    controller: _lyricController,
+                    style: customLyricStyle,
+                  ),
+                ),
         ),
       ],
     );

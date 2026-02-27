@@ -54,7 +54,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final suggestionsAsync = ref.watch(
       searchSuggestionsProvider(_searchController.text),
     );
-    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -69,27 +68,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: GlassContainer(
                 borderRadius: BorderRadius.circular(24),
                 blur: 10,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   cursorColor: Colors.white,
                   decoration: InputDecoration(
                     hintText: 'Search songs, albums, artists',
                     hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                     filled: false, // GlassContainer handles background
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       FluentIcons.search_24_regular,
-                      color: Colors.white70,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       size: 22,
                     ),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               FluentIcons.dismiss_24_regular,
-                              color: Colors.white70,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               size: 22,
                             ),
                             onPressed: () {
@@ -124,17 +123,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    _buildFilterChip('Channels', currentFilter, isLiteMode),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Songs', currentFilter, isLiteMode),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Albums', currentFilter, isLiteMode),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Videos', currentFilter, isLiteMode),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Artists', currentFilter, isLiteMode),
                     const SizedBox(width: 8),
-                    _buildFilterChip('Playlists', currentFilter, isLiteMode),
                   ],
                 ),
               ),
@@ -156,7 +149,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                               title: Text(
                                 suggestion,
-                                style: const TextStyle(color: Colors.white),
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                               ),
                               onTap: () => _performSearch(suggestion),
                             );
@@ -199,7 +192,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       backgroundColor: Colors.white.withValues(
                                         alpha: 0.1,
                                       ),
-                                      foregroundColor: Colors.white,
+                                      foregroundColor: Theme.of(context).colorScheme.onSurface,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
                                       ),
@@ -229,12 +222,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String currentFilter, bool isLiteMode) {
+  Widget _buildFilterChip(String label, String currentFilter) {
     final isSelected = label.toLowerCase() == currentFilter.toLowerCase();
 
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
+        color: isSelected ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.transparent, width: 0),
       ),
@@ -250,7 +243,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.black : Colors.white,
+                color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),

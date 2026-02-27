@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/services/storage_service.dart';
 
@@ -11,6 +12,16 @@ final authServiceProvider = Provider<AuthService>((ref) {
 class AuthService {
   final StorageService _storage;
   static const String _baseUrl = 'https://veltrixcode-ytify.hf.space/api/auth';
+  static const String _webClientId = '1023316916513-0ceeamcb82h4c5j27p7pnrbq0fl9udhd.apps.googleusercontent.com';
+  static const String _androidClientId = '1023316916513-gf1k3aqschlblasfafsl0bs4mcc1ebcn.apps.googleusercontent.com';
+
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId: _webClientId,
+    clientId: defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS
+        ? null
+        : _androidClientId,
+  );
 
   AuthService(this._storage);
 
@@ -61,7 +72,44 @@ class AuthService {
     }
   }
 
+  Future<void> loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return; 
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception('Failed to get ID token from Google.');
+      }
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+        final user = data['user'];
+
+        await _storage.setAuthToken(token);
+        await _storage.setUserInfo(user['username'], user['email']);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? 'Google Login failed on server');
+      }
+    } catch (e) {
+      throw Exception('Google Sign-In Error: $e');
+    }
+  }
+
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await _storage.clearUserSession();
   }
 

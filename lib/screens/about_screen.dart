@@ -1,6 +1,7 @@
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:muzo/widgets/global_background.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -13,13 +14,9 @@ class AboutScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: const Text(
+          title: Text(
             'About',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: '.SF Pro Text',
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           centerTitle: true,
         ),
@@ -53,15 +50,9 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Muzo',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: '.SF Pro Display',
-                    letterSpacing: 0.5,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -102,15 +93,17 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 48),
-                _buildInfoRow(FluentIcons.info_24_regular, 'Version', '1.2.0'),
+                _buildInfoRow(context, FluentIcons.info_24_regular, 'Version', '2.1.6'),
                 const SizedBox(height: 16),
                 _buildInfoRow(
+                  context,
                   FluentIcons.person_24_regular,
                   'Developer',
                   'Shashwat',
                 ),
                 const SizedBox(height: 16),
                 _buildInfoRow(
+                  context,
                   FluentIcons.laptop_24_regular,
                   'Platform',
                   'Flutter',
@@ -125,12 +118,12 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
     return Container(
       width: 320,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -148,12 +141,7 @@ class AboutScreen extends StatelessWidget {
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: '.SF Pro Text',
-            ),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
         ],
       ),

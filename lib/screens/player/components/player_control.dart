@@ -44,7 +44,7 @@ class PlayerControlWidget extends ConsumerWidget {
                           mediaItem?.title ?? "NA",
                           textAlign: TextAlign.start,
                           style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
@@ -60,7 +60,9 @@ class PlayerControlWidget extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(
                           context,
-                        ).textTheme.bodyMedium!.copyWith(color: Colors.white70),
+                        ).textTheme.bodyMedium!.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
                       ),
                     ),
                   ],
@@ -68,9 +70,9 @@ class PlayerControlWidget extends ConsumerWidget {
               ),
               // Queue Button
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   FluentIcons.list_24_regular,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () {
                   showModalBottomSheet(
@@ -90,11 +92,13 @@ class PlayerControlWidget extends ConsumerWidget {
                             child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                               child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.75),
+                              decoration: BoxDecoration(
+                                  color: (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.black
+                                      : Colors.white).withValues(alpha: 0.85),
                                   border: Border(
                                     top: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.15),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
                                       width: 1.0,
                                     ),
                                   ),
@@ -129,7 +133,7 @@ class PlayerControlWidget extends ConsumerWidget {
                           isFav
                               ? FluentIcons.heart_24_filled
                               : FluentIcons.heart_24_regular,
-                          color: isFav ? Colors.red : Colors.white,
+                          color: isFav ? Colors.red : Theme.of(context).colorScheme.onSurface,
                         ),
                         onPressed: () {
                           // Reconstruct YtifyResult
@@ -183,10 +187,10 @@ class PlayerControlWidget extends ConsumerWidget {
 
             return Consumer(
               builder: (context, ref, child) {
-                final thumbColor = Colors.white;
-                final progressBarColor = Colors.white;
-                final baseBarColor = Colors.white.withValues(alpha: 0.2);
-                final bufferedBarColor = Colors.white.withValues(alpha: 0.35);
+                final thumbColor = Theme.of(context).colorScheme.onSurface;
+                final progressBarColor = Theme.of(context).colorScheme.onSurface;
+                final baseBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
+                final bufferedBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35);
 
                 return ProgressBar(
                   thumbRadius: 6,
@@ -200,7 +204,7 @@ class PlayerControlWidget extends ConsumerWidget {
                   timeLabelTextStyle: Theme.of(context)
                       .textTheme
                       .labelMedium!
-                      .copyWith(color: Colors.white70),
+                      .copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                   progress: position,
                   total: duration,
                   onSeek: (duration) {
@@ -229,7 +233,9 @@ class PlayerControlWidget extends ConsumerWidget {
                   },
                   icon: Icon(
                     FluentIcons.arrow_shuffle_24_regular,
-                    color: shuffleEnabled ? Colors.white : Colors.white38,
+                    color: shuffleEnabled
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 );
               },
@@ -237,28 +243,41 @@ class PlayerControlWidget extends ConsumerWidget {
 
             // Previous
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 FluentIcons.previous_24_filled,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 size: 30,
               ),
               onPressed: () => audioHandler.skipToPrevious(),
             ),
 
             // Play/Pause
-            StreamBuilder<bool>(
-              stream: player.playingStream,
+            StreamBuilder<PlayerState>(
+              stream: player.playerStateStream,
               builder: (context, snapshot) {
-                final playing = snapshot.data ?? false;
+                final playerState = snapshot.data;
+                final processingState = playerState?.processingState;
+                final playing = playerState?.playing ?? false;
+                final isLoading = processingState == ProcessingState.loading || processingState == ProcessingState.buffering;
+
                 return CircleAvatar(
                   radius: 35,
-                  backgroundColor: Colors.white,
-                  child: IconButton(
+                  backgroundColor: Theme.of(context).colorScheme.onSurface,
+                  child: isLoading 
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Theme.of(context).colorScheme.surface,
+                          ),
+                        )
+                      : IconButton(
                     icon: Icon(
                       playing
                           ? FluentIcons.pause_24_filled
                           : FluentIcons.play_24_filled,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.surface,
                       size: 35,
                     ),
                     onPressed: () {
@@ -275,9 +294,9 @@ class PlayerControlWidget extends ConsumerWidget {
 
             // Next
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 FluentIcons.next_24_filled,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 size: 30,
               ),
               onPressed: () => audioHandler.skipToNext(),
@@ -303,8 +322,8 @@ class PlayerControlWidget extends ConsumerWidget {
                         ? FluentIcons.arrow_repeat_1_24_regular
                         : FluentIcons.arrow_repeat_all_24_regular,
                     color: loopMode != LoopMode.off
-                        ? Colors.white
-                        : Colors.white38,
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 );
               },

@@ -87,26 +87,28 @@ class _KaraokeViewState extends State<KaraokeView> {
   Widget build(BuildContext context) {
     final double fontSize = widget.isEmbedded ? 22.0 : 26.0;
 
-    return ListView.builder(
+    return SingleChildScrollView(
       controller: _scrollController,
       physics: widget.scrollable
           ? const BouncingScrollPhysics()
           : const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-      itemCount: widget.lines.length,
-      itemBuilder: (context, index) {
-        final line = widget.lines[index];
-        final bool isActive = index == _activeLineIndex;
-        final bool isPast = index < _activeLineIndex;
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: List.generate(widget.lines.length, (index) {
+          final line = widget.lines[index];
+          final bool isActive = index == _activeLineIndex;
+          final bool isPast = index < _activeLineIndex;
 
-        return Padding(
-          key: _lineKeys[index],
-          padding: const EdgeInsets.only(bottom: 20),
-          child: isActive
-              ? _buildActiveLine(line, fontSize)
-              : _buildInactiveLine(line, fontSize, isPast),
-        );
-      },
+          return Padding(
+            key: _lineKeys[index],
+            padding: const EdgeInsets.only(bottom: 20),
+            child: isActive
+                ? _buildActiveLine(line, fontSize)
+                : _buildInactiveLine(line, fontSize, isPast),
+          );
+        }),
+      ),
     );
   }
 
@@ -136,11 +138,13 @@ class _KaraokeViewState extends State<KaraokeView> {
       spans.add(TextSpan(
         // API text already includes trailing space — do NOT trim it
         text: syl.text,
-        style: GoogleFonts.outfit(
+        style: TextStyle(
           fontSize: fontSize,
           // Keep weight FIXED at w700 for all words to prevent layout reflow
           fontWeight: FontWeight.w700,
-          color: isCurrent ? Colors.white : Colors.white.withValues(alpha: 0.3),
+          color: isCurrent
+              ? Theme.of(context).colorScheme.onSurface
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
           height: 1.35,
           shadows: isCurrent
               ? [Shadow(offset: const Offset(0, 2), blurRadius: 8, color: Colors.black.withValues(alpha: 0.3))]
@@ -148,18 +152,17 @@ class _KaraokeViewState extends State<KaraokeView> {
         ),
       ));
     }
-
-    return RichText(text: TextSpan(children: spans));
+    return Text.rich(TextSpan(children: spans));
   }
 
   /// Inactive lines: uniformly liquid-glass
   Widget _buildInactiveLine(KaraokeLine line, double fontSize, bool isPast) {
     return Text(
       line.fullText,
-      style: GoogleFonts.outfit(
+      style: TextStyle(
         fontSize: fontSize,
         fontWeight: FontWeight.w700,
-        color: Colors.white.withValues(alpha: isPast ? 0.18 : 0.28),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: isPast ? 0.18 : 0.28),
         height: 1.35,
       ),
     );

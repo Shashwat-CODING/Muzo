@@ -100,9 +100,9 @@ class HorizontalResultCard extends ConsumerWidget {
                       width: width,
                       height: isVideo ? width * 9 / 16 : width,
                       color: Colors.grey[900],
-                      child: const Icon(
+                      child: Icon(
                         FluentIcons.music_note_2_24_regular,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -121,11 +121,7 @@ class HorizontalResultCard extends ConsumerWidget {
                         ),
                         child: Text(
                           result.duration!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
@@ -136,11 +132,7 @@ class HorizontalResultCard extends ConsumerWidget {
             // Title
             Text(
               result.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -150,7 +142,7 @@ class HorizontalResultCard extends ConsumerWidget {
               result.artists?.map((a) => a.name).join(', ') ??
                   result.views ??
                   '',
-              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

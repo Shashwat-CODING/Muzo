@@ -85,11 +85,7 @@ class LibraryTile extends StatelessWidget {
         title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
       ),
       subtitle: subtitle != null
           ? Row(
@@ -110,7 +106,7 @@ class LibraryTile extends StatelessWidget {
                     subtitle!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
                   ),
                 ),
               ],

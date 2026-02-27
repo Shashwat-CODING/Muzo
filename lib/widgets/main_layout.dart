@@ -115,8 +115,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          const Color(0xFF121212).withValues(alpha: 0.6), // Visible top
-                          const Color(0xFF121212), // Solid bottom
+                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.6),
+                          Theme.of(context).scaffoldBackgroundColor,
                         ],
                       ),
                     ),
@@ -155,16 +155,23 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         isPlayerExpandedProvider,
                       );
 
-                      Color miniPlayerColor = const Color(
-                        0xff404040,
-                      ).withValues(alpha: 1.0); // Opaque default
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      Color miniPlayerColor = isDark
+                          ? const Color(0xff404040)
+                          : Colors.white;
                       if (palette != null) {
-                        miniPlayerColor =
-                            (palette.darkVibrantColor?.color ??
-                                    palette.darkMutedColor?.color ??
-                                    palette.dominantColor?.color ??
-                                    const Color(0xff404040))
-                                .withValues(alpha: 1.0);
+                        final extracted =
+                            palette.darkVibrantColor?.color ??
+                            palette.darkMutedColor?.color ??
+                            palette.dominantColor?.color ??
+                            const Color(0xff404040);
+                        if (isDark) {
+                          // Dark mode: use extracted color (blended with dark)
+                          miniPlayerColor = Color.lerp(const Color(0xff303030), extracted, 0.6)!;
+                        } else {
+                          // Light mode: 50% white + 50% extracted
+                          miniPlayerColor = Color.lerp(Colors.white, extracted, 0.5)!;
+                        }
                       }
 
                       return mediaItemAsync.maybeWhen(
@@ -175,7 +182,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             child: AnimatedOpacity(
                               duration: const Duration(milliseconds: 200),
                               opacity: isPlayerExpandedVal ? 0.0 : 1.0,
-                              child: Container(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
                                 margin: const EdgeInsets.only(
                                   bottom: 0,
                                 ), // No gap
@@ -230,7 +239,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   Widget _buildBottomSheetOverlay(WidgetRef ref) {
     final sheetState = ref.watch(bottomSheetProvider);
-    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
     final isVisible = sheetState.isVisible && sheetState.result != null;
 
     // Trigger animation when visibility changes
@@ -269,9 +277,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
         // Get the same background color used in GlobalBackground
         final theme = Theme.of(context);
-        final sheetBackgroundColor = isLiteMode
-            ? Colors.black
-            : theme.scaffoldBackgroundColor;
+        final sheetBackgroundColor = theme.scaffoldBackgroundColor;
 
         return GestureDetector(
           onTap: () => _hideSheetWithAnimation(ref),
@@ -290,29 +296,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(24),
                       ),
-                      child: isLiteMode
-                          ? Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: sheetBackgroundColor,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(24),
-                                ),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: SafeArea(
-                                top: false,
-                                child: SongOptionsMenu(
-                                  result: displayResult,
-                                  fromHistory: displayFromHistory,
-                                  fromPlayer: displayFromPlayer,
-                                  onClose: () => _hideSheetWithAnimation(ref),
-                                ),
-                              ),
-                            )
-                          : BackdropFilter(
+                      child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                               child: Container(
                                 width: double.infinity,
@@ -466,7 +450,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
           children: [
             Icon(
               isSelected ? iconFilled : iconRegular,
-              color: isSelected ? Colors.white : const Color(0xffb3b3b3),
+              color: isSelected
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               size: 26,
             ),
             const SizedBox(height: 4),
@@ -474,7 +460,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
               label,
               maxLines: 1,
               style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xffb3b3b3),
+                color: isSelected
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
               ),

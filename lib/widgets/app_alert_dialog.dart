@@ -20,7 +20,7 @@ class AppAlertDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: GlassContainer(
         borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFF1E1E1E),
+        color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
         opacity: 0.7,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -31,20 +31,13 @@ class AppAlertDialog extends StatelessWidget {
               child: Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: DefaultTextStyle(
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                 child: content,
               ),
             ),

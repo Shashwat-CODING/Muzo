@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'package:muzo/models/user_data.dart';
 import 'package:muzo/services/auth_service.dart';
@@ -15,6 +15,13 @@ final musicApiServiceProvider = Provider<MusicApiService>((ref) {
 class MusicApiService {
   final StorageService _storage;
   late final AuthService _auth;
+  final Dio _client = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 15),
+    ),
+  );
 
   MusicApiService(this._storage) {
     _auth = AuthService(_storage);
@@ -30,10 +37,11 @@ class MusicApiService {
     };
   }
 
-  Future<http.Response> _retryWithRefresh(
-    Future<http.Response> Function() request, {
+  Future<Response<T>> _retryWithRefresh<T>(
+    Future<Response<T>> Function() request, {
     Duration timeout = const Duration(seconds: 30),
   }) async {
+    // Dio timeout is set on _client, but we use Future.timeout for the whole op
     var response = await request().timeout(timeout);
 
     if (response.statusCode == 403) {
@@ -53,12 +61,15 @@ class MusicApiService {
   Future<UserData> getUserData() async {
     // /user/data can be slow on cold-start, give it a longer timeout via the param
     final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/user/data'), headers: _headers),
+      () => _client.get(
+        '$_baseUrl/user/data',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      ),
       timeout: const Duration(seconds: 200),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       return UserData.fromJson(data);
     } else {
       throw Exception('Failed to load user data');
@@ -69,11 +80,14 @@ class MusicApiService {
 
   Future<List<YtifyResult>> getHistory() async {
     final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/history'), headers: _headers),
+      () => _client.get(
+        '$_baseUrl/history',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       final List<dynamic> list = data['history'];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
@@ -83,10 +97,10 @@ class MusicApiService {
 
   Future<void> addToHistory(YtifyResult song) async {
     final response = await _retryWithRefresh(
-      () => http.post(
-        Uri.parse('$_baseUrl/history'),
-        headers: _headers,
-        body: jsonEncode(song.toJson()),
+      () => _client.post(
+        '$_baseUrl/history',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+        data: song.toJson(),
       ),
     );
 
@@ -97,9 +111,9 @@ class MusicApiService {
 
   Future<void> removeFromHistory(String videoId) async {
     final response = await _retryWithRefresh(
-      () => http.delete(
-        Uri.parse('$_baseUrl/history/$videoId'),
-        headers: _headers,
+      () => _client.delete(
+        '$_baseUrl/history/$videoId',
+        options: Options(headers: _headers, validateStatus: (status) => true),
       ),
     );
 
@@ -110,7 +124,10 @@ class MusicApiService {
 
   Future<void> clearHistory() async {
     final response = await _retryWithRefresh(
-      () => http.delete(Uri.parse('$_baseUrl/history'), headers: _headers),
+      () => _client.delete(
+        '$_baseUrl/history',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      ),
     );
 
     if (response.statusCode != 200) {
@@ -122,11 +139,14 @@ class MusicApiService {
 
   Future<List<YtifyResult>> getFavorites() async {
     final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/favorites'), headers: _headers),
+      () => _client.get(
+        '$_baseUrl/favorites',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       final List<dynamic> list = data['favorites'];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
@@ -136,10 +156,10 @@ class MusicApiService {
 
   Future<void> addToFavorites(YtifyResult song) async {
     final response = await _retryWithRefresh(
-      () => http.post(
-        Uri.parse('$_baseUrl/favorites'),
-        headers: _headers,
-        body: jsonEncode(song.toJson()),
+      () => _client.post(
+        '$_baseUrl/favorites',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+        data: song.toJson(),
       ),
     );
 
@@ -150,9 +170,9 @@ class MusicApiService {
 
   Future<void> removeFromFavorites(String videoId) async {
     final response = await _retryWithRefresh(
-      () => http.delete(
-        Uri.parse('$_baseUrl/favorites/$videoId'),
-        headers: _headers,
+      () => _client.delete(
+        '$_baseUrl/favorites/$videoId',
+        options: Options(headers: _headers, validateStatus: (status) => true),
       ),
     );
 
@@ -165,11 +185,14 @@ class MusicApiService {
 
   Future<List<Map<String, dynamic>>> getPlaylists() async {
     final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/playlists'), headers: _headers),
+      () => _client.get(
+        '$_baseUrl/playlists',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       return List<Map<String, dynamic>>.from(data['playlists']);
     } else {
       throw Exception('Failed to load playlists');
@@ -178,14 +201,14 @@ class MusicApiService {
 
   Future<List<YtifyResult>> getPlaylistSongs(String playlistName) async {
     final response = await _retryWithRefresh(
-      () => http.get(
-        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
-        headers: _headers,
+      () => _client.get(
+        '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}',
+        options: Options(headers: _headers, validateStatus: (status) => true),
       ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       final List<dynamic> list = data['playlist'];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
@@ -195,10 +218,10 @@ class MusicApiService {
 
   Future<void> addToPlaylist(String playlistName, YtifyResult song) async {
     final response = await _retryWithRefresh(
-      () => http.post(
-        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
-        headers: _headers,
-        body: jsonEncode(song.toJson()),
+      () => _client.post(
+        '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+        data: song.toJson(),
       ),
     );
 
@@ -209,10 +232,10 @@ class MusicApiService {
 
   Future<void> createPlaylist(String name) async {
     final response = await _retryWithRefresh(
-      () => http.post(
-        Uri.parse('$_baseUrl/playlists'),
-        headers: _headers,
-        body: jsonEncode({'name': name}),
+      () => _client.post(
+        '$_baseUrl/playlists',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+        data: {'name': name},
       ),
     );
 
@@ -223,9 +246,9 @@ class MusicApiService {
 
   Future<void> deletePlaylist(String playlistName) async {
     final response = await _retryWithRefresh(
-      () => http.delete(
-        Uri.parse('$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}'),
-        headers: _headers,
+      () => _client.delete(
+        '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}',
+        options: Options(headers: _headers, validateStatus: (status) => true),
       ),
     );
 
@@ -239,11 +262,9 @@ class MusicApiService {
     String videoId,
   ) async {
     final response = await _retryWithRefresh(
-      () => http.delete(
-        Uri.parse(
-          '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}/songs/$videoId',
-        ),
-        headers: _headers,
+      () => _client.delete(
+        '$_baseUrl/playlists/${Uri.encodeComponent(playlistName)}/songs/$videoId',
+        options: Options(headers: _headers, validateStatus: (status) => true),
       ),
     );
 
@@ -256,11 +277,14 @@ class MusicApiService {
 
   Future<List<YtifyResult>> getSubscriptions() async {
     final response = await _retryWithRefresh(
-      () => http.get(Uri.parse('$_baseUrl/subscriptions'), headers: _headers),
+      () => _client.get(
+        '$_baseUrl/subscriptions',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      ),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       final List<dynamic> list = data['subscriptions'];
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } else {
@@ -270,10 +294,10 @@ class MusicApiService {
 
   Future<void> addSubscription(YtifyResult channel) async {
     final response = await _retryWithRefresh(
-      () => http.post(
-        Uri.parse('$_baseUrl/subscriptions'),
-        headers: _headers,
-        body: jsonEncode(channel.toJson()),
+      () => _client.post(
+        '$_baseUrl/subscriptions',
+        options: Options(headers: _headers, validateStatus: (status) => true),
+        data: channel.toJson(),
       ),
     );
 
@@ -284,9 +308,9 @@ class MusicApiService {
 
   Future<void> removeSubscription(String browseId) async {
     final response = await _retryWithRefresh(
-      () => http.delete(
-        Uri.parse('$_baseUrl/subscriptions/$browseId'),
-        headers: _headers,
+      () => _client.delete(
+        '$_baseUrl/subscriptions/$browseId',
+        options: Options(headers: _headers, validateStatus: (status) => true),
       ),
     );
 
@@ -297,20 +321,38 @@ class MusicApiService {
 
   Future<List<YtifyResult>> getUpNext(String videoId) async {
     try {
-      final uri = Uri.parse(
-        'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task?videoId=$videoId',
+      final uri = 'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task?videoId=$videoId';
+      debugPrint('UPNEXT API Request: $uri');
+      final response = await _client.get(
+        uri, 
+        options: Options(
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+          validateStatus: (status) => true,
+        ),
       );
-      final response = await http.get(uri);
+      debugPrint('UPNEXT API Response [${response.statusCode}]');
+      debugPrint('UPNEXT RAW DATA: ${response.data.toString().substring(0, (response.data.toString().length > 300) ? 300 : response.data.toString().length)}');
 
       if (response.statusCode != 200) {
         debugPrint('UpNext API Error: ${response.statusCode}');
         return [];
       }
 
-      final data = jsonDecode(response.body);
-      if (data['success'] != true) return [];
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
+      debugPrint('UPNEXT data keys: ${(data as Map).keys.toList()}');
+      if (data['success'] != true) {
+        debugPrint('UPNEXT: success != true, data: $data');
+        return [];
+      }
 
-      final List<dynamic> list = data['upNext'];
+      final List<dynamic>? list = data['upNext'] as List?;
+      if (list == null) {
+        debugPrint('UPNEXT: upNext key is null');
+        return [];
+      }
       return list.map((e) => YtifyResult.fromJson(e)).toList();
     } catch (e) {
       debugPrint('Error fetching Up Next: $e');

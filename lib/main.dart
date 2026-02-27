@@ -10,6 +10,7 @@ import 'package:muzo/services/notification_service.dart';
 
 import 'package:muzo/widgets/main_layout.dart';
 import 'package:muzo/providers/theme_provider.dart';
+import 'package:muzo/providers/settings_provider.dart';
 import 'package:muzo/services/auth_service.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 
@@ -53,10 +54,17 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
+        final themeType = ref.watch(settingsProvider).themeType;
+        final platformBrightness = MediaQuery.platformBrightnessOf(context);
+        final effectiveBrightness = themeType == ThemeType.auto
+            ? platformBrightness
+            : (themeType == ThemeType.light ? Brightness.light : Brightness.dark);
+        final selectedDynamic = effectiveBrightness == Brightness.light ? lightDynamic : darkDynamic;
+        
         // Use Future.microtask to avoid set during build error
         Future.microtask(() {
-          if (ref.read(dynamicColorSchemeProvider) != darkDynamic) {
-            ref.read(dynamicColorSchemeProvider.notifier).state = darkDynamic;
+          if (ref.read(dynamicColorSchemeProvider) != selectedDynamic) {
+            ref.read(dynamicColorSchemeProvider.notifier).state = selectedDynamic;
           }
         });
 

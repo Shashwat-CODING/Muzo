@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:async';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -27,7 +28,6 @@ class StandardPlayer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.of(context).size;
     final mediaItemAsync = ref.watch(currentMediaItemProvider);
-    final isLiteMode = ref.watch(settingsProvider).isLiteMode;
 
     double playerArtImageSize = size.width - 50;
     final spaceAvailableForArtImage =
@@ -73,8 +73,8 @@ class StandardPlayer extends ConsumerWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.8),
+                    (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.3),
+                    (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.8),
                   ],
                 ),
               ),
@@ -187,10 +187,10 @@ class StandardPlayer extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.keyboard_arrow_down,
                   size: 28,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () {
                   // Logic to close player
@@ -204,30 +204,23 @@ class StandardPlayer extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 8.0, left: 5, right: 5),
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         "PLAYING FROM",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                       ),
                       mediaItemAsync.when(
                         data: (item) => Text(
                           "\"${item?.album ?? 'Unknown'}\"",
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         ),
-                        loading: () => const Text(
+                        loading: () => Text(
                           "Loading...",
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         ),
-                        error: (_, __) => const Text(
+                        error: (_, __) => Text(
                           "Error",
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         ),
                       ),
                     ],
@@ -236,10 +229,10 @@ class StandardPlayer extends ConsumerWidget {
               ),
 
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_vert,
                   size: 25,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () {
                   mediaItemAsync.whenData((mediaItem) {
@@ -284,14 +277,14 @@ class _GesturePlayer extends ConsumerStatefulWidget {
 
 class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
   bool _showIcon = false;
-  bool _isPlaying = false;
+  IconData _currentIcon = FluentIcons.play_48_filled;
   Timer? _iconTimer;
 
-  void _triggerAnimation(bool isPlaying) {
+  void _triggerAnimation(IconData icon) {
     _iconTimer?.cancel();
     setState(() {
       _showIcon = true;
-      _isPlaying = isPlaying;
+      _currentIcon = icon;
     });
     _iconTimer = Timer(const Duration(milliseconds: 600), () {
       if (mounted) {
@@ -386,7 +379,6 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
             ),
           ),
 
-        // Gesture Detector covering the screen
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
@@ -399,7 +391,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                } else {
                  player.play();
                }
-               _triggerAnimation(willPlay);
+               _triggerAnimation(willPlay ? FluentIcons.play_48_filled : FluentIcons.pause_48_filled);
             },
             onHorizontalDragEnd: (details) {
               if (details.primaryVelocity == null) return;
@@ -409,9 +401,11 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               if (details.primaryVelocity! < -100) {
                 // Swipe Left -> Next
                 handler.skipToNext();
+                _triggerAnimation(FluentIcons.next_24_filled);
               } else if (details.primaryVelocity! > 100) {
                 // Swipe Right -> Previous
                 handler.skipToPrevious();
+                _triggerAnimation(FluentIcons.previous_24_filled);
               }
             },
             onVerticalDragStart: (details) {
@@ -460,7 +454,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                 } else {
                   player.play();
                 }
-                _triggerAnimation(willPlay);
+                _triggerAnimation(willPlay ? FluentIcons.play_48_filled : FluentIcons.pause_48_filled);
               },
               // Right-side vertical drag → volume (same as background)
               onVerticalDragStart: (details) {
@@ -508,17 +502,47 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               duration: const Duration(milliseconds: 200),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black54,
+                  color: (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white).withValues(alpha: 0.55),
                   shape: BoxShape.circle,
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Icon(
-                  _isPlaying ? FluentIcons.play_48_filled : FluentIcons.pause_48_filled,
-                  color: Colors.white,
+                  _currentIcon,
+                  color: Theme.of(context).colorScheme.onSurface,
                   size: 48,
                 ),
               ),
             ),
+          ),
+        ),
+
+        // Loading Spinner Overlay
+        Center(
+          child: StreamBuilder<PlayerState>(
+            stream: ref.watch(audioHandlerProvider).player.playerStateStream,
+            builder: (context, snapshot) {
+              final playerState = snapshot.data;
+              final processingState = playerState?.processingState;
+              final isLoading = processingState == ProcessingState.loading || processingState == ProcessingState.buffering;
+              if (isLoading && !_showIcon) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white).withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ),
 
@@ -533,77 +557,45 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
               duration: const Duration(milliseconds: 200),
               child: Center(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                     child: Container(
-                      width: 52,
-                      height: 220,
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                      width: 48,
+                      height: 240,
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          width: 0.8,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                          width: 1,
                         ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
                         children: [
-                          Icon(
-                            _currentVolume == 0
-                                ? FluentIcons.speaker_mute_24_filled
-                                : _currentVolume < 0.5
-                                    ? FluentIcons.speaker_1_24_filled
-                                    : FluentIcons.speaker_2_24_filled,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Stack(
-                                alignment: Alignment.bottomCenter,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                  FractionallySizedBox(
-                                    heightFactor: _currentVolume,
-                                    child: Container(
-                                      width: 6,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(6),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.white.withValues(alpha: 0.6),
-                                            blurRadius: 6,
-                                            spreadRadius: 1,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                          FractionallySizedBox(
+                            heightFactor: _currentVolume,
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.95),
+                                borderRadius: BorderRadius.circular(24),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${(_currentVolume * 100).round()}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                          Positioned(
+                            bottom: 16,
+                            child: Icon(
+                              _currentVolume == 0
+                                  ? FluentIcons.speaker_mute_24_filled
+                                  : _currentVolume < 0.5
+                                      ? FluentIcons.speaker_1_24_filled
+                                      : FluentIcons.speaker_2_24_filled,
+                              color: _currentVolume > 0.15
+                                  ? Theme.of(context).colorScheme.surface
+                                  : Theme.of(context).colorScheme.onSurface,
+                              size: 24,
                             ),
                           ),
                         ],
@@ -632,9 +624,13 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.35),
+                    color: (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white).withValues(alpha: 0.40),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+                        width: 0.5),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -650,9 +646,8 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                               duration: const Duration(seconds: 10),
                               child: Text(
                                 widget.mediaItemAsync.value?.title ?? "Unknown Title",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
+                                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 textAlign: TextAlign.start,
@@ -661,9 +656,9 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                           ),
                           // Queue Button
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               FluentIcons.list_24_regular,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             onPressed: () {
                               showModalBottomSheet(
@@ -684,10 +679,12 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                                           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                                           child: Container(
                                             decoration: BoxDecoration(
-                                              color: Colors.black.withValues(alpha: 0.75),
+                                              color: (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.black
+                                  : Colors.white).withValues(alpha: 0.75),
                                               border: Border(
                                                 top: BorderSide(
-                                                  color: Colors.white.withValues(alpha: 0.15),
+                                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
                                                   width: 1.0,
                                                 ),
                                               ),
@@ -716,7 +713,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                                   : FluentIcons.text_quote_20_regular,
                               color: _showLyrics
                                   ? Colors.blueAccent.shade100
-                                  : Colors.white,
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                             onPressed: () {
                               final mediaItem = widget.mediaItemAsync.value;
@@ -744,7 +741,7 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                                       isFav
                                           ? FluentIcons.heart_24_filled
                                           : FluentIcons.heart_24_regular,
-                                      color: isFav ? Colors.red : Colors.white,
+                                      color: isFav ? Colors.red : Theme.of(context).colorScheme.onSurface,
                                     ),
                                     onPressed: () {
                                       final result = YtifyResult(
@@ -787,9 +784,8 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                       // Artist
                       Text(
                         widget.mediaItemAsync.value?.artist ?? "Unknown Artist",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
+                        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         textAlign: TextAlign.start,
                         maxLines: 1,
@@ -804,17 +800,17 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
                           final duration = ref.watch(audioHandlerProvider).player.duration ?? Duration.zero;
                           
                           return ProgressBar(
-                            thumbRadius: 5,
-                            barHeight: 4,
-                            baseBarColor: Colors.white.withValues(alpha: 0.24),
-                            bufferedBarColor: Colors.white.withValues(alpha: 0.38),
-                            progressBarColor: Colors.white,
-                            thumbColor: Colors.white,
-                            timeLabelTextStyle: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                            thumbRadius: 6,
+                            thumbGlowRadius: 15,
+                            barHeight: 5,
+                            baseBarColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                            bufferedBarColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                            progressBarColor: Theme.of(context).colorScheme.onSurface,
+                            thumbColor: Theme.of(context).colorScheme.onSurface,
+                            timeLabelTextStyle: Theme.of(context).textTheme.labelMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
-                            timeLabelPadding: 5,
+                            timeLabelPadding: 10,
                             progress: position,
                             total: duration,
                             onSeek: (duration) {
@@ -841,15 +837,17 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: const Icon(Icons.keyboard_arrow_down, size: 28, color: Colors.white),
+              _iconCircle(
+                context,
+                icon: Icon(Icons.keyboard_arrow_down, size: 28, color: Theme.of(context).colorScheme.onSurface),
                 onPressed: () {
                   ref.read(isPlayerExpandedProvider.notifier).state = false;
                   Navigator.of(context).pop();
                 },
               ),
-              IconButton(
-                icon: const Icon(Icons.more_vert, size: 25, color: Colors.white),
+              _iconCircle(
+                context,
+                icon: Icon(Icons.more_vert, size: 25, color: Theme.of(context).colorScheme.onSurface),
                 onPressed: () {
                    widget.mediaItemAsync.whenData((mediaItem) {
                     if (mediaItem == null) return;
@@ -871,6 +869,22 @@ class _GesturePlayerState extends ConsumerState<_GesturePlayer> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _iconCircle(BuildContext context, {required Icon icon, required VoidCallback onPressed}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: isDark
+            ? null
+            : BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.45),
+              ),
+        child: IconButton(icon: icon, onPressed: onPressed, splashRadius: 24),
+      ),
     );
   }
 }
@@ -901,10 +915,12 @@ class _CloudLyricsOverlay extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: (Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : Colors.white).withValues(alpha: 0.40),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
               width: 0.5,
             ),
           ),
@@ -921,22 +937,21 @@ class _CloudLyricsOverlay extends StatelessWidget {
                       children: [
                         Icon(
                           FluentIcons.text_quote_20_filled,
-                          color: Colors.white.withValues(alpha: 0.75),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                           size: 18,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Lyrics',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
+                          style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurface, size: 20),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: onClose,
@@ -947,9 +962,9 @@ class _CloudLyricsOverlay extends StatelessWidget {
               // Lyrics body — isEmbedded:false hides LyricsView's own header
               Expanded(
                 child: isLoading
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           strokeWidth: 2,
                         ),
                       )
@@ -960,16 +975,13 @@ class _CloudLyricsOverlay extends StatelessWidget {
                           children: [
                             Icon(
                               FluentIcons.text_quote_20_regular,
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                               size: 40,
                             ),
                             const SizedBox(height: 10),
                             Text(
                               'No lyrics found',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 14,
-                              ),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                             ),
                           ],
                         ),

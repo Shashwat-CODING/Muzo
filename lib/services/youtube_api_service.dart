@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:muzo/models/ytify_result.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -13,10 +13,23 @@ class YtifySearchResponse {
 }
 
 class YouTubeApiService {
-  final _client = http.Client();
+  bool _enableFallbackApi = false; // Flag to enable/disable Invidious fallback
+
+  final _client = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 15),
+    ),
+  );
 
   // Singleton YoutubeExplode session — created once, reused for all requests.
   static final YoutubeExplode _yt = YoutubeExplode();
+
+  static const Map<String, String> _headers = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  };
 
   Future<void> dispose() async {
     _client.close();
@@ -32,7 +45,11 @@ class YouTubeApiService {
     // 0. Web Platform Check: Bypass library entirely on web
     if (kIsWeb) {
       debugPrint('Web platform detected: bypassing ANDROID_VR client');
-      return await _getFallbackStreamUrl(videoId, title, artist);
+      if (_enableFallbackApi) {
+        return await _getFallbackStreamUrl(videoId, title, artist);
+      } else {
+        throw Exception("Failed to extract stream on Web. Fallback is disabled.");
+      }
     }
 
     // Direct API: try up to 2 times before falling back
@@ -54,26 +71,35 @@ class YouTubeApiService {
     onFallback?.call();
 
     // Fallback 1: YoutubeExplode (singleton session — no new instance created)
-    try {
-      final provider = await StreamProvider.fetch(videoId, _yt);
-      if (provider.playable) {
-        final url = provider.highestBitrateMp4aAudio?.url ??
-            provider.highestQualityAudio?.url ??
-            provider.audioFormats?.first.url;
-        if (url != null) {
-          _logLong('Stream URL extracted via YoutubeExplode: $url');
-          return url;
+    for (int i = 1; i <= 2; i++) {
+      debugPrint('YoutubeExplode attempt $i...');
+      try {
+        final provider = await StreamProvider.fetch(videoId, _yt);
+        if (provider.playable) {
+          final url = provider.highestBitrateMp4aAudio?.url ??
+              provider.highestQualityAudio?.url ??
+              provider.audioFormats?.first.url;
+          if (url != null) {
+            _logLong('Stream URL extracted via YoutubeExplode: $url');
+            return url;
+          }
+        } else {
+          debugPrint('YoutubeExplode status: ${provider.statusMSG}');
         }
-      } else {
-        debugPrint('YoutubeExplode status: ${provider.statusMSG}');
+      } catch (ye) {
+        debugPrint('Error in YoutubeExplode fallback attempt $i: $ye');
       }
-    } catch (ye) {
-      debugPrint('Error in YoutubeExplode fallback: $ye');
+      if (i == 1) await Future.delayed(const Duration(milliseconds: 500));
     }
 
     // Fallback 2: Invidious Instances
-    debugPrint('Trying Invidious Fallback...');
-    return await _getFallbackStreamUrl(videoId, title, artist);
+    if (_enableFallbackApi) {
+      debugPrint('Trying Invidious Fallback...');
+      return await _getFallbackStreamUrl(videoId, title, artist);
+    } else {
+      debugPrint('Invidious Fallback is disabled.');
+      throw Exception("Failed to extract stream. Consider signing in or check your connection.");
+    }
   }
 
 
@@ -103,17 +129,20 @@ class YouTubeApiService {
       };
 
       final response = await _client.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; Android 13)',
-        },
-        body: jsonEncode(body),
+        url.toString(),
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; Android 13)',
+          },
+          validateStatus: (status) => true,
+        ),
+        data: body,
       );
 
       if (response.statusCode != 200) return null;
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
       if (data['playabilityStatus']?['status'] != 'OK') return null;
 
       final streamingData = data['streamingData'] as Map<String, dynamic>?;
@@ -167,7 +196,10 @@ class YouTubeApiService {
             'Using Invidious instance: $instance for videoId: $videoId');
         final uri = Uri.parse('https://$instance/api/v1/videos/$videoId');
 
-        final response = await http.get(uri);
+        final response = await _client.get(
+          uri.toString(),
+          options: Options(validateStatus: (status) => true),
+        );
 
         if (response.statusCode != 200) {
           debugPrint(
@@ -175,7 +207,7 @@ class YouTubeApiService {
           continue;
         }
 
-        final data = jsonDecode(response.body);
+        final data = response.data;
         final adaptiveFormats = data['adaptiveFormats'] as List?;
 
         if (adaptiveFormats == null) continue;
@@ -235,10 +267,13 @@ class YouTubeApiService {
       try {
         final uri =
             Uri.parse('https://$instance/api/v1/videos/$videoId');
-        final response = await http.get(uri);
+        final response = await _client.get(
+          uri.toString(),
+          options: Options(validateStatus: (status) => true),
+        );
 
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
+          final data = response.data;
 
           final title = data['title'] ?? 'Unknown Title';
           final author =
@@ -309,26 +344,40 @@ class YouTubeApiService {
         uri = Uri.parse('https://ytify-backend.zeabur.app/api/search')
             .replace(queryParameters: queryParams);
       } else {
+        // songs, playlists, etc. → use the correct ytmusic-search endpoint
         uri = Uri.parse(
-                'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/hyper-task')
+                'https://heujjsnxhjptqmanwadg.supabase.co/functions/v1/ytmusic-search')
             .replace(queryParameters: queryParams);
       }
 
-      final response = await http.get(uri);
+      debugPrint('YOUTUBE_API SEARCH Request: $uri');
+      final response = await _client.get(
+        uri.toString(),
+        options: Options(
+          headers: _headers,
+          validateStatus: (status) => true,
+        ),
+      );
+      debugPrint('YOUTUBE_API SEARCH Response [${response.statusCode}]');
+      debugPrint('YOUTUBE_API SEARCH RAW: ${response.data.toString().substring(0, (response.data.toString().length > 300) ? 300 : response.data.toString().length)}');
       if (response.statusCode != 200) {
         return YtifySearchResponse(results: []);
       }
 
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       final resultsJson = data['results'] as List?;
       final token = data['continuationToken'] as String?;
 
-      if (resultsJson == null) return YtifySearchResponse(results: []);
+      if (resultsJson == null) {
+        debugPrint('YOUTUBE_API SEARCH: no results key. Keys: ${(data as Map?)?.keys.toList()}');
+        return YtifySearchResponse(results: []);
+      }
 
       final results =
           resultsJson.map((json) => YtifyResult.fromJson(json)).toList();
       return YtifySearchResponse(results: results, continuationToken: token);
     } catch (e) {
+      debugPrint('YOUTUBE_API SEARCH error: $e');
       return YtifySearchResponse(results: []);
     }
   }
@@ -337,9 +386,13 @@ class YouTubeApiService {
     try {
       final uri = Uri.parse(
           'https://ytify-backend.zeabur.app/api/feed/channels=$channelId');
-      final response = await http.get(uri);
+      debugPrint('YOUTUBE_API CHANNEL Request: $uri');
+      final response = await _client.get(
+        uri.toString(),
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      );
       if (response.statusCode != 200) return [];
-      final List<dynamic> data = jsonDecode(response.body);
+      final List<dynamic> data = response.data is String ? jsonDecode(response.data) : response.data;
       return data.map((json) => YtifyResult.fromJson(json)).toList();
     } catch (e) {
       return [];
@@ -354,9 +407,13 @@ class YouTubeApiService {
       final uri = Uri.parse(
               'https://ytify-backend.zeabur.app/api/feed/channels=$ids')
           .replace(queryParameters: {'preview': '1'});
-      final response = await http.get(uri);
+      debugPrint('YOUTUBE_API SUBSCRIPTIONS Request: $uri');
+      final response = await _client.get(
+        uri.toString(),
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      );
       if (response.statusCode != 200) return [];
-      final List<dynamic> data = jsonDecode(response.body);
+      final List<dynamic> data = response.data is String ? jsonDecode(response.data) : response.data;
       return data.map((json) => YtifyResult.fromJson(json)).toList();
     } catch (e) {
       return [];
@@ -368,9 +425,13 @@ class YouTubeApiService {
       final uri = Uri.parse(
               'https://ytify-backend.zeabur.app/api/search/suggestions')
           .replace(queryParameters: {'q': query, 'music': '1'});
-      final response = await http.get(uri);
+      debugPrint('YOUTUBE_API SUGGESTIONS Request: $uri');
+      final response = await _client.get(
+        uri.toString(),
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      );
       if (response.statusCode != 200) return [];
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       final suggestions = data['suggestions'] as List?;
       if (suggestions == null) return [];
       return suggestions.map((s) => s.toString()).toList();
@@ -383,9 +444,13 @@ class YouTubeApiService {
     try {
       final uri = Uri.parse(
           'https://ytify-backend.zeabur.app/api/related/$videoId');
-      final response = await http.get(uri);
+      debugPrint('YOUTUBE_API RELATED Request: $uri');
+      final response = await _client.get(
+        uri.toString(),
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      );
       if (response.statusCode != 200) return [];
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       if (data['success'] != true) return [];
       final resultsJson = data['data'] as List?;
       if (resultsJson == null) return [];
@@ -399,11 +464,15 @@ class YouTubeApiService {
     try {
       final uri =
           Uri.parse('https://ytify-backend.zeabur.app/api/trending');
-      final response = await http.get(uri);
+      debugPrint('YOUTUBE_API TRENDING Request: $uri');
+      final response = await _client.get(
+        uri.toString(),
+        options: Options(headers: _headers, validateStatus: (status) => true),
+      );
       if (response.statusCode != 200) {
         return {'songs': [], 'videos': [], 'playlists': []};
       }
-      final data = jsonDecode(response.body);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
       if (data['success'] != true || data['data'] == null) {
         return {'songs': [], 'videos': [], 'playlists': []};
       }

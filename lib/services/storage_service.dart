@@ -22,7 +22,11 @@ class StorageService {
   static const String _subscriptionsBoxName = 'subscriptions_cache';
   static const String _playlistsBoxName = 'playlists_cache';
 
-  MusicApiService? _api;
+  MusicApiService? _apiInstance;
+  MusicApiService get _api {
+    _apiInstance ??= MusicApiService(this);
+    return _apiInstance!;
+  }
 
   // In-memory state with Notifiers
   final ValueNotifier<List<YtifyResult>> _historyNotifier = ValueNotifier([]);
@@ -104,20 +108,15 @@ class StorageService {
       }
     }
 
-    _api = MusicApiService(this);
-    debugPrint('StorageService initialized with API');
+    // API is now lazily initialized
+    debugPrint('StorageService initialized');
   }
 
   Future<void> refreshAll({bool silent = false}) async {
-    if (_api == null) {
-      debugPrint('Error: API not initialized during refreshAll');
-      return;
-    }
-
     if (!silent) isLoadingNotifier.value = true;
 
     try {
-      final userData = await _api!.getUserData();
+      final userData = await _api.getUserData();
 
       // Update User Info
       await setUserInfo(userData.user.username, userData.user.email);
@@ -171,13 +170,8 @@ class StorageService {
     _historyNotifier.value = current;
     _saveHistoryToCache(current);
 
-    if (_api == null) {
-      debugPrint('Error: API not initialized when adding to history');
-      return;
-    }
-
     try {
-      await _api!.addToHistory(result);
+      await _api.addToHistory(result);
     } catch (e) {
       debugPrint('Error adding to history API: $e');
       // We don't set errorNotifier here to avoid spamming user on every song play
@@ -189,8 +183,6 @@ class StorageService {
   }
 
   Future<void> removeFromHistory(String videoId) async {
-    if (_api == null) return;
-
     isLoadingNotifier.value = true;
     // Optimistic update
     final current = List<YtifyResult>.from(_historyNotifier.value);
@@ -199,7 +191,7 @@ class StorageService {
     _saveHistoryToCache(current);
 
     try {
-      await _api!.removeFromHistory(videoId);
+      await _api.removeFromHistory(videoId);
     } catch (e) {
       errorNotifier.value = 'Failed to remove from history: $e';
       // Revert optimistic update?
@@ -213,11 +205,9 @@ class StorageService {
   }
 
   Future<void> clearHistory() async {
-    if (_api == null) return;
-
     isLoadingNotifier.value = true;
     try {
-      await _api!.clearHistory();
+      await _api.clearHistory();
       _historyNotifier.value = [];
       _saveHistoryToCache([]);
     } catch (e) {
@@ -243,10 +233,9 @@ class StorageService {
       _savePlaylistsToCache(current);
 
       // API: Create empty playlist
-      if (_api != null) {
-        isLoadingNotifier.value = true;
-        try {
-          await _api!.createPlaylist(name);
+      isLoadingNotifier.value = true;
+      try {
+        await _api.createPlaylist(name);
         } catch (e) {
           errorNotifier.value = 'Failed to create playlist on server: $e';
           // Revert local change if strict consistency is needed?
@@ -254,16 +243,13 @@ class StorageService {
         } finally {
           isLoadingNotifier.value = false;
         }
-      }
     }
   }
 
   Future<void> deletePlaylist(String name) async {
-    if (_api == null) return;
-
     isLoadingNotifier.value = true;
     try {
-      await _api!.deletePlaylist(name);
+      await _api.deletePlaylist(name);
       final current = Map<String, List<YtifyResult>>.from(
         _playlistsNotifier.value,
       );
@@ -288,11 +274,9 @@ class StorageService {
     final songs = List<YtifyResult>.from(current[name] ?? []);
 
     if (!songs.any((s) => s.videoId == result.videoId)) {
-      if (_api == null) return;
-
       isLoadingNotifier.value = true;
       try {
-        await _api!.addToPlaylist(name, result);
+        await _api.addToPlaylist(name, result);
         songs.add(result);
         current[name] = songs;
         _playlistsNotifier.value = current;
@@ -317,11 +301,9 @@ class StorageService {
     _playlistsNotifier.value = current;
     _savePlaylistsToCache(current);
 
-    if (_api == null) return;
-
     isLoadingNotifier.value = true;
     try {
-      await _api!.removeSongFromPlaylist(name, videoId);
+      await _api.removeSongFromPlaylist(name, videoId);
     } catch (e) {
       errorNotifier.value = 'Failed to remove from playlist: $e';
     } finally {
@@ -339,8 +321,6 @@ class StorageService {
   }
 
   Future<void> toggleFavorite(YtifyResult result) async {
-    if (_api == null) return;
-
     isLoadingNotifier.value = true;
     final current = List<YtifyResult>.from(_favoritesNotifier.value);
     final index = current.indexWhere((s) => s.videoId == result.videoId);
@@ -348,12 +328,12 @@ class StorageService {
     try {
       if (index != -1) {
         // Remove
-        await _api!.removeFromFavorites(result.videoId!);
+        await _api.removeFromFavorites(result.videoId!);
         current.removeAt(index);
         _favoritesNotifier.value = current;
       } else {
         // Add
-        await _api!.addToFavorites(result);
+        await _api.addToFavorites(result);
         current.insert(0, result);
         _favoritesNotifier.value = current;
       }
@@ -423,8 +403,6 @@ class StorageService {
   }
 
   Future<void> toggleSubscription(YtifyResult channel) async {
-    if (_api == null) return;
-
     isLoadingNotifier.value = true;
     final current = List<YtifyResult>.from(_subscriptionsNotifier.value);
     final index = current.indexWhere((s) => s.browseId == channel.browseId);
@@ -432,12 +410,12 @@ class StorageService {
     try {
       if (index != -1) {
         // Unsubscribe
-        await _api!.removeSubscription(channel.browseId!);
+        await _api.removeSubscription(channel.browseId!);
         current.removeAt(index);
         _subscriptionsNotifier.value = current;
       } else {
         // Subscribe
-        await _api!.addSubscription(channel);
+        await _api.addSubscription(channel);
         current.insert(0, channel);
         _subscriptionsNotifier.value = current;
       }
@@ -601,6 +579,11 @@ class StorageService {
   double get lofiPitch => _settingsBox.get('lofiPitch', defaultValue: 0.85);
   Future<void> setLofiPitch(double value) =>
       _settingsBox.put('lofiPitch', value);
+
+  // App Font
+  String get appFontFamily => _settingsBox.get('appFontFamily', defaultValue: 'Archivo Black');
+  Future<void> setAppFontFamily(String value) =>
+      _settingsBox.put('appFontFamily', value);
 
   // Cache Helpers
   Future<void> _saveHistoryToCache(List<YtifyResult> history) async {

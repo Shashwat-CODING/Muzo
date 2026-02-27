@@ -14,6 +14,8 @@ import 'package:muzo/widgets/playlist_selection_dialog.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/services/navigator_key.dart';
 import 'package:muzo/providers/settings_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:muzo/widgets/sleep_timer_dialog.dart';
 
 class SongOptionsMenu extends ConsumerWidget {
   final YtifyResult result;
@@ -105,9 +107,9 @@ class SongOptionsMenu extends ConsumerWidget {
                                   width: 56,
                                   height: 56,
                                   color: Colors.grey[900],
-                                  child: const Icon(
+                                  child: Icon(
                                     FluentIcons.music_note_2_24_regular,
-                                    color: Colors.white,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                           )
@@ -115,9 +117,9 @@ class SongOptionsMenu extends ConsumerWidget {
                             width: 56,
                             height: 56,
                             color: Colors.grey[900],
-                            child: const Icon(
+                            child: Icon(
                               FluentIcons.music_note_2_24_regular,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                   ),
@@ -130,11 +132,7 @@ class SongOptionsMenu extends ConsumerWidget {
                           result.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -142,7 +140,7 @@ class SongOptionsMenu extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 13,
                           ),
                         ),
@@ -153,7 +151,7 @@ class SongOptionsMenu extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Divider(color: Colors.white12, height: 1),
+            const Divider(height: 1),
             const SizedBox(height: 8),
             _buildMenuOption(
               context,
@@ -166,7 +164,34 @@ class SongOptionsMenu extends ConsumerWidget {
                 if (ctx != null) showGlassSnackBar(ctx, 'Added to queue');
               },
             ),
+            _buildMenuOption(
+              context,
+              icon: FluentIcons.share_24_regular,
+              label: 'Share',
+              onTap: () {
+                onClose?.call();
+                if (result.videoId != null) {
+                  // ignore: deprecated_member_use
+                  Share.share('https://youtube.com/watch?v=${result.videoId}');
+                }
+              },
+            ),
             if (fromPlayer) ...[
+              _buildMenuOption(
+                context,
+                icon: FluentIcons.timer_24_regular,
+                label: 'Sleep Timer',
+                onTap: () {
+                  onClose?.call();
+                  final ctx = navigatorKey.currentContext;
+                  if (ctx != null) {
+                    showDialog(
+                      context: ctx,
+                      builder: (context) => const SleepTimerDialog(),
+                    );
+                  }
+                },
+              ),
               ValueListenableBuilder<bool>(
                 valueListenable: ref
                     .watch(audioHandlerProvider)
@@ -223,7 +248,7 @@ class SongOptionsMenu extends ConsumerWidget {
                   ? FluentIcons.heart_24_filled
                   : FluentIcons.heart_24_regular,
               label: isFav ? 'Remove from favorites' : 'Add to favorites',
-              iconColor: isFav ? Colors.red : Colors.white,
+              iconColor: isFav ? Colors.red : Theme.of(context).colorScheme.onSurface,
               onTap: () {
                 onClose?.call();
                 storage.toggleFavorite(result);
@@ -307,8 +332,9 @@ class SongOptionsMenu extends ConsumerWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    Color iconColor = Colors.white,
+    Color? iconColor,
   }) {
+    final effectiveIconColor = iconColor ?? Theme.of(context).colorScheme.onSurface;
     return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -318,15 +344,11 @@ class SongOptionsMenu extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
         child: Row(
           children: [
-            Icon(icon, color: iconColor, size: 24),
+            Icon(icon, color: effectiveIconColor, size: 24),
             const SizedBox(width: 16),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
         ),
@@ -340,8 +362,9 @@ class SongOptionsMenu extends ConsumerWidget {
     required String label,
     required bool value,
     required ValueChanged<bool> onChanged,
-    Color iconColor = Colors.white,
+    Color? iconColor,
   }) {
+    final effectiveIconColor = iconColor ?? Theme.of(context).colorScheme.onSurface;
     return InkWell(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -351,16 +374,12 @@ class SongOptionsMenu extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
         child: Row(
           children: [
-            Icon(icon, color: iconColor, size: 24),
+            Icon(icon, color: effectiveIconColor, size: 24),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
             ),
             Transform.scale(
@@ -371,9 +390,9 @@ class SongOptionsMenu extends ConsumerWidget {
                   HapticFeedback.lightImpact();
                   onChanged(val);
                 },
-                activeTrackColor: Colors.white,
-                inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
-                thumbColor: Colors.black,
+                activeTrackColor: Theme.of(context).colorScheme.onSurface,
+                inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                thumbColor: Theme.of(context).colorScheme.surface,
               ),
             ),
           ],

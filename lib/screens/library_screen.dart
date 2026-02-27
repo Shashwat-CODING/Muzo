@@ -59,27 +59,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   backgroundColor: Colors.grey[800],
                   child: svgString != null
                       ? ClipOval(child: SvgPicture.string(svgString))
-                      : const Icon(
+                      : Icon(
                           FluentIcons.person_24_regular,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 20,
                         ),
                 );
               },
             ),
             const SizedBox(width: 12),
-            const Text(
+            Text(
               'Your Library',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             const Spacer(),
             IconButton(
               onPressed: () => _showCreatePlaylistDialog(context, storage),
-              icon: const Icon(FluentIcons.add_24_regular, color: Colors.white),
+              icon: Icon(FluentIcons.add_24_regular, color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
         ),
@@ -130,11 +126,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white
-              : Colors.white.withValues(alpha: 0.1),
+              ? Theme.of(context).colorScheme.onSurface
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? Colors.transparent : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -143,7 +139,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ? 'X'
               : label, // 'All' might be a clear button, but let's keep it simple
           style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white,
+            color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.onSurface,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -362,7 +358,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           controller: controller,
           placeholder: 'Playlist Name',
           placeholderStyle: const TextStyle(color: CupertinoColors.systemGrey),
-          style: const TextStyle(color: CupertinoColors.white),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           decoration: BoxDecoration(
             color: CupertinoColors.systemGrey6.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
@@ -372,7 +368,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         ),
         TextButton(
           onPressed: () {
@@ -381,9 +377,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               Navigator.pop(context);
             }
           },
-          child: const Text(
+          child: Text(
             'Create',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
       ],
@@ -400,18 +396,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
         children: [
           SimpleDialogOption(
             onPressed: () {
               Navigator.pop(context);
               storage.deletePlaylist(playlistName);
             },
-            child: const Row(
+            child: Row(
               children: [
-                Icon(FluentIcons.delete_24_regular, color: Colors.red),
-                SizedBox(width: 12),
-                Text('Delete Playlist', style: TextStyle(color: Colors.white)),
+                const Icon(FluentIcons.delete_24_regular, color: Colors.red),
+                const SizedBox(width: 12),
+                Text('Delete Playlist', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
               ],
             ),
           ),

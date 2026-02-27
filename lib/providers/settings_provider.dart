@@ -3,32 +3,32 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 enum AudioQuality { high, medium, low }
 
-enum ThemeType { dynamic, dark }
+enum ThemeType { auto, dark, light }
 
 class SettingsState {
   final AudioQuality audioQuality;
-  final bool isLiteMode;
   final ThemeType themeType;
   final bool isGestureMode;
+  final String appFontFamily;
 
   SettingsState({
     required this.audioQuality,
-    required this.isLiteMode,
     required this.themeType,
     this.isGestureMode = false,
+    this.appFontFamily = 'Archivo Black',
   });
 
   SettingsState copyWith({
     AudioQuality? audioQuality,
-    bool? isLiteMode,
     ThemeType? themeType,
     bool? isGestureMode,
+    String? appFontFamily,
   }) {
     return SettingsState(
       audioQuality: audioQuality ?? this.audioQuality,
-      isLiteMode: isLiteMode ?? this.isLiteMode,
       themeType: themeType ?? this.themeType,
       isGestureMode: isGestureMode ?? this.isGestureMode,
+      appFontFamily: appFontFamily ?? this.appFontFamily,
     );
   }
 }
@@ -38,9 +38,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     : super(
         SettingsState(
           audioQuality: AudioQuality.high,
-          isLiteMode: false,
-          themeType: ThemeType.dynamic,
+          themeType: ThemeType.auto,
           isGestureMode: false,
+          appFontFamily: 'Archivo Black',
         ),
       ) {
     _loadSettings();
@@ -49,21 +49,21 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> _loadSettings() async {
     final box = await Hive.openBox('settings');
     final qualityIndex = box.get('audioQuality', defaultValue: 0);
-    final isLiteMode = box.get('isLiteMode', defaultValue: false);
-    final themeTypeIndex = box.get('themeModeType', defaultValue: 0);
+    final themeTypeIndex = box.get('themeType', defaultValue: 0);
     final isGestureMode = box.get('isGestureMode', defaultValue: false) ?? false;
+    final appFontFamily = box.get('appFontFamily', defaultValue: 'Archivo Black');
 
-    // Migration logic: If saved index is out of bounds (legacy light/system), default to dynamic (0)
+    // Migration logic: If saved index is out of bounds, default to auto (0)
     final validThemeIndex =
         (themeTypeIndex >= 0 && themeTypeIndex < ThemeType.values.length)
         ? themeTypeIndex
-        : 0;
+        : 0; // Default to auto
 
     state = SettingsState(
       audioQuality: AudioQuality.values[qualityIndex],
-      isLiteMode: isLiteMode,
       themeType: ThemeType.values[validThemeIndex],
       isGestureMode: isGestureMode,
+      appFontFamily: appFontFamily,
     );
   }
 
@@ -71,12 +71,6 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(audioQuality: quality);
     final box = await Hive.openBox('settings');
     await box.put('audioQuality', quality.index);
-  }
-
-  Future<void> setLiteMode(bool isLiteMode) async {
-    state = state.copyWith(isLiteMode: isLiteMode);
-    final box = await Hive.openBox('settings');
-    await box.put('isLiteMode', isLiteMode);
   }
 
   Future<void> setThemeType(ThemeType themeType) async {
@@ -90,6 +84,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(isGestureMode: newValue);
     final box = await Hive.openBox('settings');
     await box.put('isGestureMode', newValue);
+  }
+
+  Future<void> setAppFontFamily(String font) async {
+    state = state.copyWith(appFontFamily: font);
+    final box = await Hive.openBox('settings');
+    await box.put('appFontFamily', font);
   }
 }
 
