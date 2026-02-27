@@ -136,5 +136,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
   <img src="https://uxwing.com/wp-content/themes/uxwing/download/relationship-love/red-heart-icon.png" alt="Claude AI" height="16" /> 
   <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/claude-ai-icon.png" alt="Claude AI" height="16" />
   <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/google-gemini-icon.png" alt="Gemini AI" height="16" />
+ <img src="https://files.brandlogos.net/svg/HNipmYPqfV/Google_Antigravity-logo_brandlogos.net_e23c83.svg" alt="Gemini AI" height="16" />
 By Shashwat
 </p>
