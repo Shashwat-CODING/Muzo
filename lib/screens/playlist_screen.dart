@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/models/artist_details.dart';
-import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/services/muzo_api_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:muzo/providers/player_provider.dart';
@@ -24,7 +24,7 @@ class PlaylistScreen extends ConsumerStatefulWidget {
 }
 
 class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
-  final _apiService = YtifyApiService();
+  late final _apiService = ref.read(muzoApiServiceProvider);
   bool _isLoading = true;
   PlaylistDetails? _playlistDetails;
 
@@ -62,7 +62,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     final author = _playlistDetails?.author ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -88,13 +88,17 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                           Container(color: Colors.grey[900]),
 
                         // Gradient for better text visibility
-                        const DecoratedBox(
+                        DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Color(0xFF0F0F0F)],
-                              stops: [0.6, 1.0],
+                              colors: [
+                                Colors.transparent,
+                                Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                                Theme.of(context).scaffoldBackgroundColor,
+                              ],
+                              stops: const [0.6, 0.9, 1.0],
                             ),
                           ),
                         ),
@@ -142,10 +146,12 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
+                              backgroundColor: Theme.of(context).colorScheme.onSurface,
+                              foregroundColor: Theme.of(context).colorScheme.surface,
                               padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(32),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                           ),
@@ -176,7 +182,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     ),
                   ),
 
-                const SliverPadding(padding: EdgeInsets.only(bottom: 50)),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
               ],
             ),
     );

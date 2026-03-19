@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/services/storage_service.dart';
@@ -13,9 +13,11 @@ import 'package:muzo/screens/channel_screen.dart';
 import 'package:muzo/screens/album_screen.dart';
 import 'package:muzo/widgets/song_options_menu.dart';
 import 'package:muzo/utils/page_routes.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/providers/search_provider.dart';
 
 class ResultTile extends ConsumerWidget {
-  final YtifyResult result;
+  final MuzoItem result;
   final bool compact;
   final bool fromHistory;
 
@@ -38,47 +40,47 @@ class ResultTile extends ConsumerWidget {
       child: InkWell(
         onTap: () {
           HapticFeedback.lightImpact();
-          if (result.resultType == 'artist' && result.browseId != null) {
-            Navigator.push(
-              context,
+          final type = result.resultType.toLowerCase();
+          final bId = result.browseId;
+          
+          final nav = navigatorKey.currentState;
+          if (nav == null) return;
+
+          if (type == 'artist' && bId != null && bId.isNotEmpty) {
+            nav.push(
               SlidePageRoute(
                 page: ArtistScreen(
-                  browseId: result.browseId!,
+                  browseId: bId,
                   artistName: result.title,
                   thumbnailUrl: result.thumbnails.lastOrNull?.url,
                 ),
               ),
             );
-          } else if (result.resultType == 'playlist' &&
-              result.browseId != null) {
-            Navigator.push(
-              context,
+          } else if (type == 'playlist' && bId != null && bId.isNotEmpty) {
+            nav.push(
               SlidePageRoute(
                 page: PlaylistScreen(
-                  playlistId: result.browseId!,
+                  playlistId: bId,
                   title: result.title,
                   thumbnailUrl: result.thumbnails.lastOrNull?.url,
                 ),
               ),
             );
-          } else if (result.resultType == 'album' && result.browseId != null) {
-            Navigator.push(
-              context,
+          } else if (type == 'album' && bId != null && bId.isNotEmpty) {
+            nav.push(
               SlidePageRoute(
                 page: AlbumScreen(
-                  albumId: result.browseId!,
+                  albumId: bId,
                   albumName: result.title,
                   thumbnailUrl: result.thumbnails.lastOrNull?.url,
                 ),
               ),
             );
-          } else if (result.resultType == 'channel' &&
-              result.browseId != null) {
-            Navigator.push(
-              context,
+          } else if (type == 'channel' && bId != null && bId.isNotEmpty) {
+            nav.push(
               SlidePageRoute(
                 page: ChannelScreen(
-                  channelId: result.browseId!,
+                  channelId: bId,
                   title: result.title,
                   thumbnailUrl: result.thumbnails.lastOrNull?.url,
                   subscriberCount: result.subscriberCount,
@@ -121,10 +123,7 @@ class ResultTile extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(4),
                       child: imageUrl.isNotEmpty
                           ? CachedNetworkImage(
-                              imageUrl: imageUrl.replaceAll(
-                                RegExp(r'=[sw]\d+(-h\d+)?'),
-                                '=s800',
-                              ),
+                              imageUrl: imageUrl,
                               height: height,
                               fit: BoxFit.fitHeight,
                               placeholder: (context, url) => Container(
@@ -145,9 +144,10 @@ class ResultTile extends ConsumerWidget {
                           : Container(
                               height: height,
                               width: defaultWidth,
-                              color: Colors.grey[900],
-                              child: const Icon(
+                              color: Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                              child: Icon(
                                 FluentIcons.music_note_2_24_regular,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                               ),
                             ),
                     ),
@@ -169,29 +169,24 @@ class ResultTile extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Text(
                       () {
-                        String subtitle = '';
-                        if (result.artists != null &&
-                            result.artists!.isNotEmpty) {
-                          subtitle += result.artists!
-                              .map((a) => a.name)
-                              .join(', ');
-                        } else if (result.resultType == 'artist') {
-                          return 'Artist';
+                        String subtitle = result.displayArtist;
+                        if (result.resultType == 'artist') {
+                          subtitle = 'Artist';
                         } else if (result.resultType == 'playlist') {
-                          return 'Playlist';
+                          subtitle = 'Playlist';
                         }
 
                         if (result.duration != null) {
-                          if (subtitle.isNotEmpty) subtitle += ' • ';
+                          if (subtitle.isNotEmpty && subtitle != 'Unknown') subtitle += ' • ';
                           subtitle += result.duration!;
                         }
 
                         if (result.views != null) {
-                          if (subtitle.isNotEmpty) subtitle += ' • ';
+                          if (subtitle.isNotEmpty && subtitle != 'Unknown') subtitle += ' • ';
                           subtitle += '${result.views} views';
                         }
 
-                        return subtitle;
+                        return subtitle == 'Unknown' && result.duration == null ? '' : subtitle;
                       }(),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -208,14 +203,17 @@ class ResultTile extends ConsumerWidget {
               // We need to wrap the PopupMenuButton with a Consumer to access storage
               Consumer(
                 builder: (context, ref, _) {
-                  final storage = ref.watch(storageServiceProvider);
-                  return ValueListenableBuilder<List<YtifyResult>>(
+                  if (result.videoId == null) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  // Use ref.read instead of ref.watch to prevent unnecessary rebuilds
+                  // when other unrelated storage properties change.
+                  final storage = ref.read(storageServiceProvider);
+                  
+                  return ValueListenableBuilder<List<MuzoItem>>(
                     valueListenable: storage.favoritesListenable,
                     builder: (context, favorites, _) {
-                      if (result.videoId == null) {
-                        return const SizedBox.shrink();
-                      }
-
                       return IconButton(
                         icon: Icon(
                           FluentIcons.more_vertical_24_regular,

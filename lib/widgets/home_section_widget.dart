@@ -15,18 +15,18 @@ class HomeSectionWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Text(
             section.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
-              letterSpacing: 0.5,
+              letterSpacing: 0.3,
             ),
           ),
         ),
         SizedBox(
-          height: 220,
+          height: 195, // Reduced from 220 to match 140 width
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -40,3 +40,4 @@ class HomeSectionWidget extends StatelessWidget {
     );
   }
 }
+

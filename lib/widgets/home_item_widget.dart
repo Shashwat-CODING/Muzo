@@ -3,7 +3,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/screens/artist_screen.dart';
 import 'package:muzo/screens/playlist_screen.dart';
@@ -23,7 +23,7 @@ class HomeItemWidget extends ConsumerWidget {
     return GestureDetector(
       onTap: () => _handleTap(context, ref),
       child: Container(
-        width: 150,
+        width: 140, // Reduced from 150
         margin: const EdgeInsets.only(right: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,45 +31,48 @@ class HomeItemWidget extends ConsumerWidget {
             AspectRatio(
               aspectRatio: 1.0,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8), // Reduced to 8 for a cleaner look
                 child: item.thumbnailUrl != null
                     ? CachedNetworkImage(
                         imageUrl: item.thumbnailUrl!,
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[900],
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
                           child: Icon(
                             FluentIcons.music_note_2_24_filled,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       )
                     : Container(
-                        color: Colors.grey[900],
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         child: Icon(
                           FluentIcons.music_note_2_24_filled,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
               ),
             ),
-            const SizedBox(height: 6),
-            Flexible(
-              child: Text(
-                item.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            const SizedBox(height: 8), // slightly more spacing
+            Text(
+              item.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w600, // Make title a bit bolder
+                fontSize: 13,
               ),
             ),
             if (item.subtitle != null) ...[
               const SizedBox(height: 4),
-              Flexible(
-                child: Text(
-                  item.subtitle!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+              Text(
+                item.subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
                 ),
               ),
             ],
@@ -84,17 +87,18 @@ class HomeItemWidget extends ConsumerWidget {
 
     if (item.videoId != null) {
       // It's a song or video
-      final ytifyResult = YtifyResult(
+      final muzoResult = MuzoItem(
         title: item.title,
         thumbnails: [
           if (item.thumbnailUrl != null)
-            YtifyThumbnail(url: item.thumbnailUrl!, width: 500, height: 500),
+            MuzoThumbnail(url: item.thumbnailUrl!, width: 500, height: 500),
         ],
         resultType: item.type == 'video_types' ? 'video' : 'song',
         isExplicit: false,
         videoId: item.videoId,
+        artists: item.subtitle != null ? [MuzoArtist(name: item.subtitle!, id: null)] : null,
       );
-      ref.read(audioHandlerProvider).playVideo(ytifyResult);
+      ref.read(audioHandlerProvider).playVideo(muzoResult);
     } else if (item.type == 'album' && item.browseId != null) {
       Navigator.push(
         context,
@@ -107,30 +111,18 @@ class HomeItemWidget extends ConsumerWidget {
         ),
       );
     } else if (item.playlistId != null || item.type == 'playlist') {
-      // It's a playlist
-      // For albums from YTM home, the browseId starts with MPRE usually, but we need a playlistId to fetch tracks.
-      // However, YTM home items often provide a direct playlistId even for albums.
-      // If only browseId is present for an album, we might need a different handling or hope PlaylistScreen handles browseId (it usually expects playlistId).
-      // Let's assume playlistId is preferred, if not fall back to browseId if PlaylistScreen supports it,
-      // OR we just pass browseId as playlistId if the service can handle it.
-
       final idToUse = item.playlistId ?? item.browseId;
 
       // Check if it's a local playlist
       final storage = ref.read(storageServiceProvider);
       final localPlaylists = storage.getPlaylistNames();
 
-      // We assume if specific playlistId matches a local name, it's local.
-      // Or if the item title matches a local name (since we used name as ID for local ones).
-      if (localPlaylists.contains(idToUse) ||
-          localPlaylists.contains(item.title)) {
+      if (localPlaylists.contains(idToUse) || localPlaylists.contains(item.title)) {
         Navigator.push(
           context,
           SlidePageRoute(
             page: PlaylistDetailsScreen(
-              playlistName: localPlaylists.contains(idToUse)
-                  ? idToUse!
-                  : item.title,
+              playlistName: localPlaylists.contains(idToUse) ? idToUse! : item.title,
             ),
           ),
         );
@@ -146,8 +138,7 @@ class HomeItemWidget extends ConsumerWidget {
           ),
         );
       }
-    } else if (item.browseId != null &&
-        (item.type == 'artist' || item.browseId!.startsWith('UC'))) {
+    } else if (item.browseId != null && (item.type == 'artist' || item.browseId!.startsWith('UC'))) {
       Navigator.push(
         context,
         SlidePageRoute(
@@ -161,3 +152,4 @@ class HomeItemWidget extends ConsumerWidget {
     }
   }
 }
+

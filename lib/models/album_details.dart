@@ -1,4 +1,4 @@
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 
 class AlbumDetails {
   final String id;
@@ -7,7 +7,7 @@ class AlbumDetails {
   final String artist;
   final String year;
   final String thumbnail;
-  final List<YtifyResult> tracks;
+  final List<MuzoItem> tracks;
   final String type;
 
   AlbumDetails({
@@ -22,7 +22,7 @@ class AlbumDetails {
   });
 
   factory AlbumDetails.fromJson(Map<String, dynamic> json) {
-    String thumb = json['thumbnail'] ?? '';
+    String thumb = json['thumbnail']?.toString() ?? '';
     // Promote resolution if needed
     if (thumb.contains('=w544-h544')) {
       // It's already good, but let's just ensure we keep it valid
@@ -35,26 +35,24 @@ class AlbumDetails {
           // Backfill thumbnail from album if missing
           final trackMap = Map<String, dynamic>.from(t);
           if (trackMap['thumbnail'] == null ||
-              (trackMap['thumbnail'] as String).isEmpty) {
+              trackMap['thumbnail']?.toString().isEmpty == true) {
             trackMap['thumbnail'] = thumb;
           }
 
-          // Map to YtifyResult structure
-          // YtifyResult.fromJson handles 'videoId' or 'id'
-          // It expects 'thumbnail' as string to be handled correctly
-          return YtifyResult.fromJson(trackMap);
+          // Map to MuzoItem structure
+          return MuzoItem.fromJson(trackMap);
         }).toList() ??
         [];
 
     return AlbumDetails(
-      id: json['id'] ?? '',
-      playlistId: json['playlistId'],
-      title: json['title'] ?? '',
-      artist: json['artist'] ?? '',
-      year: json['year'] ?? '',
+      id: json['id']?.toString() ?? '',
+      playlistId: json['playlistId']?.toString(),
+      title: json['title']?.toString() ?? '',
+      artist: json['artist']?.toString() ?? '',
+      year: json['year']?.toString() ?? '',
       thumbnail: thumb,
       tracks: tracksList,
-      type: json['type'] ?? 'album',
+      type: json['type']?.toString() ?? 'album',
     );
   }
 }

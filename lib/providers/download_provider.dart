@@ -1,17 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/services/download_service.dart';
 import 'package:muzo/services/storage_service.dart';
 
 class DownloadState {
   final Map<String, double> progressMap;
-  final Map<String, YtifyResult> activeDownloads;
+  final Map<String, MuzoItem> activeDownloads;
 
   DownloadState({this.progressMap = const {}, this.activeDownloads = const {}});
 
   DownloadState copyWith({
     Map<String, double>? progressMap,
-    Map<String, YtifyResult>? activeDownloads,
+    Map<String, MuzoItem>? activeDownloads,
   }) {
     return DownloadState(
       progressMap: progressMap ?? this.progressMap,
@@ -32,7 +32,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
 
   DownloadNotifier(this.ref) : super(DownloadState());
 
-  Future<bool> startDownload(YtifyResult result) async {
+  Future<bool> startDownload(MuzoItem result) async {
     if (result.videoId == null) return false;
 
     // Add to active downloads
@@ -54,7 +54,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
     );
 
     // Remove from active downloads
-    final newActive = Map<String, YtifyResult>.from(state.activeDownloads);
+    final newActive = Map<String, MuzoItem>.from(state.activeDownloads);
     newActive.remove(result.videoId);
 
     final newProgress = Map<String, double>.from(state.progressMap);
@@ -75,7 +75,7 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
     if (state.activeDownloads.containsKey(videoId)) {
       // TODO: Cancel active download (requires DownloadService update)
       // For now, just remove from state
-      final newActive = Map<String, YtifyResult>.from(state.activeDownloads);
+      final newActive = Map<String, MuzoItem>.from(state.activeDownloads);
       newActive.remove(videoId);
 
       final newProgress = Map<String, double>.from(state.progressMap);

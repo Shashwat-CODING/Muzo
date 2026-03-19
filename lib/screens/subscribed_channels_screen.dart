@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/services/muzo_api_service.dart';
 import 'package:muzo/screens/channel_screen.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
+import 'package:muzo/models/user_data.dart';
 
 class SubscribedChannelsScreen extends ConsumerStatefulWidget {
   const SubscribedChannelsScreen({super.key});
@@ -18,17 +19,13 @@ class SubscribedChannelsScreen extends ConsumerStatefulWidget {
 
 class _SubscribedChannelsScreenState
     extends ConsumerState<SubscribedChannelsScreen> {
-  final _apiService = YouTubeApiService();
+  late final _apiService = ref.read(muzoApiServiceProvider);
   late final StorageService _storage;
-  Future<List<YtifyResult>>? _feedFuture;
+  Future<List<MuzoItem>>? _feedFuture;
 
   @override
   void initState() {
     super.initState();
-    // Defer accessing storage to avoid initialization order issues if needed,
-    // but ref.read is usually fine.
-    // Ideally use postFrameCallback or ref.read.
-    // Ideally use postFrameCallback or ref.read.
     _storage = ref.read(storageServiceProvider);
     _storage.subscriptionsListenable.addListener(_onSubscriptionsChanged);
     _loadFeed();
@@ -49,8 +46,16 @@ class _SubscribedChannelsScreenState
     final storage = ref.read(storageServiceProvider);
     final subscriptions = storage.getSubscriptions();
     if (subscriptions.isNotEmpty) {
-      final channelIds = subscriptions.map((c) => c.browseId!).toList();
-      _feedFuture = _apiService.getSubscriptionsFeed(channelIds);
+      // Prefer channelId, fall back to name for lookup
+      final channelIds = subscriptions
+          .where((c) => c.channelId != null)
+          .map((c) => c.channelId!)
+          .toList();
+      if (channelIds.isNotEmpty) {
+        _feedFuture = _apiService.getSubscriptionsFeed(channelIds);
+      } else {
+        _feedFuture = Future.value([]);
+      }
     } else {
       _feedFuture = Future.value([]);
     }
@@ -62,8 +67,9 @@ class _SubscribedChannelsScreenState
     final subscriptions = storage.getSubscriptions();
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        bottom: false,
         child: subscriptions.isEmpty
             ? const Center(
                 child: Column(
@@ -107,20 +113,18 @@ class _SubscribedChannelsScreenState
                             padding: const EdgeInsets.only(right: 16),
                             child: GestureDetector(
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ChannelScreen(
-                                      channelId: channel.browseId!,
-                                      title: channel.title,
-                                      thumbnailUrl:
-                                          channel.thumbnails.lastOrNull?.url,
-                                      subscriberCount: channel.subscriberCount,
-                                      videoCount: channel.videoCount,
-                                      description: channel.description,
+                                if (channel.channelId != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChannelScreen(
+                                        channelId: channel.channelId!,
+                                        title: channel.name,
+                                        thumbnailUrl: channel.avatar,
+                                      ),
                                     ),
-                                  ),
-                                );
+                                  );
+                                }
                               },
                               child: Column(
                                 children: [
@@ -137,10 +141,9 @@ class _SubscribedChannelsScreenState
                                       ),
                                     ),
                                     child: ClipOval(
-                                      child: channel.thumbnails.isNotEmpty
+                                      child: channel.avatar != null
                                           ? CachedNetworkImage(
-                                              imageUrl:
-                                                  channel.thumbnails.last.url,
+                                              imageUrl: channel.avatar!,
                                               fit: BoxFit.cover,
                                               errorWidget:
                                                   (context, url, error) =>
@@ -160,7 +163,7 @@ class _SubscribedChannelsScreenState
                                   SizedBox(
                                     width: 70,
                                     child: Text(
-                                      channel.title,
+                                      channel.name,
                                       style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -185,7 +188,7 @@ class _SubscribedChannelsScreenState
                     ),
                   ),
                   // Feed List
-                  FutureBuilder<List<YtifyResult>>(
+                  FutureBuilder<List<MuzoItem>>(
                     future: _feedFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -220,7 +223,7 @@ class _SubscribedChannelsScreenState
                       );
                     },
                   ),
-                  const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+                  const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
                 ],
               ),
       ),

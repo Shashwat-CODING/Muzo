@@ -9,7 +9,7 @@ class FadeIndexedStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
-    this.duration = const Duration(milliseconds: 250),
+    this.duration = const Duration(milliseconds: 150), // Reduced from 250
   });
 
   @override
@@ -36,14 +36,10 @@ class FadeIndexedStackState extends State<FadeIndexedStack>
     super.didUpdateWidget(oldWidget);
     if (widget.index != _index) {
       _controller.reverse().then((_) {
-        // Wait for fade out to complete before switching index if desired,
-        // OR we can just crossfade with IndexedStack handling state preservation but standard IndexedStack doesn't support dual renders opacity well without stack.
-        // Actually, to proper crossfade, we need both visible.
-        // But IndexedStack shows only one.
-        // So simpler approach: Fade Out -> Switch -> Fade In.
-        // This avoids complex state management of multiple active viewports.
-        setState(() => _index = widget.index);
-        _controller.forward();
+        if (mounted) {
+          setState(() => _index = widget.index);
+          _controller.forward();
+        }
       });
     }
   }

@@ -2,14 +2,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/player_provider.dart';
-import 'package:muzo/providers/settings_provider.dart';
 import 'dart:ui';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:muzo/services/lyrics_service.dart';
 import 'package:muzo/widgets/lyrics_view.dart';
 import 'package:muzo/providers/theme_provider.dart';
-import 'package:audio_service/audio_service.dart'; // Needed for MediaItem? No, usually exported or not needed if used explicitly. Ah, MediaItem is from audio_service.
+import 'package:audio_service/audio_service.dart';
 
 class AlbumArtNLyrics extends ConsumerStatefulWidget {
   final double playerArtImageSize;
@@ -20,7 +18,6 @@ class AlbumArtNLyrics extends ConsumerStatefulWidget {
 }
 
 class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
-  bool _isSwitchingLanguage = false;
   bool _showLyrics = false;
   bool _isLoadingLyrics = false;
   Lyrics? _lyrics;
@@ -85,7 +82,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
       height: safeSize,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.1),
             width: 1,
@@ -99,7 +96,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(23),
+          borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
               mediaItemAsync.when(
@@ -108,9 +105,10 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                     return Container(color: Colors.grey[900]);
                   }
                   return CachedNetworkImage(
-                    imageUrl: mediaItem!.artUri
-                        .toString()
-                        .replaceAll(RegExp(r'w\d+-h\d+'), 'w800-h800'),
+                    imageUrl: mediaItem!.artUri.toString().replaceAll(
+                      RegExp(r'w\d+-h\d+'),
+                      'w800-h800',
+                    ),
                     fit: BoxFit.cover,
                     width: widget.playerArtImageSize,
                     height: widget.playerArtImageSize,
@@ -132,32 +130,43 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
               if (_showLyrics)
                 Positioned.fill(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(23),
+                    borderRadius: BorderRadius.circular(16),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // Reduced for performance
+                      filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                       child: Container(
-                        color: (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white).withValues(alpha: 0.7),
+                        color:
+                            (Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black
+                                    : Colors.white)
+                                .withValues(alpha: 0.45),
                         child: _isLoadingLyrics
                             ? Center(
                                 child: CircularProgressIndicator(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               )
                             : _lyrics == null
                             ? Center(
                                 child: Text(
                                   "No lyrics found",
-                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
                                 ),
                               )
                             : LyricsView(
                                 lyrics: _lyrics!,
-                                onClose: () => setState(() => _showLyrics = false),
-                                positionStream: audioHandler.player.positionStream,
+                                onClose: () =>
+                                    setState(() => _showLyrics = false),
+                                positionStream:
+                                    audioHandler.player.positionStream,
                                 totalDuration:
-                                    audioHandler.player.duration ?? Duration.zero,
+                                    audioHandler.player.duration ??
+                                    Duration.zero,
                                 isEmbedded: true,
                                 accentColor:
                                     ref
@@ -181,53 +190,59 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                ),
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              final mediaItem = mediaItemAsync.value;
+                              if (mediaItem != null) {
+                                setState(() {
+                                  _showLyrics = true;
+                                });
+                                _fetchLyrics(mediaItem);
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
                               ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  onTap: () {
-                                    final mediaItem = mediaItemAsync.value;
-                                    if (mediaItem != null) {
-                                      setState(() {
-                                        _showLyrics = true;
-                                      });
-                                      _fetchLyrics(mediaItem);
-                                    }
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          FluentIcons.text_quote_20_filled,
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          "Lyrics",
-                                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                                        ),
-                                      ],
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    FluentIcons.text_quote_20_filled,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Lyrics",
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                             ),
                           ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],

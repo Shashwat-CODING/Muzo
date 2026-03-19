@@ -5,10 +5,10 @@ import 'package:muzo/providers/settings_provider.dart';
 import 'package:muzo/services/storage_service.dart';
 
 import 'package:permission_handler/permission_handler.dart';
-import 'package:muzo/screens/about_screen.dart';
 import 'package:muzo/services/auth_service.dart';
 import 'package:muzo/screens/auth_screen.dart';
 import 'package:muzo/screens/settings/components/font_picker_dialog.dart';
+import 'package:muzo/providers/player_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -112,9 +112,35 @@ class SettingsScreen extends ConsumerWidget {
                     valueListenable: storage.settingsListenable,
                     builder: (context, box, _) {
                       return _buildSection(context, 'Playback', [
+                        ValueListenableBuilder<bool>(
+                          valueListenable: ref.watch(audioHandlerProvider).isLofiModeNotifier,
+                          builder: (context, isLofi, _) {
+                            return ListTile(
+                              title: Text(
+                                'Lofi Mode',
+                                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                              ),
+                              subtitle: Text(
+                                'Apply speed and pitch effects',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              trailing: Switch(
+                                value: isLofi,
+                                onChanged: (value) =>
+                                    ref.read(audioHandlerProvider).toggleLofiMode(),
+                                activeThumbColor: Theme.of(context).colorScheme.primary,
+                                activeTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                              ),
+                            );
+                          },
+                        ),
+                        Divider(height: 1, color: Theme.of(context).dividerColor),
                         ListTile(
                           title: Text(
-                            'Lofi Mode Settings',
+                            'Lofi Mode Fine-tuning',
                             style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           ),
                           subtitle: Text(
@@ -126,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                           onTap: () {
-                            _showLofiSettingsDialog(context, storage);
+                            _showLofiSettingsDialog(context, ref, storage);
                           },
                         ),
                         Divider(height: 1, color: Theme.of(context).dividerColor),
@@ -148,6 +174,55 @@ class SettingsScreen extends ConsumerWidget {
                                 storage.setAutoQueueEnabled(value),
                             activeThumbColor: Theme.of(context).colorScheme.primary,
                             activeTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        Divider(height: 1, color: Theme.of(context).dividerColor),
+                        ListTile(
+                          title: Text(
+                            'Open YouTube Links in App',
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                          ),
+                          subtitle: Text(
+                            'Intercept YouTube URLs to play locally',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: Switch(
+                            value: storage.handleAppLinks,
+                            onChanged: (value) async {
+                              await storage.setHandleAppLinks(value);
+                            },
+                            activeThumbColor: Theme.of(context).colorScheme.primary,
+                            activeTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        Divider(height: 1, color: Theme.of(context).dividerColor),
+                        ListTile(
+                          title: Text(
+                            'Show YouTube Music on Home',
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                          ),
+                          subtitle: Text(
+                            'Display dynamic content rows from YTM on your Home Feed',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: StatefulBuilder(
+                            builder: (context, setState) {
+                              return Switch(
+                                value: storage.showYtmHome,
+                                onChanged: (value) async {
+                                  await storage.setShowYtmHome(value);
+                                  setState(() {});
+                                },
+                                activeThumbColor: Theme.of(context).colorScheme.primary,
+                                activeTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                              );
+                            }
                           ),
                         ),
                         Divider(height: 1, color: Theme.of(context).dividerColor),
@@ -242,41 +317,72 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
 
-              _buildSection(context, 'App Info', [
-                ListTile(
-                  title: Text(
-                    'About',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              _buildSection(context, 'About', [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                blurRadius: 12,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              'https://avatars.githubusercontent.com/Shashwat-CODING',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Image.asset('assets/logo.png', fit: BoxFit.contain),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Muzo',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Premium Music Client',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  subtitle: Text(
-                    'Version 2.1.6',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
-                  ),
-                  trailing: Icon(
-                    FluentIcons.info_24_regular,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AboutScreen()),
-                    );
-                  },
                 ),
                 Divider(height: 1, color: Theme.of(context).dividerColor),
                 ListTile(
-                  title: Text(
-                    'Source Code (GitHub)',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                  ),
-                  subtitle: Text(
-                    'View the source code on GitHub',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
-                  ),
-                  trailing: Icon(
-                    FluentIcons.code_24_regular,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                  leading: Icon(FluentIcons.info_24_regular, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                  title: Text('Version', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                  trailing: Text('2.1.6', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+                ),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
+                ListTile(
+                  leading: Icon(FluentIcons.person_24_regular, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                  title: Text('Developer', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                  trailing: Text('Shashwat', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+                ),
+                Divider(height: 1, color: Theme.of(context).dividerColor),
+                ListTile(
+                  leading: Icon(FluentIcons.code_24_regular, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                  title: Text('Source Code', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                  subtitle: Text('View on GitHub', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                  trailing: Icon(FluentIcons.open_24_regular, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), size: 18),
                   onTap: () {
                     launchUrl(
                       Uri.parse('https://github.com/Shashwat-CODING/Muzo'),
@@ -349,48 +455,8 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showTextInputDialog({
-    required BuildContext context,
-    required String title,
-    String? initialValue,
-    required Function(String) onSubmitted,
-  }) {
-    final controller = TextEditingController(text: initialValue);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).dialogTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
-        title: Text(title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-        content: TextField(
-          controller: controller,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-          decoration: InputDecoration(
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
-            ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              onSubmitted(controller.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _showLofiSettingsDialog(BuildContext context, StorageService storage) {
+  void _showLofiSettingsDialog(BuildContext context, WidgetRef ref, StorageService storage) {
     // We need state for sliders
     showDialog(
       context: context,
@@ -428,6 +494,7 @@ class SettingsScreen extends ConsumerWidget {
                           setState(() {
                             storage.setLofiSpeed(value);
                           });
+                          ref.read(audioHandlerProvider).updateLofiSettings();
                         },
                       ),
                     ),
@@ -456,6 +523,7 @@ class SettingsScreen extends ConsumerWidget {
                           setState(() {
                             storage.setLofiPitch(value);
                           });
+                          ref.read(audioHandlerProvider).updateLofiSettings();
                         },
                       ),
                     ),

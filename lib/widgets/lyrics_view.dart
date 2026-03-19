@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_lyric/flutter_lyric.dart';
 import 'package:muzo/services/lyrics_service.dart';
 import 'package:muzo/widgets/karaoke_view.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class LyricsView extends ConsumerStatefulWidget {
   final Lyrics lyrics;
@@ -73,13 +72,6 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
         fontWeight: FontWeight.w800,
         color: Theme.of(context).colorScheme.onSurface,
         height: 1.3,
-        shadows: [
-          Shadow(
-            offset: const Offset(0, 2),
-            blurRadius: 10.0,
-            color: Colors.black.withValues(alpha: 0.3),
-          ),
-        ],
       ),
       textStyle: TextStyle(
         fontFamily: fontFamily,
@@ -87,26 +79,12 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
         fontWeight: FontWeight.w700,
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
         height: 1.3,
-        shadows: [
-          Shadow(
-            offset: const Offset(0, 1),
-            blurRadius: 2.0,
-            color: Colors.black.withValues(alpha: 0.1),
-          ),
-        ],
       ),
       translationStyle: TextStyle(
         fontFamily: fontFamily,
         fontSize: widget.isEmbedded ? 14 : 16,
         fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-        shadows: [
-          Shadow(
-            offset: const Offset(0, 1),
-            blurRadius: 5.0,
-            color: Colors.black.withValues(alpha: 0.2),
-          ),
-        ],
       ),
     );
 

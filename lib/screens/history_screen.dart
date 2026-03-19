@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
@@ -15,7 +15,7 @@ class HistoryScreen extends ConsumerWidget {
     final storage = ref.watch(storageServiceProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -103,7 +103,7 @@ class HistoryScreen extends ConsumerWidget {
               ),
             ),
 
-            ValueListenableBuilder<List<YtifyResult>>(
+            ValueListenableBuilder<List<MuzoItem>>(
               valueListenable: storage.historyListenable,
               builder: (context, history, _) {
                 if (history.isEmpty) {
@@ -128,7 +128,7 @@ class HistoryScreen extends ConsumerWidget {
               },
             ),
 
-            const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
           ],
         ),
       ),

@@ -120,8 +120,9 @@ class YouTubeMusicHomeService {
     final List<HomeSection> homeSections = [];
 
     for (var section in sections) {
-      if (section.containsKey('musicCarouselShelfRenderer')) {
+      if (section is Map && section.containsKey('musicCarouselShelfRenderer')) {
         final shelf = section['musicCarouselShelfRenderer'];
+        if (shelf is! Map) continue;
         final title = _nav(shelf, [
           'header',
           'musicCarouselShelfBasicHeaderRenderer',
@@ -129,16 +130,18 @@ class YouTubeMusicHomeService {
           'runs',
           0,
           'text',
-        ]);
-        final contents = shelf['contents'] ?? [];
+        ])?.toString();
+        final contents = shelf['contents'] as List? ?? [];
 
         final items = contents
+            .where((item) => item is Map)
             .map<HomeItem?>((item) {
-              if (item.containsKey('musicTwoRowItemRenderer')) {
-                return _parseMusicItem(item['musicTwoRowItemRenderer']);
-              } else if (item.containsKey('musicResponsiveListItemRenderer')) {
+              final itemMap = item as Map<String, dynamic>;
+              if (itemMap.containsKey('musicTwoRowItemRenderer')) {
+                return _parseMusicItem(itemMap['musicTwoRowItemRenderer']);
+              } else if (itemMap.containsKey('musicResponsiveListItemRenderer')) {
                 return _parseResponsiveItem(
-                  item['musicResponsiveListItemRenderer'],
+                  itemMap['musicResponsiveListItemRenderer'],
                 );
               }
               return null;
@@ -157,8 +160,9 @@ class YouTubeMusicHomeService {
 
   HomeItem? _parseMusicItem(Map<String, dynamic> data) {
     try {
-      final title = _nav(data, ['title', 'runs', 0, 'text']);
-      final subtitle = _nav(data, ['subtitle', 'runs', 0, 'text']);
+      final title = _nav(data, ['title', 'runs', 0, 'text'])?.toString();
+      final subtitleRuns = _nav(data, ['subtitle', 'runs']) as List?;
+      final subtitle = subtitleRuns?.map((r) => r['text']?.toString() ?? '').join('');
       final thumbnails = _nav(data, [
         'thumbnailRenderer',
         'musicThumbnailRenderer',
@@ -172,19 +176,33 @@ class YouTubeMusicHomeService {
         'navigationEndpoint',
         'browseEndpoint',
         'browseId',
-      ]);
-      final videoId = _nav(data, [
-        'navigationEndpoint',
-        'watchEndpoint',
-        'videoId',
-      ]);
+      ])?.toString();
+      final videoId = (_nav(data, ['navigationEndpoint', 'watchEndpoint', 'videoId']) ??
+          _nav(data, [
+            'overlay',
+            'musicItemThumbnailOverlayRenderer',
+            'content',
+            'musicPlayButtonRenderer',
+            'playNavigationEndpoint',
+            'watchEndpoint',
+            'videoId'
+          ]))?.toString();
       final playlistId =
-          _nav(data, ['navigationEndpoint', 'watchEndpoint', 'playlistId']) ??
+          (_nav(data, ['navigationEndpoint', 'watchEndpoint', 'playlistId']) ??
           _nav(data, [
             'navigationEndpoint',
             'watchPlaylistEndpoint',
             'playlistId',
-          ]);
+          ]) ??
+          _nav(data, [
+            'overlay',
+            'musicItemThumbnailOverlayRenderer',
+            'content',
+            'musicPlayButtonRenderer',
+            'playNavigationEndpoint',
+            'watchPlaylistEndpoint',
+            'playlistId',
+          ]))?.toString();
 
       String? type;
       if (browseId != null) {
@@ -215,15 +233,15 @@ class YouTubeMusicHomeService {
 
   HomeItem? _parseResponsiveItem(Map<String, dynamic> data) {
     try {
-      final title = _getFlexColumnText(data, 0);
-      final subtitle = _getFlexColumnText(data, 1);
+      final title = _getFlexColumnText(data, 0)?.toString();
+      final subtitle = _getFlexColumnText(data, 1)?.toString();
       final thumbnails = _nav(data, [
         'thumbnail',
         'musicThumbnailRenderer',
         'thumbnail',
         'thumbnails',
       ]);
-      final videoId = _nav(data, [
+      final videoId = (_nav(data, [
         'flexColumns',
         0,
         'musicResponsiveListItemFlexColumnRenderer',
@@ -233,9 +251,22 @@ class YouTubeMusicHomeService {
         'navigationEndpoint',
         'watchEndpoint',
         'videoId',
-      ]);
-      final playlistId =
+      ]) ??
           _nav(data, [
+            'playlistItemData',
+            'videoId'
+          ]) ??
+          _nav(data, [
+            'overlay',
+            'musicItemThumbnailOverlayRenderer',
+            'content',
+            'musicPlayButtonRenderer',
+            'playNavigationEndpoint',
+            'watchEndpoint',
+            'videoId'
+          ]))?.toString();
+      final playlistId =
+          (_nav(data, [
             'flexColumns',
             0,
             'musicResponsiveListItemFlexColumnRenderer',
@@ -256,7 +287,16 @@ class YouTubeMusicHomeService {
             'navigationEndpoint',
             'watchPlaylistEndpoint',
             'playlistId',
-          ]);
+          ]) ??
+          _nav(data, [
+            'overlay',
+            'musicItemThumbnailOverlayRenderer',
+            'content',
+            'musicPlayButtonRenderer',
+            'playNavigationEndpoint',
+            'watchPlaylistEndpoint',
+            'playlistId',
+          ]))?.toString();
 
       String type = 'song';
       if (videoId == null && playlistId != null) {
@@ -283,13 +323,13 @@ class YouTubeMusicHomeService {
       final flexColumns = data['flexColumns'];
       if (flexColumns == null || flexColumns.length <= index) return null;
 
-      return _nav(flexColumns[index], [
+      final runs = _nav(flexColumns[index], [
         'musicResponsiveListItemFlexColumnRenderer',
         'text',
         'runs',
-        0,
-        'text',
-      ]);
+      ]) as List?;
+      if (runs == null || runs.isEmpty) return null;
+      return runs.map((r) => r['text']?.toString() ?? '').join('');
     } catch (e) {
       return null;
     }
@@ -327,7 +367,7 @@ class HomeSection {
 
   factory HomeSection.fromJson(Map<String, dynamic> json) {
     return HomeSection(
-      title: json['title'] ?? '',
+      title: json['title']?.toString() ?? '',
       items:
           (json['items'] as List?)
               ?.map((item) => HomeItem.fromJson(Map<String, dynamic>.from(item)))
@@ -379,17 +419,17 @@ class HomeItem {
 
   factory HomeItem.fromJson(Map<String, dynamic> json) {
     return HomeItem(
-      title: json['title'] ?? '',
-      subtitle: json['subtitle'],
+      title: json['title']?.toString() ?? '',
+      subtitle: json['subtitle']?.toString(),
       thumbnails:
           (json['thumbnails'] as List?)
               ?.map((e) => Map<String, dynamic>.from(e))
               .toList() ??
           [],
-      browseId: json['browseId'],
-      videoId: json['videoId'],
-      playlistId: json['playlistId'],
-      type: json['type'],
+      browseId: json['browseId']?.toString(),
+      videoId: json['videoId']?.toString(),
+      playlistId: json['playlistId']?.toString(),
+      type: json['type']?.toString(),
     );
   }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
-import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/models/muzo_item.dart';
+import 'package:muzo/models/user_data.dart';
+import 'package:muzo/services/muzo_api_service.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -31,9 +32,9 @@ class ChannelScreen extends ConsumerStatefulWidget {
 }
 
 class _ChannelScreenState extends ConsumerState<ChannelScreen> {
-  final _apiService = YouTubeApiService();
+  late final _apiService = ref.read(muzoApiServiceProvider);
   bool _isLoading = true;
-  List<YtifyResult> _videos = [];
+  List<MuzoItem> _videos = [];
 
   @override
   void initState() {
@@ -67,7 +68,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -86,10 +87,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                         // Background Image
                         if (widget.thumbnailUrl != null)
                           CachedNetworkImage(
-                            imageUrl: widget.thumbnailUrl!.replaceAll(
-                              RegExp(r'=[sw]\d+(-h\d+)?'),
-                              '=s800',
-                            ),
+                            imageUrl: widget.thumbnailUrl!,
                             fit: BoxFit.cover,
                             errorWidget: (context, url, error) =>
                                 Container(color: Colors.grey[900]),
@@ -135,13 +133,13 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                 ),
                               ],
                               const SizedBox(height: 16),
-                              Consumer(
+                               Consumer(
                                 builder: (context, ref, _) {
                                   final storage = ref.watch(
                                     storageServiceProvider,
                                   );
                                   return ValueListenableBuilder<
-                                    List<YtifyResult>
+                                    List<Channel>
                                   >(
                                     valueListenable:
                                         storage.subscriptionsListenable,
@@ -153,32 +151,10 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                         height: 36,
                                         child: OutlinedButton(
                                           onPressed: () {
-                                            final channel = YtifyResult(
-                                              title: widget.title ?? 'Unknown',
-                                              thumbnails:
-                                                  widget.thumbnailUrl != null
-                                                  ? [
-                                                      YtifyThumbnail(
-                                                        url: widget
-                                                            .thumbnailUrl!
-                                                            .replaceAll(
-                                                              RegExp(
-                                                                r'=[sw]\d+(-h\d+)?',
-                                                              ),
-                                                              '=s800',
-                                                            ),
-                                                        width: 0,
-                                                        height: 0,
-                                                      ),
-                                                    ]
-                                                  : [],
-                                              resultType: 'channel',
-                                              isExplicit: false,
-                                              browseId: widget.channelId,
-                                              subscriberCount:
-                                                  widget.subscriberCount,
-                                              videoCount: widget.videoCount,
-                                              description: widget.description,
+                                            final channel = Channel(
+                                              name: widget.title ?? 'Unknown',
+                                              channelId: widget.channelId,
+                                              avatar: widget.thumbnailUrl,
                                             );
                                             storage.toggleSubscription(channel);
                                           },
@@ -275,7 +251,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                     ),
                   ),
 
-                const SliverPadding(padding: EdgeInsets.only(bottom: 50)),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
               ],
             ),
     );

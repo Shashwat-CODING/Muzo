@@ -2,13 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/widgets/app_alert_dialog.dart';
 
 class PlaylistSelectionDialog extends ConsumerStatefulWidget {
-  final YtifyResult song;
+  final MuzoItem song;
 
   const PlaylistSelectionDialog({super.key, required this.song});
 

@@ -4,7 +4,6 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:muzo/services/lyrics_service.dart';
 import 'package:muzo/widgets/lyrics_view.dart';
 import 'package:muzo/providers/player_provider.dart';
-import 'package:muzo/providers/settings_provider.dart';
 import 'package:muzo/providers/theme_provider.dart';
 import 'dart:ui';
 

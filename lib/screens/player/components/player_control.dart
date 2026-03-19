@@ -9,7 +9,7 @@ import 'up_next_queue.dart';
 
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 
 class PlayerControlWidget extends ConsumerWidget {
@@ -136,19 +136,19 @@ class PlayerControlWidget extends ConsumerWidget {
                           color: isFav ? Colors.red : Theme.of(context).colorScheme.onSurface,
                         ),
                         onPressed: () {
-                          // Reconstruct YtifyResult
-                          final result = YtifyResult(
+                          // Reconstruct MuzoItem
+                          final result = MuzoItem(
                             videoId: mediaItem.id,
                             title: mediaItem.title,
                             thumbnails: [
-                              YtifyThumbnail(
+                              MuzoThumbnail(
                                 url: mediaItem.artUri.toString(),
                                 width: 0,
                                 height: 0,
                               ),
                             ],
                             artists: [
-                              YtifyArtist(name: mediaItem.artist ?? '', id: ''),
+                              MuzoArtist(name: mediaItem.artist ?? '', id: ''),
                             ],
                             resultType: mediaItem.extras?['resultType'] ?? 'video',
                             isExplicit: false,
@@ -179,41 +179,39 @@ class PlayerControlWidget extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // Progress Bar
-        StreamBuilder<Duration>(
-          stream: player.positionStream,
-          builder: (context, snapshot) {
-            final position = snapshot.data ?? Duration.zero;
-            final duration = player.duration ?? Duration.zero;
+        RepaintBoundary(
+          child: StreamBuilder<Duration>(
+            stream: player.positionStream,
+            builder: (context, snapshot) {
+              final position = snapshot.data ?? Duration.zero;
+              final duration = player.duration ?? Duration.zero;
+              
+              final thumbColor = Theme.of(context).colorScheme.onSurface;
+              final progressBarColor = Theme.of(context).colorScheme.onSurface;
+              final baseBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
+              final bufferedBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35);
 
-            return Consumer(
-              builder: (context, ref, child) {
-                final thumbColor = Theme.of(context).colorScheme.onSurface;
-                final progressBarColor = Theme.of(context).colorScheme.onSurface;
-                final baseBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
-                final bufferedBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35);
-
-                return ProgressBar(
-                  thumbRadius: 6,
-                  thumbGlowRadius: 15,
-                  barHeight: 5,
-                  baseBarColor: baseBarColor,
-                  bufferedBarColor: bufferedBarColor,
-                  progressBarColor: progressBarColor,
-                  thumbColor: thumbColor,
-                  timeLabelPadding: 10,
-                  timeLabelTextStyle: Theme.of(context)
-                      .textTheme
-                      .labelMedium!
-                      .copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
-                  progress: position,
-                  total: duration,
-                  onSeek: (duration) {
-                    player.seek(duration);
-                  },
-                );
-              },
-            );
-          },
+              return ProgressBar(
+                thumbRadius: 6,
+                thumbGlowRadius: 15,
+                barHeight: 5,
+                baseBarColor: baseBarColor,
+                bufferedBarColor: bufferedBarColor,
+                progressBarColor: progressBarColor,
+                thumbColor: thumbColor,
+                timeLabelPadding: 10,
+                timeLabelTextStyle: Theme.of(context)
+                    .textTheme
+                    .labelMedium!
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+                progress: position,
+                total: duration,
+                onSeek: (duration) {
+                  player.seek(duration);
+                },
+              );
+            },
+          ),
         ),
 
         const SizedBox(height: 24),

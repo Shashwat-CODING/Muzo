@@ -3,9 +3,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:muzo/models/album_details.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/providers/player_provider.dart';
-import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/services/muzo_api_service.dart';
 
 class AlbumScreen extends ConsumerStatefulWidget {
   final String albumId;
@@ -31,7 +31,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
   @override
   void initState() {
     super.initState();
-    _albumFuture = YtifyApiService().getAlbumDetails(widget.albumId);
+    _albumFuture = ref.read(muzoApiServiceProvider).getAlbumDetails(widget.albumId);
     _scrollController.addListener(_onScroll);
   }
 
@@ -53,7 +53,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: FutureBuilder<AlbumDetails?>(
         future: _albumFuture,
         builder: (context, snapshot) {
@@ -107,7 +107,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                     }, childCount: album.tracks.length),
                   ),
 
-                  const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+                  const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
                 ],
               ),
             ],
@@ -187,14 +187,14 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                final List<YtifyResult> tracksWithArt = album.tracks
-                    .map<YtifyResult>((track) {
+                final List<MuzoItem> tracksWithArt = album.tracks
+                    .map<MuzoItem>((track) {
                       // Ensure thumbnail is set, fallback to album thumbnail
                       if (track.thumbnails.isEmpty &&
                           album.thumbnail.isNotEmpty) {
                         return track.copyWith(
                           thumbnails: [
-                            YtifyThumbnail(
+                            MuzoThumbnail(
                               url: album.thumbnail,
                               width: 500,
                               height: 500,
@@ -239,7 +239,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
     );
   }
 
-  Widget _buildTrackTile(YtifyResult song, int index, AlbumDetails album) {
+  Widget _buildTrackTile(MuzoItem song, int index, AlbumDetails album) {
     return ListTile(
       leading: Text(
         '${index + 1}',
@@ -265,7 +265,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
             song.thumbnails.isEmpty && album.thumbnail.isNotEmpty
             ? song.copyWith(
                 thumbnails: [
-                  YtifyThumbnail(url: album.thumbnail, width: 500, height: 500),
+                  MuzoThumbnail(url: album.thumbnail, width: 500, height: 500),
                 ],
               )
             : song;

@@ -1,28 +1,34 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
-import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/models/muzo_item.dart';
+import 'package:muzo/services/muzo_api_service.dart';
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-final searchFilterProvider = StateProvider<String>((ref) => 'songs');
+final searchFilterProvider = StateProvider<String>((ref) => 'all');
 
 final searchResultsProvider =
-    StateNotifierProvider<SearchResultsNotifier, AsyncValue<List<YtifyResult>>>(
+    StateNotifierProvider<SearchResultsNotifier, AsyncValue<List<MuzoItem>>>(
       (ref) {
         return SearchResultsNotifier(ref);
       },
     );
 
 class SearchResultsNotifier
-    extends StateNotifier<AsyncValue<List<YtifyResult>>> {
+    extends StateNotifier<AsyncValue<List<MuzoItem>>> {
   final Ref ref;
+  late final MuzoApiService _api = ref.read(muzoApiServiceProvider);
   String? _continuationToken;
   bool _isLoadingMore = false;
 
   SearchResultsNotifier(this.ref) : super(const AsyncValue.data([])) {
     // Listen to query and filter changes
     ref.listen(searchQueryProvider, (previous, next) {
-      if (next.isNotEmpty) _search(next, ref.read(searchFilterProvider));
+      if (next.isNotEmpty) {
+        _search(next, ref.read(searchFilterProvider));
+      } else {
+        state = const AsyncValue.data([]);
+      }
     });
     ref.listen(searchFilterProvider, (previous, next) {
       final query = ref.read(searchQueryProvider);
@@ -34,10 +40,23 @@ class SearchResultsNotifier
     state = const AsyncValue.loading();
     _continuationToken = null;
     try {
-      final apiService = YouTubeApiService();
-      final response = await apiService.search(query, filter: filter);
-      _continuationToken = response.continuationToken;
-      state = AsyncValue.data(response.results);
+      if (filter == 'all') {
+        final futures = [
+          _api.search(query, filter: 'songs').then((res) => res.results.map((r) => r.copyWith(category: 'Songs')).toList()),
+          _api.search(query, filter: 'videos').then((res) => res.results.map((r) => r.copyWith(category: 'Videos')).toList()),
+          _api.search(query, filter: 'albums').then((res) => res.results.map((r) => r.copyWith(category: 'Albums')).toList()),
+          _api.search(query, filter: 'artists').then((res) => res.results.map((r) => r.copyWith(category: 'Artists')).toList()),
+          _api.search(query, filter: 'playlists').then((res) => res.results.map((r) => r.copyWith(category: 'Playlists')).toList()),
+          _api.search(query, filter: 'channels').then((res) => res.results.map((r) => r.copyWith(category: 'Channels')).toList()),
+        ];
+        final resultsArray = await Future.wait(futures);
+        _continuationToken = null;
+        state = AsyncValue.data(resultsArray.expand((i) => i).toList());
+      } else {
+        final response = await _api.search(query, filter: filter);
+        _continuationToken = response.continuationToken;
+        state = AsyncValue.data(response.results);
+      }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -52,8 +71,7 @@ class SearchResultsNotifier
     final filter = ref.read(searchFilterProvider);
 
     try {
-      final apiService = YouTubeApiService();
-      final response = await apiService.search(
+      final response = await _api.search(
         query,
         filter: filter,
         continuationToken: _continuationToken,
@@ -61,8 +79,7 @@ class SearchResultsNotifier
       _continuationToken = response.continuationToken;
       state = AsyncValue.data([...currentResults, ...response.results]);
     } catch (e) {
-      // Handle error silently or show snackbar
-      print('Error loading more: $e');
+      debugPrint('Error loading more search results: $e');
     } finally {
       _isLoadingMore = false;
     }
@@ -76,6 +93,6 @@ final searchSuggestionsProvider = FutureProvider.family<List<String>, String>((
   query,
 ) async {
   if (query.isEmpty) return [];
-  final apiService = YouTubeApiService();
+  final apiService = ref.read(muzoApiServiceProvider);
   return await apiService.getSearchSuggestions(query);
 });

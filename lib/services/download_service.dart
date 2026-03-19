@@ -3,18 +3,19 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzo/services/youtube_api_service.dart';
+import 'package:muzo/services/muzo_api_service.dart';
+import 'package:muzo/services/stream_extraction_service.dart';
 import 'package:muzo/services/notification_service.dart';
 
 class DownloadService {
   final Dio _dio = Dio();
-  final YouTubeApiService _apiService = YouTubeApiService();
   final StorageService _storage = StorageService();
+  late final MuzoApiService _apiService = MuzoApiService(_storage);
 
   Future<bool> downloadSong(
-    YtifyResult result, {
+    MuzoItem result, {
     Function(int, int)? onProgress,
   }) async {
     final notificationId = result.videoId.hashCode;
@@ -58,14 +59,7 @@ class DownloadService {
       );
 
       // Get stream URL
-      final streamUrl = await _apiService.getStreamUrl(
-        result.videoId!,
-        title: result.title,
-        artist:
-            result.artists?.map((a) => a.name).join(', ') ??
-            result.videoType ??
-            'Unknown',
-      );
+      final streamUrl = await StreamExtractionService.getStreamUrl(result.videoId!);
       if (streamUrl == null) {
         debugPrint('Failed to get stream URL');
         await NotificationService().showCompletionNotification(

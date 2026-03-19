@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/models/artist_details.dart';
-import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/services/muzo_api_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:muzo/screens/playlist_screen.dart';
@@ -24,7 +24,7 @@ class ArtistScreen extends ConsumerStatefulWidget {
 }
 
 class _ArtistScreenState extends ConsumerState<ArtistScreen> {
-  final _apiService = YtifyApiService();
+  late final _apiService = ref.read(muzoApiServiceProvider);
   bool _isLoading = true;
   ArtistDetails? _artistDetails;
   PlaylistDetails? _topSongsPlaylist;
@@ -211,7 +211,7 @@ class _ArtistScreenState extends ConsumerState<ArtistScreen> {
                     }, childCount: _topSongsPlaylist!.tracks.length),
                   ),
                 ],
-                const SliverPadding(padding: EdgeInsets.only(bottom: 50)),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
               ],
             ),
     );

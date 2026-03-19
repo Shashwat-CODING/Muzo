@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 
 class BottomSheetState {
   final bool isVisible;
-  final YtifyResult? result;
+  final MuzoItem? result;
   final bool fromHistory;
   final bool fromPlayer;
 
@@ -16,7 +16,7 @@ class BottomSheetState {
 
   BottomSheetState copyWith({
     bool? isVisible,
-    YtifyResult? result,
+    MuzoItem? result,
     bool? fromHistory,
     bool? fromPlayer,
   }) {
@@ -33,7 +33,7 @@ class BottomSheetNotifier extends StateNotifier<BottomSheetState> {
   BottomSheetNotifier() : super(const BottomSheetState());
 
   void show(
-    YtifyResult result, {
+    MuzoItem result, {
     bool fromHistory = false,
     bool fromPlayer = false,
   }) {

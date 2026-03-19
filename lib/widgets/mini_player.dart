@@ -9,7 +9,7 @@ import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/screens/player_screen.dart';
 import 'package:muzo/services/navigator_key.dart';
 import 'package:muzo/services/storage_service.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
@@ -17,7 +17,6 @@ class MiniPlayer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mediaItemAsync = ref.watch(currentMediaItemProvider);
-    final isPlayingAsync = ref.watch(isPlayingProvider);
     final audioHandler = ref.watch(audioHandlerProvider);
 
     return mediaItemAsync.when(
@@ -95,7 +94,7 @@ class MiniPlayer extends ConsumerWidget {
                     Consumer(
                       builder: (context, ref, child) {
                         final storage = ref.watch(storageServiceProvider);
-                        return ValueListenableBuilder<List<YtifyResult>>(
+                        return ValueListenableBuilder<List<MuzoItem>>(
                           valueListenable: storage.favoritesListenable,
                           builder: (context, favorites, _) {
                             final isFav = storage.isFavorite(mediaItem.id);
@@ -109,18 +108,18 @@ class MiniPlayer extends ConsumerWidget {
                               ),
                               onPressed: () {
                                 HapticFeedback.lightImpact();
-                                final result = YtifyResult(
+                                final result = MuzoItem(
                                   videoId: mediaItem.id,
                                   title: mediaItem.title,
                                   thumbnails: [
-                                    YtifyThumbnail(
+                                    MuzoThumbnail(
                                       url: mediaItem.artUri.toString(),
                                       width: 0,
                                       height: 0,
                                     ),
                                   ],
                                   artists: [
-                                    YtifyArtist(
+                                    MuzoArtist(
                                       name: mediaItem.artist ?? '',
                                       id: '',
                                     ),
@@ -200,9 +199,9 @@ class MiniPlayer extends ConsumerWidget {
                            value: value,
                            minHeight:
                                3, // Slightly thicker for visibility if shorter
-                           backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
+                           backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
                            valueColor: AlwaysStoppedAnimation<Color>(
-                             Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
+                             Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
                            ),
                          ),
                       ),

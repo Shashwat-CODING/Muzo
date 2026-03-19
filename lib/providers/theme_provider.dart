@@ -7,8 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:muzo/providers/settings_provider.dart';
 import 'package:palette_generator/palette_generator.dart';
 import 'package:muzo/providers/player_provider.dart';
-import 'package:muzo/utils/app_colors.dart'; 
-import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/utils/app_colors.dart';
+import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/utils/app_colors.dart';
+
+const String kDefaultFontFamily = 'Roboto';
 
 // Extensions from the user's snippet
 extension ColorWithHSL on Color {
@@ -132,8 +135,22 @@ class ThemeLogic {
     Color? textColor,
     Brightness? systemBrightness,
     ColorScheme? dynamicColorScheme,
-    String fontFamily = 'Archivo Black',
+    String fontFamily = kDefaultFontFamily,
   }) {
+    // Ensure the effective ColorScheme matches the target brightness
+    final Brightness targetBrightness = themeType == ThemeType.light
+        ? Brightness.light
+        : Brightness.dark;
+
+    ColorScheme? effectiveColorScheme = dynamicColorScheme;
+    if (effectiveColorScheme != null &&
+        effectiveColorScheme.brightness != targetBrightness) {
+      effectiveColorScheme = ColorScheme.fromSeed(
+        seedColor: effectiveColorScheme.primary,
+        brightness: targetBrightness,
+      );
+    }
+
     if (themeType == ThemeType.dark && primarySwatch != null) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
@@ -149,6 +166,7 @@ class ThemeLogic {
 
       final baseTheme = ThemeData(
         useMaterial3: true,
+        brightness: Brightness.dark,
         primaryColor: primarySwatch[500],
         colorScheme: ColorScheme.fromSwatch(
           accentColor: primarySwatch[200],
@@ -255,15 +273,10 @@ class ThemeLogic {
         useMaterial3: true,
         brightness: Brightness.light,
         canvasColor: const Color(0xFFFFFFFF),
-        primaryColor: dynamicColorScheme?.primary ?? const Color(0xFF1DB954),
+        primaryColor: effectiveColorScheme?.primary ?? const Color(0xFF1DB954),
         scaffoldBackgroundColor: const Color(0xFFFFFFFF),
-        colorScheme: ((dynamicColorScheme?.brightness == Brightness.light 
-                ? dynamicColorScheme 
-                : (dynamicColorScheme != null 
-                    ? ColorScheme.fromSeed(seedColor: dynamicColorScheme.primary, brightness: Brightness.light) 
-                    : null))?.copyWith(
-              surface: const Color(0xFFFFFFFF),
-            )) ??
+        colorScheme:
+            effectiveColorScheme?.copyWith(surface: const Color(0xFFFFFFFF)) ??
             const ColorScheme.light(
               primary: Color(0xFF1DB954),
               secondary: Color(0xFF888888),
@@ -336,12 +349,10 @@ class ThemeLogic {
         useMaterial3: true,
         brightness: Brightness.dark,
         canvasColor: const Color(0xFF121212), // Spotify Dark Gray
-        primaryColor: dynamicColorScheme?.primary ?? const Color(0xFFE2E2E2),
+        primaryColor: effectiveColorScheme?.primary ?? const Color(0xFFE2E2E2),
         scaffoldBackgroundColor: const Color(0xFF121212),
         colorScheme:
-            dynamicColorScheme?.copyWith(
-              surface: const Color(0xFF121212),
-            ) ??
+            effectiveColorScheme?.copyWith(surface: const Color(0xFF121212)) ??
             const ColorScheme.dark(
               primary: Color(0xFFE2E2E2),
               secondary: Color(0xFF888888),
@@ -411,9 +422,10 @@ final themeProvider = Provider<ThemeData>((ref) {
 
   // Resolve auto → system brightness
   final effectiveType = themeType == ThemeType.auto
-      ? (WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.light
-          ? ThemeType.light
-          : ThemeType.dark)
+      ? (WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.light
+            ? ThemeType.light
+            : ThemeType.dark)
       : themeType;
 
   if (effectiveType == ThemeType.light) {

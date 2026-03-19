@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:muzo/services/youtube_api_service.dart'; // Ensure valid import
+import 'package:muzo/services/muzo_api_service.dart'; // Ensure valid import
 import 'package:muzo/widgets/library_tile.dart';
 import 'package:muzo/screens/artist_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/utils/page_routes.dart';
-import 'package:muzo/services/ytify_service.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/providers/search_provider.dart';
 
 class ArtistTile extends ConsumerStatefulWidget {
   final String artistName;
@@ -24,7 +25,7 @@ class ArtistTile extends ConsumerStatefulWidget {
 }
 
 class _ArtistTileState extends ConsumerState<ArtistTile> {
-  final _ytifyService = YtifyApiService();
+  late final _muzoService = ref.read(muzoApiServiceProvider);
   String? _avatarUrl;
   late String _navChannelId;
 
@@ -54,7 +55,7 @@ class _ArtistTileState extends ConsumerState<ArtistTile> {
     if (mounted) {
       try {
         if (_navChannelId.isNotEmpty) {
-          final details = await _ytifyService.getArtistDetails(_navChannelId);
+          final details = await _muzoService.getArtistDetails(_navChannelId);
           if (mounted && details != null && details.artistAvatar.isNotEmpty) {
             setState(() {
               // Try to get high-res image
@@ -68,7 +69,7 @@ class _ArtistTileState extends ConsumerState<ArtistTile> {
           }
         } else {
           // Fallback if we only have the artistName (rare but possible)
-          final _apiService = YouTubeApiService();
+          final _apiService = ref.read(muzoApiServiceProvider);
           final response = await _apiService.search(
             widget.artistName,
             filter: 'artists',
@@ -105,12 +106,13 @@ class _ArtistTileState extends ConsumerState<ArtistTile> {
       isRound: true,
       placeholderIcon: FluentIcons.person_24_regular,
       onTap: () {
-        if (_navChannelId.isNotEmpty) {
-          Navigator.push(
-            context,
+        final id = _navChannelId.isNotEmpty ? _navChannelId : widget.artistId;
+        final nav = navigatorKey.currentState;
+        if (id.isNotEmpty && nav != null) {
+          nav.push(
             SlidePageRoute(
               page: ArtistScreen(
-                browseId: _navChannelId,
+                browseId: id,
                 artistName: widget.artistName,
                 thumbnailUrl: _avatarUrl,
               ),

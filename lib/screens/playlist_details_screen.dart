@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
+import 'package:muzo/models/user_data.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/providers/download_provider.dart';
@@ -23,7 +24,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
     final storage = ref.watch(storageServiceProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: Text(playlistName),
@@ -56,9 +57,9 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                           Navigator.pop(context); // Close dialog
                           Navigator.pop(context); // Go back to library
                         },
-                        child: const Text(
+                        child: Text(
                           'Delete',
-                          style: TextStyle(color: Colors.red),
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
                         ),
                       ),
                     ],
@@ -71,7 +72,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
       body: Builder(
         builder: (context) {
           if (playlistName == 'Favorites') {
-            return ValueListenableBuilder<List<YtifyResult>>(
+            return ValueListenableBuilder<List<MuzoItem>>(
               valueListenable: storage.favoritesListenable,
               builder: (context, favorites, _) {
                 return _buildSongList(context, ref, favorites, storage);
@@ -88,7 +89,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                 final downloads = storage.getDownloads();
                 final storedSongs = downloads
                     .map(
-                      (d) => YtifyResult.fromJson(
+                      (d) => MuzoItem.fromJson(
                         Map<String, dynamic>.from(d['result']),
                       ),
                     )
@@ -107,9 +108,9 @@ class PlaylistDetailsScreen extends ConsumerWidget {
               },
             );
           } else {
-            return ValueListenableBuilder<Map<String, List<YtifyResult>>>(
+            return ValueListenableBuilder<List<Playlist>>(
               valueListenable: storage.playlistsListenable,
-              builder: (context, playlistsMap, _) {
+              builder: (context, playlists, _) {
                 final songs = storage.getPlaylistSongs(playlistName);
                 return _buildSongList(context, ref, songs, storage);
               },
@@ -123,7 +124,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
   Widget _buildSongList(
     BuildContext context,
     WidgetRef ref,
-    List<YtifyResult> songs,
+    List<MuzoItem> songs,
     StorageService storage, {
     Map<String, double>? progressMap,
   }) {
@@ -144,7 +145,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
               onPressed: () {
                 ref.read(audioHandlerProvider).playAll(songs);
               },
-              icon: const Icon(FluentIcons.play_24_filled, color: Colors.black),
+              icon: Icon(FluentIcons.play_24_filled, color: Theme.of(context).colorScheme.surface),
               label: Text(
                 'Play All',
                 style: TextStyle(
@@ -153,10 +154,12 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.onSurface,
+                foregroundColor: Theme.of(context).colorScheme.surface,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -166,6 +169,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
         // Songs List
         Expanded(
           child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 120),
             itemCount: songs.length,
             itemBuilder: (context, index) {
               final song = songs[index];
@@ -183,9 +187,13 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                     height: 48,
                     fit: BoxFit.cover,
                     errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[800],
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                       width: 48,
                       height: 48,
+                      child: Icon(
+                        FluentIcons.music_note_2_24_regular,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
                     ),
                   ),
                 ),
@@ -198,18 +206,20 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                 subtitle: isDownloading
                     ? LinearProgressIndicator(
                         value: progress,
-                        backgroundColor: Colors.grey[800],
+                    backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                         valueColor: const AlwaysStoppedAnimation(
                           Color(0xFF1ED760),
                         ),
                         minHeight: 4,
                       )
                     : Text(
-                        song.artists?.map((a) => a.name).join(', ') ??
-                            'Unknown',
+                        song.displayArtist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.grey[400]),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          fontSize: 12,
+                        ),
                       ),
                 trailing: IconButton(
                   icon: Icon(
@@ -222,7 +232,7 @@ class PlaylistDetailsScreen extends ConsumerWidget {
                         : FluentIcons.subtract_circle_24_regular,
                     color: playlistName == 'Favorites'
                         ? const Color(0xFF1ED760)
-                        : Colors.grey,
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   onPressed: () {
                     if (playlistName == 'Favorites') {

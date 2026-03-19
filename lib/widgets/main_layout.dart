@@ -1,22 +1,24 @@
-import 'dart:ui';
+import 'dart:async';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/navigation_provider.dart';
 import 'package:muzo/providers/player_provider.dart';
-import 'package:muzo/providers/bottom_sheet_provider.dart';
-import 'package:muzo/providers/settings_provider.dart';
-import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/providers/theme_provider.dart';
+import 'package:muzo/providers/search_provider.dart';
+import 'package:muzo/screens/search_screen.dart';
 import 'package:muzo/widgets/mini_player.dart';
-import 'package:muzo/widgets/song_options_menu.dart';
+import 'package:muzo/widgets/sync_progress_dialog.dart';
 import 'package:muzo/services/share_service.dart';
 import 'package:muzo/widgets/global_background.dart';
-import 'package:muzo/widgets/sync_progress_dialog.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
-import 'package:muzo/providers/theme_provider.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/providers/overlay_provider.dart';
+import 'package:muzo/services/auth_service.dart';
+import 'package:app_links/app_links.dart';
+import 'package:muzo/widgets/floating_sleep_timer.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   final Widget child;
@@ -30,15 +32,8 @@ class MainLayout extends ConsumerStatefulWidget {
 class _MainLayoutState extends ConsumerState<MainLayout>
     with SingleTickerProviderStateMixin {
   late final ShareService _shareService;
-  late final AnimationController _sheetAnimController;
-  late final Animation<Offset> _sheetSlideAnimation;
-  late final Animation<double> _sheetFadeAnimation;
-  bool _previousSheetVisible = false;
-
-  // Cached sheet data to persist during closing animation
-  YtifyResult? _cachedResult;
-  bool _cachedFromHistory = false;
-  bool _cachedFromPlayer = false;
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
@@ -46,35 +41,45 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final audioHandler = ref.read(audioHandlerProvider);
     _shareService = ShareService(audioHandler);
 
-    // Bottom sheet animation setup
-    _sheetAnimController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _sheetSlideAnimation =
-        Tween<Offset>(
-          begin: const Offset(0, 1), // Start from bottom
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(
-            parent: _sheetAnimController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
-    _sheetFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _sheetAnimController, curve: Curves.easeOut),
-    );
-
-    // Post frame callback to ensure context is ready for snackbars if needed immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _shareService.init(context);
     });
+
+    _initDeepLinks();
   }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+    
+    // Check initial link if app was in cold state (minimized)
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _handleDeepLink(initialUri);
+      }
+    } catch (e) {
+      debugPrint('Failed to get initial uri: $e');
+    }
+
+    // Handle link when app is in warm state (foreground or background)
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    }, onError: (err) {
+      debugPrint('Deep Link stream error: $err');
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    debugPrint('Received Deep Link: $uri');
+    // Using the exact logic as ShareService via the audio handler for playback
+    _shareService.handleSharedText(context, uri.toString());
+  }
+
 
   @override
   void dispose() {
-    _sheetAnimController.dispose();
     _shareService.dispose();
+    _linkSubscription?.cancel();
     super.dispose();
   }
 
@@ -83,9 +88,26 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final selectedIndex = ref.watch(navigationIndexProvider);
     final isPlayerExpanded = ref.watch(isPlayerExpandedProvider);
 
-    final audioHandler = ref.watch(audioHandlerProvider);
+    final audioHandler = ref.read(audioHandlerProvider);
 
-    _setupErrorListener(ref);
+    final globalBottomSheet = ref.watch(globalBottomSheetProvider);
+    final authState = ref.watch(authServiceProvider);
+
+    // Listen for storage errors
+    ref.listen(storageServiceProvider, (previous, next) {
+      if (previous?.errorNotifier.value != next.errorNotifier.value &&
+          next.errorNotifier.value != null) {
+        showGlassSnackBar(context, next.errorNotifier.value!);
+        next.errorNotifier.value = null;
+      }
+    });
+
+    // Close global bottom sheet on tab change
+    ref.listen(navigationIndexProvider, (previous, next) {
+      if (previous != next) {
+        ref.read(globalBottomSheetProvider.notifier).state = null;
+      }
+    });
 
     return GlobalBackground(
       child: Scaffold(
@@ -93,10 +115,32 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             Colors.transparent, // Ensure GlobalBackground is visible
         body: Stack(
           children: [
-            // Main Content (Navigator)
+            // 1. Main Content (Navigator)
             widget.child,
 
-            // Bottom Navigation Bar (Docked)
+            // 2. Loading Overlay (Covers only the main content area)
+            ValueListenableBuilder<bool>(
+              valueListenable: audioHandler.isLoadingStream,
+              builder: (context, isAudioLoading, _) {
+                return ValueListenableBuilder<bool>(
+                  valueListenable: ref
+                      .watch(storageServiceProvider)
+                      .isLoadingNotifier,
+                  builder: (context, isStorageLoading, _) {
+                    final isLoading = isAudioLoading || isStorageLoading;
+                    if (!isLoading) return const SizedBox.shrink();
+                    return Container(
+                      color: const Color(0xFF121212).withValues(alpha: 0.5),
+                      child: const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+
+            // 3. Bottom Navigation Bar (Should be above loader)
             Positioned(
               left: 0,
               right: 0,
@@ -127,7 +171,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
               ),
             ),
 
-            // MiniPlayer (Floating above Navbar, ~95% Width)
+            // 4. MiniPlayer (Floating above Navbar, ~95% Width)
             Positioned(
               left: 0,
               right: 0,
@@ -207,151 +251,42 @@ class _MainLayoutState extends ConsumerState<MainLayout>
               ),
             ),
 
-            // Loading Overlay
-            ValueListenableBuilder<bool>(
-              valueListenable: audioHandler.isLoadingStream,
-              builder: (context, isAudioLoading, _) {
-                return ValueListenableBuilder<bool>(
-                  valueListenable: ref
-                      .watch(storageServiceProvider)
-                      .isLoadingNotifier,
-                  builder: (context, isStorageLoading, _) {
-                    final isLoading = isAudioLoading || isStorageLoading;
-                    if (!isLoading) return const SizedBox.shrink();
-                    return Container(
-                      color: const Color(0xFF121212).withValues(alpha: 0.5),
-                      child: const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+            // 5. Floating Sleep Timer Overlay
+            const FloatingSleepTimer(),
 
-            // Bottom Sheet Overlay (Above everything including miniplayer/navbar)
-            _buildBottomSheetOverlay(ref),
+            // 6. Global Bottom Sheet Overlay (Should cover navbar when open)
+            if (globalBottomSheet != null)
+              Positioned.fill(
+                child: Material(
+                  color: Colors.transparent,
+                  child: Stack(
+                    children: [
+                      // Dimmed Background
+                      GestureDetector(
+                        onTap: () => ref.read(globalBottomSheetProvider.notifier).state = null,
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      // Bottom Sheet Content
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: globalBottomSheet,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomSheetOverlay(WidgetRef ref) {
-    final sheetState = ref.watch(bottomSheetProvider);
-    final isVisible = sheetState.isVisible && sheetState.result != null;
 
-    // Trigger animation when visibility changes
-    if (isVisible != _previousSheetVisible) {
-      _previousSheetVisible = isVisible;
-      if (isVisible) {
-        // Cache the sheet data when opening
-        _cachedResult = sheetState.result;
-        _cachedFromHistory = sheetState.fromHistory;
-        _cachedFromPlayer = sheetState.fromPlayer;
-        _sheetAnimController.forward();
-      } else {
-        _sheetAnimController.reverse();
-      }
-    }
 
-    // Use cached data if available, otherwise use current state
-    final displayResult = _cachedResult ?? sheetState.result;
-    final displayFromHistory = _cachedFromHistory;
-    final displayFromPlayer = _cachedFromPlayer;
 
-    return AnimatedBuilder(
-      animation: _sheetAnimController,
-      builder: (context, child) {
-        // Hide when animation is dismissed AND not visible
-        if (_sheetAnimController.isDismissed && !isVisible) {
-          // Clear cache after animation completes
-          _cachedResult = null;
-          return const SizedBox.shrink();
-        }
 
-        // Safety check - if no result to display, don't render
-        if (displayResult == null) {
-          return const SizedBox.shrink();
-        }
-
-        // Get the same background color used in GlobalBackground
-        final theme = Theme.of(context);
-        final sheetBackgroundColor = theme.scaffoldBackgroundColor;
-
-        return GestureDetector(
-          onTap: () => _hideSheetWithAnimation(ref),
-          child: Container(
-            color: const Color(0xFF121212).withValues(
-              alpha: 0.5 * _sheetFadeAnimation.value,
-            ),
-            child: Column(
-              children: [
-                const Spacer(),
-                SlideTransition(
-                  position: _sheetSlideAnimation,
-                  child: GestureDetector(
-                    onTap: () {}, // Prevent close on sheet tap
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                      child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                              child: Container(
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: sheetBackgroundColor.withValues(
-                                    alpha: 0.85,
-                                  ),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(24),
-                                  ),
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                child: SafeArea(
-                                  top: false,
-                                  child: SongOptionsMenu(
-                                    result: displayResult,
-                                    fromHistory: displayFromHistory,
-                                    fromPlayer: displayFromPlayer,
-                                    onClose: () => _hideSheetWithAnimation(ref),
-                                  ),
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _hideSheetWithAnimation(WidgetRef ref) async {
-    await _sheetAnimController.reverse();
-    ref.read(bottomSheetProvider.notifier).hide();
-  }
-
-  void _setupErrorListener(WidgetRef ref) {
-    ref.listen(storageServiceProvider, (previous, next) {
-      if (previous?.errorNotifier.value != next.errorNotifier.value &&
-          next.errorNotifier.value != null) {
-        showGlassSnackBar(context, next.errorNotifier.value!);
-        // Reset error after showing
-        next.errorNotifier.value = null;
-      }
-    });
-  }
 
   Widget _buildFloatingNavBar(
     BuildContext context,
@@ -376,29 +311,19 @@ class _MainLayoutState extends ConsumerState<MainLayout>
           _buildNavItem(
             context,
             ref,
-            FluentIcons.search_24_regular,
-            FluentIcons.search_24_filled,
-            "Search",
+            FluentIcons.library_24_regular,
+            FluentIcons.library_24_filled,
+            "Library",
             1,
             selectedIndex,
           ),
           _buildNavItem(
             context,
             ref,
-            FluentIcons.library_24_regular,
-            FluentIcons.library_24_filled,
-            "Library",
-            2,
-            selectedIndex,
-          ),
-
-          _buildNavItem(
-            context,
-            ref,
             FluentIcons.person_24_regular,
             FluentIcons.person_24_filled,
             "Channels",
-            3,
+            2,
             selectedIndex,
           ),
           _buildNavItem(
@@ -407,7 +332,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             FluentIcons.settings_24_regular,
             FluentIcons.settings_24_filled,
             "Settings",
-            4,
+            3,
             selectedIndex,
           ),
         ],
@@ -429,7 +354,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       behavior: HitTestBehavior.opaque,
       onTap: () {
         HapticFeedback.lightImpact();
-        if (index == 0 || index == 1 || index == 2 || index == 3 || index == 4) {
+        if (index >= 0 && index <= 3) {
           ref.read(navigationIndexProvider.notifier).state = index;
           navigatorKey.currentState?.popUntil((route) => route.isFirst);
         } else if (index == 5) {
@@ -464,7 +389,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     ? Theme.of(context).colorScheme.onSurface
                     : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
           ],

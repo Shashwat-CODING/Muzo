@@ -4,21 +4,22 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/providers/player_provider.dart';
 import 'package:muzo/providers/download_provider.dart';
-import 'package:muzo/providers/bottom_sheet_provider.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/services/download_service.dart';
 import 'package:muzo/widgets/playlist_selection_dialog.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/services/navigator_key.dart';
+import 'package:muzo/providers/overlay_provider.dart';
+import 'dart:ui';
 import 'package:muzo/providers/settings_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:muzo/widgets/sleep_timer_dialog.dart';
 
 class SongOptionsMenu extends ConsumerWidget {
-  final YtifyResult result;
+  final MuzoItem result;
   final bool fromHistory;
   final bool fromPlayer;
   final VoidCallback? onClose;
@@ -33,10 +34,9 @@ class SongOptionsMenu extends ConsumerWidget {
 
   static DateTime? _lastShowTime;
 
-  /// Show the bottom sheet using the provider (renders in MainLayout's Stack)
   static void show(
     WidgetRef ref,
-    YtifyResult result, {
+    MuzoItem result, {
     bool fromHistory = false,
     bool fromPlayer = false,
   }) {
@@ -47,20 +47,93 @@ class SongOptionsMenu extends ConsumerWidget {
     }
     _lastShowTime = now;
 
-    ref
-        .read(bottomSheetProvider.notifier)
-        .show(result, fromHistory: fromHistory, fromPlayer: fromPlayer);
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    // When called from inside the player, the player is a new Navigator route sitting
+    // above MainLayout entirely. Using globalBottomSheetProvider (which renders inside
+    // MainLayout's Stack) would make the sheet invisible behind the player route.
+    // Fix: use showModalBottomSheet with useRootNavigator:true so it renders above
+    // all routes, including the player.
+    if (fromPlayer) {
+      showModalBottomSheet(
+        context: context,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          builder: (context, scrollController) => ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: SongOptionsMenu(
+                      result: result,
+                      fromHistory: fromHistory,
+                      fromPlayer: fromPlayer,
+                      onClose: () => Navigator.of(ctx).pop(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // For non-player contexts: use globalBottomSheetProvider so it renders above
+    // the floating navbar and miniplayer in MainLayout's Stack.
+    final screenHeight = MediaQuery.of(context).size.height;
+    ref.read(globalBottomSheetProvider.notifier).state = ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          constraints: BoxConstraints(maxHeight: screenHeight * 0.7),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: SongOptionsMenu(
+                result: result,
+                fromHistory: fromHistory,
+                fromPlayer: fromPlayer,
+                onClose: () => ref.read(globalBottomSheetProvider.notifier).state = null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// Hide the bottom sheet
   static void hide(WidgetRef ref) {
-    ref.read(bottomSheetProvider.notifier).hide();
+    ref.read(globalBottomSheetProvider.notifier).state = null;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
-    return ValueListenableBuilder<List<YtifyResult>>(
+    return ValueListenableBuilder<List<MuzoItem>>(
       valueListenable: storage.favoritesListenable,
       builder: (context, favorites, _) {
         final isFav =

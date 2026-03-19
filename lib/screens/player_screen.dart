@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sliding_up_panel/sliding_up_panel.dart';
+
 
 import 'player/standard_player.dart';
 
@@ -12,13 +12,10 @@ class PlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
-  final PanelController _panelController = PanelController();
   final bool _isPanelClosed = true;
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Dismissible(
       key: const Key('player_dismiss'),
       direction: _isPanelClosed ? DismissDirection.down : DismissDirection.none,

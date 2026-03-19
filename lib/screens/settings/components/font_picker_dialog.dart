@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:muzo/services/storage_service.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 import 'package:muzo/providers/settings_provider.dart';
@@ -39,7 +38,6 @@ class _FontPickerDialogState extends ConsumerState<FontPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final storage = ref.watch(storageServiceProvider);
     final currentFont = ref.watch(settingsProvider).appFontFamily;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -81,7 +79,7 @@ class _FontPickerDialogState extends ConsumerState<FontPickerDialog> {
                 const Spacer(),
                 TextButton(
                   onPressed: () {
-                    ref.read(settingsProvider.notifier).setAppFontFamily('Archivo Black');
+                    ref.read(settingsProvider.notifier).setAppFontFamily('Outfit');
                     Navigator.pop(context);
                   },
                   child: const Text('Reset', style: TextStyle(fontWeight: FontWeight.bold)),

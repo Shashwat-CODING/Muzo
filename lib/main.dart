@@ -13,6 +13,10 @@ import 'package:muzo/providers/theme_provider.dart';
 import 'package:muzo/providers/settings_provider.dart';
 import 'package:muzo/services/auth_service.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,9 +26,7 @@ Future<void> main() async {
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
     ),
   );
 
@@ -42,6 +44,7 @@ Future<void> main() async {
     ),
     container.read(storageServiceProvider).init(),
     NotificationService().init(),
+    NewPipeExtractor.init(),
   ]);
 
   runApp(UncontrolledProviderScope(container: container, child: const MyApp()));
@@ -76,23 +79,20 @@ class MyApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           theme: theme,
           builder: (context, child) {
-            return Consumer(
-              builder: (context, ref, _) {
-                final authState = ref.watch(authServiceProvider);
-                // Only show MainLayout (player/navbar) if authenticated
-                if (authState.isAuthenticated) {
-                  return MainLayout(child: child!);
-                }
-                return child!;
-              },
+            return MainLayout(
+              key: const ValueKey('main_layout_shell'),
+              child: child!,
             );
           },
           home: Consumer(
             builder: (context, ref, _) {
               final authState = ref.watch(authServiceProvider);
-              return authState.isAuthenticated
-                  ? const HomeScreen()
-                  : const AuthScreen();
+              // The builder above will wrap this with MainLayout if authenticated
+              if (authState.isAuthenticated) {
+                return const HomeScreen();
+              } else {
+                return const AuthScreen();
+              }
             },
           ),
         );

@@ -83,21 +83,6 @@ final filteredHomeSectionsProvider = Provider<AsyncValue<List<HomeSection>>>((
             if (filter == 'Songs') {
               return item.type == 'song' || item.videoId != null;
             }
-            if (filter == 'Videos') {
-              return item.type ==
-                  'video'; // item.type might not be reliable for video vs song, usually song is default. YtifyResult has resultType. HomeItem has type.
-            }
-            // Let's check HomeItem type logic.
-            // _parseMusicItem: type = 'album' | 'artist' | 'playlist'
-            // _parseResponsiveItem: type = 'song' | 'playlist'
-            // There is no explicit 'video' type in current parsing for HomeItem, largely 'song'.
-            // However, user wants "Videos". YouTube Music "Songs" are essentially videos.
-            // For now, let's map:
-            // Songs -> type == 'song'
-            // Albums -> type == 'album'
-            // Playlists -> type == 'playlist'
-            // Videos -> maybe we can't distinguish easily without more data, or we assume everything else?
-            // Let's stick to what we can.
             if (filter == 'Albums') return item.type == 'album';
             if (filter == 'Playlists') return item.type == 'playlist';
             return false;

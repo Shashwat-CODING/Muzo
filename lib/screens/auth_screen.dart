@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:muzo/services/auth_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/widgets/main_layout.dart';
@@ -52,7 +51,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   void _skip() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => MainLayout(child: const HomeScreen())),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
@@ -90,7 +89,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         showGlassSnackBar(context, 'Welcome to Muzo!');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => MainLayout(child: const HomeScreen()),
+            builder: (_) => const HomeScreen(),
           ),
         );
       }
@@ -281,7 +280,7 @@ class _IntroPage extends ConsumerWidget {
                       showGlassSnackBar(context, 'Signed in with Google');
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
-                          builder: (_) => MainLayout(child: const HomeScreen()),
+                          builder: (_) => const HomeScreen(),
                         ),
                       );
                     }

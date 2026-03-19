@@ -18,9 +18,6 @@ class AuthService {
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     serverClientId: _webClientId,
-    clientId: defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS
-        ? null
-        : _androidClientId,
   );
 
   AuthService(this._storage);
@@ -45,7 +42,11 @@ class AuthService {
       final user = data['user'];
 
       await _storage.setAuthToken(token);
-      await _storage.setUserInfo(user['username'], user['email']);
+      await _storage.setUserInfo(
+        user['username'],
+        user['email'],
+        avatarUrl: user['avatar'],
+      );
     } else {
       final error = jsonDecode(response.body);
       throw Exception(error['error'] ?? 'Signup failed');
@@ -65,7 +66,11 @@ class AuthService {
       final user = data['user'];
 
       await _storage.setAuthToken(token);
-      await _storage.setUserInfo(user['username'], user['email']);
+      await _storage.setUserInfo(
+        user['username'],
+        user['email'],
+        avatarUrl: user['avatar'],
+      );
     } else {
       final error = jsonDecode(response.body);
       throw Exception(error['error'] ?? 'Login failed');
@@ -98,7 +103,11 @@ class AuthService {
         final user = data['user'];
 
         await _storage.setAuthToken(token);
-        await _storage.setUserInfo(user['username'], user['email']);
+        await _storage.setUserInfo(
+          user['username'],
+          user['email'],
+          avatarUrl: user['avatar'],
+        );
       } else {
         final error = jsonDecode(response.body);
         throw Exception(error['error'] ?? 'Google Login failed on server');
@@ -133,7 +142,11 @@ class AuthService {
 
         await _storage.setAuthToken(newToken);
         if (user != null) {
-          await _storage.setUserInfo(user['username'], user['email']);
+          await _storage.setUserInfo(
+            user['username'],
+            user['email'],
+            avatarUrl: user['avatar'],
+          );
         }
         return newToken;
       } else {

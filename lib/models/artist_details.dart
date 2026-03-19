@@ -1,4 +1,4 @@
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 
 class ArtistDetails {
   final String artistName;
@@ -17,9 +17,9 @@ class ArtistDetails {
 
   factory ArtistDetails.fromJson(Map<String, dynamic> json) {
     return ArtistDetails(
-      artistName: json['artistName'] ?? '',
-      artistAvatar: json['artistAvatar'] ?? '',
-      playlistId: json['playlistId'] ?? '',
+      artistName: json['artistName']?.toString() ?? '',
+      artistAvatar: json['artistAvatar']?.toString() ?? '',
+      playlistId: json['playlistId']?.toString() ?? '',
       recommendedArtists:
           (json['recommendedArtists'] as List?)
               ?.map((e) => RecommendedArtist.fromJson(e))
@@ -47,9 +47,9 @@ class RecommendedArtist {
 
   factory RecommendedArtist.fromJson(Map<String, dynamic> json) {
     return RecommendedArtist(
-      name: json['name'] ?? '',
-      browseId: json['browseId'] ?? '',
-      thumbnail: json['thumbnail'] ?? '',
+      name: json['name']?.toString() ?? '',
+      browseId: json['browseId']?.toString() ?? '',
+      thumbnail: json['thumbnail']?.toString() ?? '',
     );
   }
 }
@@ -67,9 +67,9 @@ class FeaturedPlaylist {
 
   factory FeaturedPlaylist.fromJson(Map<String, dynamic> json) {
     return FeaturedPlaylist(
-      title: json['title'] ?? '',
-      browseId: json['browseId'] ?? '',
-      thumbnail: json['thumbnail'] ?? '',
+      title: json['title']?.toString() ?? '',
+      browseId: json['browseId']?.toString() ?? '',
+      thumbnail: json['thumbnail']?.toString() ?? '',
     );
   }
 }
@@ -79,7 +79,7 @@ class PlaylistDetails {
   final String title;
   final String author;
   final String thumbnail;
-  final List<YtifyResult> tracks;
+  final List<MuzoItem> tracks;
 
   PlaylistDetails({
     required this.id,
@@ -91,40 +91,35 @@ class PlaylistDetails {
 
   factory PlaylistDetails.fromJson(Map<String, dynamic> json) {
     return PlaylistDetails(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      author: json['author'] ?? '',
-      thumbnail: json['thumbnail'] ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      author: json['author']?.toString() ?? '',
+      thumbnail: json['thumbnail']?.toString() ?? '',
       tracks:
           (json['tracks'] as List?)?.map((e) {
-            // Map the track JSON to YtifyResult
-            // The track JSON has 'videoId' which maps to 'videoId' in YtifyResult
-            // 'artist' is a string in track JSON, but List<YtifyArtist> in YtifyResult.
-            // We need to parse the artist string or just put it as one artist.
-
-            final artistString = e['artist'] as String? ?? '';
+            final artistString = e['artist']?.toString() ?? '';
             final artists = artistString
                 .split(', ')
-                .map((name) => YtifyArtist(name: name))
+                .map((name) => MuzoArtist(name: name))
                 .toList();
 
-            return YtifyResult(
-              title: e['title'] ?? '',
+            return MuzoItem(
+              title: e['title']?.toString() ?? '',
               thumbnails: [
-                YtifyThumbnail(
-                  url: e['thumbnail'] ?? '',
-                  width: 120, // Default from example
+                MuzoThumbnail(
+                  url: e['thumbnail']?.toString() ?? '',
+                  width: 120,
                   height: 120,
                 ),
               ],
-              resultType: 'video', // Tracks are videos/songs
-              isExplicit: false, // Not provided in track JSON
-              videoId: e['videoId'],
+              resultType: 'video',
+              isExplicit: false,
+              videoId: e['videoId']?.toString(),
               browseId: null,
-              duration: e['duration'],
+              duration: e['duration']?.toString(),
               artists: artists,
               album: e['album'] != null && e['album'].toString().isNotEmpty
-                  ? YtifyAlbum(name: e['album'], id: '')
+                  ? MuzoAlbum(name: e['album']?.toString() ?? '', id: '')
                   : null,
             );
           }).toList() ??

@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:muzo/services/storage_service.dart';
+import 'package:muzo/models/user_data.dart';
 import 'package:muzo/widgets/artist_tile.dart';
 import 'package:muzo/widgets/library_tile.dart';
 import 'package:muzo/screens/playlist_details_screen.dart';
-import 'package:muzo/models/ytify_result.dart';
+import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/providers/download_provider.dart';
 import 'package:muzo/screens/history_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:muzo/widgets/app_alert_dialog.dart';
 import 'package:muzo/utils/page_routes.dart';
+import 'package:muzo/widgets/spotify_import_dialog.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -32,6 +35,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent, // Inherit GlobalBackground
       body: SafeArea(
+        bottom: false,
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             _buildAppBar(context, storage),
@@ -53,29 +57,52 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ValueListenableBuilder(
               valueListenable: storage.userAvatarListenable,
               builder: (context, box, _) {
-                final svgString = storage.getUserAvatar();
+                final avatarUrl = storage.avatarUrl;
+                final cachedSvg = storage.getUserAvatar();
+                final isSvg = avatarUrl == null ||
+                    avatarUrl.contains('.svg') ||
+                    avatarUrl.contains('dicebear');
                 return CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.grey[800],
-                  child: svgString != null
-                      ? ClipOval(child: SvgPicture.string(svgString))
-                      : Icon(
-                          FluentIcons.person_24_regular,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          size: 20,
-                        ),
+                  backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                  child: ClipOval(
+                    child: isSvg && cachedSvg != null
+                        ? SvgPicture.string(cachedSvg, height: 32, width: 32, fit: BoxFit.cover)
+                        : avatarUrl != null && !isSvg
+                            ? CachedNetworkImage(
+                                imageUrl: avatarUrl,
+                                height: 32, width: 32, fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Icon(
+                                  FluentIcons.person_24_regular,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  size: 20,
+                                ),
+                              )
+                            : Icon(
+                                FluentIcons.person_24_regular,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                size: 20,
+                              ),
+                  ),
                 );
               },
             ),
             const SizedBox(width: 12),
             Text(
               'Your Library',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const Spacer(),
             IconButton(
               onPressed: () => _showCreatePlaylistDialog(context, storage),
               icon: Icon(FluentIcons.add_24_regular, color: Theme.of(context).colorScheme.onSurface),
+              style: IconButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              ),
             ),
           ],
         ),
@@ -149,9 +176,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Widget _buildLibraryList(BuildContext context, StorageService storage) {
-    return ValueListenableBuilder<Map<String, List<YtifyResult>>>(
+    return ValueListenableBuilder<List<Playlist>>(
       valueListenable: storage.playlistsListenable, // Main driver
-      builder: (context, _, __) {
+      builder: (context, playlists, __) {
         return AnimatedBuilder(
           animation: Listenable.merge([
             storage.favoritesListenable,
@@ -182,7 +209,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.only(bottom: 120),
+              padding: const EdgeInsets.only(bottom: 160),
               itemCount: items.length,
               itemBuilder: (context, index) => items[index],
             );
@@ -314,29 +341,57 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
         );
       }
+
+      // Add the "Import from Spotify" tile at the end of the user playlists
+      list.add(
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1DB954).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(FluentIcons.arrow_import_24_filled, color: Color(0xFF1DB954), size: 28),
+          ),
+          title: const Text('Import from Spotify', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+          subtitle: const Text('Add playlists via URL', style: TextStyle(fontSize: 13, color: Colors.grey)),
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => const SpotifyImportDialog(),
+            );
+          },
+        ),
+      );
     }
 
     // 4. Artists (from History)
     if (showArtists) {
       final history = storage.getHistory();
-      final Set<String> processedArtistIds = {};
+      final Set<String> processedArtistNames = {};
 
       for (final song in history) {
         if (song.artists != null) {
           for (final artist in song.artists!) {
-            if (artist.id != null && !processedArtistIds.contains(artist.id)) {
-              // Exclude composite names if they weren't split by API (e.g. "Artist A & Artist B")
-              // User requested only single artists.
-              if (artist.name.contains(',') ||
-                  artist.name.contains('&') ||
-                  artist.name.toLowerCase().contains(' feat ') ||
-                  artist.name.toLowerCase().contains(' ft ')) {
-                continue;
-              }
-
-              processedArtistIds.add(artist.id!);
+            final name = artist.name.trim();
+            if (name.isEmpty || name == 'Unknown') continue;
+            // Skip composite/featured artist names
+            if (name.contains(',') ||
+                name.contains('&') ||
+                name.toLowerCase().contains(' feat ') ||
+                name.toLowerCase().contains(' ft ')) {
+              continue;
+            }
+            if (!processedArtistNames.contains(name)) {
+              processedArtistNames.add(name);
+              // Use browseId if available, fall back to empty string for tile
+              final artistId = (artist.id != null && artist.id!.isNotEmpty)
+                  ? artist.id!
+                  : '';
               list.add(
-                ArtistTile(artistName: artist.name, artistId: artist.id!),
+                ArtistTile(artistName: name, artistId: artistId),
               );
             }
           }
@@ -346,6 +401,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
     return list;
   }
+
 
   void _showCreatePlaylistDialog(BuildContext context, StorageService storage) {
     final controller = TextEditingController();

@@ -15,7 +15,7 @@ class SettingsState {
     required this.audioQuality,
     required this.themeType,
     this.isGestureMode = false,
-    this.appFontFamily = 'Archivo Black',
+    this.appFontFamily = 'Roboto',
   });
 
   SettingsState copyWith({
@@ -40,7 +40,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           audioQuality: AudioQuality.high,
           themeType: ThemeType.auto,
           isGestureMode: false,
-          appFontFamily: 'Archivo Black',
+          appFontFamily: 'Roboto',
         ),
       ) {
     _loadSettings();
@@ -51,7 +51,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final qualityIndex = box.get('audioQuality', defaultValue: 0);
     final themeTypeIndex = box.get('themeType', defaultValue: 0);
     final isGestureMode = box.get('isGestureMode', defaultValue: false) ?? false;
-    final appFontFamily = box.get('appFontFamily', defaultValue: 'Archivo Black');
+    final appFontFamily = box.get('appFontFamily', defaultValue: 'Roboto');
 
     // Migration logic: If saved index is out of bounds, default to auto (0)
     final validThemeIndex =
@@ -76,7 +76,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setThemeType(ThemeType themeType) async {
     state = state.copyWith(themeType: themeType);
     final box = await Hive.openBox('settings');
-    await box.put('themeModeType', themeType.index);
+    await box.put('themeType', themeType.index);
   }
 
   Future<void> toggleGestureMode() async {
