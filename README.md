@@ -82,6 +82,8 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
   <img src="images/10.jpg" width="30%" />
   <img src="images/11.jpg" width="30%" />
   <img src="images/12.jpg" width="30%" />
+  <img src="images/13.jpg" width="30%" />
+  <img src="images/14.jpg" width="30%" />
 </p>
 
 ---
