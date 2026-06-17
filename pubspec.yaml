@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.1
+version: 3.9.0
 
 environment:
   sdk: ^3.9.2
@@ -43,6 +43,7 @@ dependencies:
   just_audio_background: ^0.0.1-beta.17
   audio_session: ^0.1.21
   http: ^1.2.0
+  http_parser: ^4.0.2
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   path_provider: ^2.1.5
@@ -69,6 +70,24 @@ dependencies:
   flutter_lyric: ^3.0.2
   dynamic_color: ^1.8.1
   flutter_animate: ^4.5.2
+  app_links: ^6.2.1
+  google_sign_in: ^6.2.1
+  image_picker: ^1.1.2
+  share_plus: ^10.1.0
+  youtube_explode_dart:
+    git:
+      url: https://github.com/anandnet/youtube_explode_dart.git
+      ref: 1d9ec9baa806705b1d859260eeb389ec28c6b024
+  file_picker: ^11.0.2
+
+  # ── Platform stubs (keep Windows/Linux builds from failing) ────────────────
+  # google_sign_in has no Windows/Linux implementation; this local stub
+  # provides a no-op federated plugin so the build succeeds.
+  google_sign_in_windows:
+    path: packages/google_sign_in_windows
+  # receive_sharing_intent is Android/iOS only; stub for desktop builds.
+  receive_sharing_intent_windows:
+    path: packages/receive_sharing_intent_windows
 
 dev_dependencies:
   flutter_test:
@@ -82,23 +101,28 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.13
-  flutter_launcher_icons: ^0.14.3
+  flutter_launcher_icons: ^0.14.4
   
 flutter_launcher_icons:
   image_path: "assets/logo.png"
   android: true
   ios: true
+  remove_alpha_ios: true
   macos:
     generate: true
     image_path: "assets/logo.png"
   web:
     generate: true
     image_path: "assets/logo.png"
+    background_color: "#121212"
+    theme_color: "#121212"
   windows:
     generate: true
     image_path: "assets/logo.png"
-
-  flutter_launcher_icons: ^0.14.4
+    icon_size: 48
+  linux:
+    generate: true
+    image_path: "assets/logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -113,6 +137,15 @@ flutter:
 
   assets:
     - assets/logo.png
+    - assets/Spotify.png
+    - assets/google_logo.svg
+
+  fonts:
+    - family: Karst
+      fonts:
+        - asset: assets/karst/Karst-Light.ttf
+        - asset: assets/karst/Karst-ExtraBold.ttf
+          weight: 800
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

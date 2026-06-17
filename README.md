@@ -82,8 +82,6 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
   <img src="images/10.jpg" width="30%" />
   <img src="images/11.jpg" width="30%" />
   <img src="images/12.jpg" width="30%" />
-  <img src="images/13.jpg" width="30%" />
-  <img src="images/14.jpg" width="30%" />
 </p>
 
 ---
@@ -96,7 +94,7 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 | **State Management** | [Riverpod](https://riverpod.dev/) |
 | **Audio Engine** | [Just Audio](https://pub.dev/packages/just_audio) & [Audio Service](https://pub.dev/packages/audio_service) |
 | **YouTube Extraction** | [youtube_explode_dart](https://github.com/Hexer10/youtube_explode_dart) (fork by [anandnet](https://github.com/anandnet)) |
-| **Music Stream API** | [JioSaavn API](https://github.com/n-ce/fast-saavn) — powered by [n-ce/fast-saavn](https://github.com/n-ce/fast-saavn) |
+| **Music Metadata API** | [JioSaavn API](https://github.com/n-ce/Uma) — powered by [n-ce/Uma](https://github.com/n-ce/Uma) |
 | **Lyrics** | [flutter_lyric](https://pub.dev/packages/flutter_lyric) + custom karaoke engine |
 | **Local Storage** | [Hive](https://docs.hivedb.dev/) |
 | **Networking** | [Dio](https://pub.dev/packages/dio) & [Http](https://pub.dev/packages/http) |
@@ -168,7 +166,7 @@ A massive thank you to **[Hexer10](https://github.com/Hexer10)**, the original a
 
 ### 🎵 Animesh (n-ce) — fast-saavn & ytify
 An enormous shoutout to **[Animesh (n-ce)](https://github.com/n-ce)** — creator of:
-- **[fast-saavn](https://github.com/n-ce/saavn)** — the blazing-fast, open JioSaavn API that powers Muzo's music streaming to make app even faster and more reliable.
+- **[fast-saavn](https://github.com/n-ce/saavn)** — the blazing-fast, open JioSaavn API that powers Muzo's music metadata, song details, and search results.
 - **[ytify](https://github.com/n-ce/ytify)** — a beautifully minimal YouTube audio streaming web app that was a **huge source of inspiration** during Muzo's development. Animesh's approach to UI, UX, and YouTube audio handling influenced many of Muzo's design decisions. Thank you for the open-source spirit and for being so helpful throughout the development journey! 🙌
 
 ### 📦 Open-Source Libraries
