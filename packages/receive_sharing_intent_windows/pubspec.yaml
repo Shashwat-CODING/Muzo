@@ -1,0 +1,22 @@
+name: receive_sharing_intent_windows
+description: >
+  A no-op Windows stub for the receive_sharing_intent federated plugin.
+  Sharing intent from external apps is not supported on Windows Desktop.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  receive_sharing_intent: ^1.8.1
+
+flutter:
+  plugin:
+    implements: receive_sharing_intent
+    platforms:
+      windows:
+        dartPluginClass: ReceiveSharingIntentWindows

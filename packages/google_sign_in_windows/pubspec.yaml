@@ -1,0 +1,23 @@
+name: google_sign_in_windows
+description: >
+  A no-op Windows stub for the google_sign_in federated plugin.
+  Google Sign-In is not supported on Windows; this package prevents
+  build failures and gracefully returns null for all sign-in calls.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_sign_in_platform_interface: ^2.5.0
+
+flutter:
+  plugin:
+    implements: google_sign_in
+    platforms:
+      windows:
+        dartPluginClass: GoogleSignInWindows
