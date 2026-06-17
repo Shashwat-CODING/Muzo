@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -270,52 +271,54 @@ class _IntroPage extends ConsumerWidget {
             const Spacer(flex: 3),
 
             // CTA Buttons
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: () async {
-                  final authService = ref.read(authServiceProvider);
-                  try {
-                    await authService.loginWithGoogle();
-                    if (context.mounted) {
-                      showGlassSnackBar(context, 'Signed in with Google');
-                      // AuthGate watches authServiceProvider and will
-                      // reactively switch to MainLayout+HomeScreen.
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
+            if (!Platform.isWindows) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: () async {
+                    final authService = ref.read(authServiceProvider);
+                    try {
+                      await authService.loginWithGoogle();
+                      if (context.mounted) {
+                        showGlassSnackBar(context, 'Signed in with Google');
+                        // AuthGate watches authServiceProvider and will
+                        // reactively switch to MainLayout+HomeScreen.
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        showGlassSnackBar(context, e.toString().replaceAll('Exception: ', ''));
                       }
                     }
-                  } catch (e) {
-                    if (context.mounted) {
-                      showGlassSnackBar(context, e.toString().replaceAll('Exception: ', ''));
-                    }
-                  }
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
-                  foregroundColor: onSurface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: onSurface.withValues(alpha: 0.15)),
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+                    foregroundColor: onSurface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: onSurface.withValues(alpha: 0.15)),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/google_logo.svg',
+                        width: 20,
+                        height: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text('Continue with Google',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface)),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(
-                      'assets/google_logo.svg',
-                      width: 20,
-                      height: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Continue with Google',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface)),
-                  ],
-                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               height: 52,
