@@ -15,7 +15,7 @@ class HomeSectionWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           child: Text(
             section.title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -26,7 +26,7 @@ class HomeSectionWidget extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 195, // Reduced from 220 to match 140 width
+          height: 215, // Adjusted to prevent title/subtitle overflow
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),

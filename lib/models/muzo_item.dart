@@ -9,6 +9,7 @@ class MuzoItem {
   final int? durationSeconds;
   final String? videoType;
   final List<MuzoArtist>? artists;
+  final String? audioUrl;
   
   String get displayArtist {
     if (artists != null && artists!.isNotEmpty) {
@@ -55,6 +56,7 @@ class MuzoItem {
     this.channelName,
     this.addedAt,
     this.dbId,
+    this.audioUrl,
   });
 
   factory MuzoItem.fromJson(Map<String, dynamic> json) {
@@ -178,6 +180,7 @@ class MuzoItem {
       channelName: json['channelName']?.toString(),
       addedAt: json['added_at']?.toString(),
       dbId: json['db_id'],
+      audioUrl: json['audioUrl']?.toString() ?? json['audio_url']?.toString(),
     );
   }
 
@@ -203,6 +206,7 @@ class MuzoItem {
       'channelName': channelName,
       'added_at': addedAt,
       'db_id': dbId,
+      'audio_url': audioUrl,
     };
   }
 
@@ -229,6 +233,7 @@ class MuzoItem {
     String? uploaded,
     String? category,
     String? channelName,
+    String? audioUrl,
   }) {
     return MuzoItem(
       title: title ?? this.title,
@@ -251,6 +256,7 @@ class MuzoItem {
       channelName: channelName ?? this.channelName,
       addedAt: addedAt ?? this.addedAt,
       dbId: dbId ?? this.dbId,
+      audioUrl: audioUrl ?? this.audioUrl,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:muzo/providers/player_provider.dart';
+import 'package:muzo/widgets/global_background.dart';
 
 class ChannelScreen extends ConsumerStatefulWidget {
   final String channelId;
@@ -67,19 +69,18 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  expandedHeight: 340.0,
-                  floating: false,
-                  pinned: true,
-                  backgroundColor: const Color(
-                    0xFF121212,
-                  ), // Match app theme or transparent
+    return GlobalBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            : CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    expandedHeight: 340.0,
+                    floating: false,
+                    pinned: true,
+                    backgroundColor: Colors.transparent,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Stack(
                       fit: StackFit.expand,
@@ -147,45 +148,47 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                                       final isSubscribed = storage.isSubscribed(
                                         widget.channelId,
                                       );
-                                      return SizedBox(
+                                       return SizedBox(
                                         height: 36,
-                                        child: OutlinedButton(
-                                          onPressed: () {
-                                            final channel = Channel(
-                                              name: widget.title ?? 'Unknown',
-                                              channelId: widget.channelId,
-                                              avatar: widget.thumbnailUrl,
-                                            );
-                                            storage.toggleSubscription(channel);
-                                          },
-                                          style: OutlinedButton.styleFrom(
-                                            side: BorderSide(
-                                              color: isSubscribed
-                                                  ? Colors.grey
-                                                  : Theme.of(context).colorScheme.onSurface,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 24,
-                                            ),
-                                            backgroundColor: isSubscribed
-                                                ? Colors.transparent
-                                                : Colors.transparent,
-                                          ),
-                                          child: Text(
-                                            isSubscribed
-                                                ? 'FOLLOWING'
-                                                : 'FOLLOW',
-                                            style: TextStyle(
-                                              color: isSubscribed
-                                                  ? Theme.of(context).colorScheme.onSurface
-                                                  : Theme.of(context).colorScheme.onSurface,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                              letterSpacing: 1.0,
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(18),
+                                          child: BackdropFilter(
+                                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                                            child: TextButton(
+                                              onPressed: () {
+                                                final channel = Channel(
+                                                  name: widget.title ?? 'Unknown',
+                                                  channelId: widget.channelId,
+                                                  avatar: widget.thumbnailUrl,
+                                                );
+                                                storage.toggleSubscription(channel);
+                                              },
+                                              style: TextButton.styleFrom(
+                                                backgroundColor: isSubscribed
+                                                    ? Colors.white
+                                                    : Colors.white.withValues(alpha: 0.08),
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 24,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(18),
+                                                  side: BorderSide(
+                                                    color: isSubscribed
+                                                        ? Colors.transparent
+                                                        : Colors.white.withValues(alpha: 0.15),
+                                                    width: 1.0,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                isSubscribed ? 'FOLLOWING' : 'FOLLOW',
+                                                style: TextStyle(
+                                                  color: isSubscribed ? Colors.black : Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  letterSpacing: 1.0,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -254,6 +257,7 @@ class _ChannelScreenState extends ConsumerState<ChannelScreen> {
                 const SliverPadding(padding: EdgeInsets.only(bottom: 160)),
               ],
             ),
+      ),
     );
   }
 }

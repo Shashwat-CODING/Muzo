@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:muzo/providers/theme_provider.dart';
 
 void showGlassSnackBar(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -24,11 +23,7 @@ class _GlassSnackBarContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dynamicColorScheme = ref.watch(dynamicColorSchemeProvider);
-    final themeColor = ref.watch(themeColorProvider);
-    // Use album art color first, then device accent, then fallback
-    final accentColor =
-        themeColor ?? dynamicColorScheme?.primary ?? const Color(0xFF5bc0be);
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -39,7 +34,7 @@ class _GlassSnackBarContent extends ConsumerWidget {
           decoration: BoxDecoration(
             color: Color.alphaBlend(
               accentColor.withValues(alpha: 0.15),
-              (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white).withValues(alpha: 0.8),
+              (Theme.of(context).brightness == Brightness.dark ? Theme.of(context).cardColor : Colors.white).withValues(alpha: 0.8),
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(

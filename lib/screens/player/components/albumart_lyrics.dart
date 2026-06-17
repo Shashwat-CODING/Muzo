@@ -24,10 +24,11 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
   String? _lastFetchedTitle;
 
   Future<void> _fetchLyrics(MediaItem mediaItem) async {
-    if (_lyrics != null && _lastFetchedTitle == mediaItem.title) return;
+    if (_lastFetchedTitle == mediaItem.title) return;
     if (_isLoadingLyrics) return; // Prevent concurrent fetches
 
     setState(() {
+      _lyrics = null;
       _isLoadingLyrics = true;
     });
 
@@ -52,6 +53,8 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
     } catch (e) {
       if (mounted) {
         setState(() {
+          _lyrics = null;
+          _lastFetchedTitle = mediaItem.title;
           _isLoadingLyrics = false;
         });
       }
@@ -82,7 +85,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
       height: safeSize,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.1),
             width: 1,
@@ -96,7 +99,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Stack(
             children: [
               mediaItemAsync.when(
@@ -130,7 +133,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
               if (_showLyrics)
                 Positioned.fill(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                       child: Container(

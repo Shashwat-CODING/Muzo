@@ -167,6 +167,9 @@ class StorageService {
 
   // History
   Future<void> addToHistory(MuzoItem result) async {
+    if (result.resultType == 'user_track') {
+      return;
+    }
     // Optimistic update
     final current = List<MuzoItem>.from(_historyNotifier.value);
     current.insert(0, result);
@@ -574,7 +577,7 @@ class StorageService {
   }
 
   // App Font
-  String get appFontFamily => _settingsBox.get('appFontFamily', defaultValue: 'Outfit');
+  String get appFontFamily => _settingsBox.get('appFontFamily', defaultValue: 'AR One Sans');
   Future<void> setAppFontFamily(String value) =>
       _settingsBox.put('appFontFamily', value);
 

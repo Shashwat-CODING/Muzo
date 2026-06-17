@@ -5,19 +5,24 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:muzo/services/storage_service.dart';
 
-final authServiceProvider = Provider<AuthService>((ref) {
+final authServiceProvider = ChangeNotifierProvider<AuthService>((ref) {
   return AuthService(ref.watch(storageServiceProvider));
 });
 
-class AuthService {
+class AuthService extends ChangeNotifier {
   final StorageService _storage;
   static const String _baseUrl = 'https://veltrixcode-ytify.hf.space/api/auth';
-  static const String _webClientId = '1023316916513-0ceeamcb82h4c5j27p7pnrbq0fl9udhd.apps.googleusercontent.com';
-  static const String _androidClientId = '1023316916513-gf1k3aqschlblasfafsl0bs4mcc1ebcn.apps.googleusercontent.com';
+  // Installed/Desktop client ID (used for iOS/macOS clientId)
+  static const String _googleClientId = '1023316916513-gf1k3aqschlblasfafsl0bs4mcc1ebcn.apps.googleusercontent.com';
+  // Web OAuth client ID — required for Android to generate idToken
+  static const String _googleWebClientId = '1023316916513-0ceeamcb82h4c5j27p7pnrbq0fl9udhd.apps.googleusercontent.com';
 
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    // clientId is only needed for iOS/macOS/Web. Android resolves identity via SHA-1 + package name.
+    clientId: defaultTargetPlatform == TargetPlatform.android ? null : _googleClientId,
+    // serverClientId MUST be the Web Client ID to receive an idToken on Android.
+    serverClientId: _googleWebClientId,
     scopes: ['email', 'profile'],
-    serverClientId: _webClientId,
   );
 
   AuthService(this._storage);
@@ -47,6 +52,7 @@ class AuthService {
         user['email'],
         avatarUrl: user['avatar'],
       );
+      notifyListeners();
     } else {
       final error = jsonDecode(response.body);
       throw Exception(error['error'] ?? 'Signup failed');
@@ -71,6 +77,7 @@ class AuthService {
         user['email'],
         avatarUrl: user['avatar'],
       );
+      notifyListeners();
     } else {
       final error = jsonDecode(response.body);
       throw Exception(error['error'] ?? 'Login failed');
@@ -108,11 +115,14 @@ class AuthService {
           user['email'],
           avatarUrl: user['avatar'],
         );
+        notifyListeners();
       } else {
         final error = jsonDecode(response.body);
         throw Exception(error['error'] ?? 'Google Login failed on server');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Google Sign-In Exception: $e');
+      debugPrint('Stack trace: $stackTrace');
       throw Exception('Google Sign-In Error: $e');
     }
   }
@@ -120,6 +130,7 @@ class AuthService {
   Future<void> logout() async {
     await _googleSignIn.signOut();
     await _storage.clearUserSession();
+    notifyListeners();
   }
 
   Future<String?> refreshToken() async {
@@ -148,6 +159,7 @@ class AuthService {
             avatarUrl: user['avatar'],
           );
         }
+        notifyListeners();
         return newToken;
       } else {
         debugPrint('Token refresh failed: ${response.statusCode}');

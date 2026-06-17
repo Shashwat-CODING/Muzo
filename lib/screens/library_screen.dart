@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,13 +10,15 @@ import 'package:muzo/models/user_data.dart';
 import 'package:muzo/widgets/artist_tile.dart';
 import 'package:muzo/widgets/library_tile.dart';
 import 'package:muzo/screens/playlist_details_screen.dart';
-import 'package:muzo/models/muzo_item.dart';
 import 'package:muzo/providers/download_provider.dart';
 import 'package:muzo/screens/history_screen.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:muzo/widgets/app_alert_dialog.dart';
 import 'package:muzo/utils/page_routes.dart';
 import 'package:muzo/widgets/spotify_import_dialog.dart';
+import 'package:muzo/providers/navigation_provider.dart';
+import 'package:muzo/screens/user_tracks_screen.dart';
+import 'package:muzo/screens/auth_screen.dart';
+import 'package:muzo/services/auth_service.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -24,8 +28,6 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
-  // Filters: 'All', 'Playlists', 'Artists', 'Downloaded'
-  String _selectedFilter = 'All';
 
   @override
   Widget build(BuildContext context) {
@@ -62,27 +64,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 final isSvg = avatarUrl == null ||
                     avatarUrl.contains('.svg') ||
                     avatarUrl.contains('dicebear');
-                return CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                  child: ClipOval(
-                    child: isSvg && cachedSvg != null
-                        ? SvgPicture.string(cachedSvg, height: 32, width: 32, fit: BoxFit.cover)
-                        : avatarUrl != null && !isSvg
-                            ? CachedNetworkImage(
-                                imageUrl: avatarUrl,
-                                height: 32, width: 32, fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => Icon(
+                return Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                    child: ClipOval(
+                      child: isSvg && cachedSvg != null
+                          ? SvgPicture.string(cachedSvg, height: 32, width: 32, fit: BoxFit.cover)
+                          : avatarUrl != null && !isSvg
+                              ? CachedNetworkImage(
+                                  imageUrl: avatarUrl,
+                                  height: 32, width: 32, fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Icon(
+                                    FluentIcons.person_24_regular,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    size: 20,
+                                  ),
+                                )
+                              : Icon(
                                   FluentIcons.person_24_regular,
                                   color: Theme.of(context).colorScheme.onSurface,
                                   size: 20,
                                 ),
-                              )
-                            : Icon(
-                                FluentIcons.person_24_regular,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                size: 20,
-                              ),
+                    ),
                   ),
                 );
               },
@@ -117,9 +128,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            _buildFilterChip(
-              'All',
-            ), // Implicitly maps to no filter selected visually or 'All'
+            _buildFilterChip('All'),
             const SizedBox(width: 8),
             _buildFilterChip('Playlists'),
             const SizedBox(width: 8),
@@ -133,42 +142,66 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Widget _buildFilterChip(String label) {
-    // If 'All' is selected, essentially no specific filter is active.
-    // But for UI, let's say 'All' clears filters.
-    // Or we can toggle.
-    // Spotify logic: Tabs like 'Playlists', 'Artists'.
-    // If nothing selected, it shows everything.
-    final isSelected = _selectedFilter == label;
+    final selectedFilter = ref.watch(libraryFilterProvider);
+    final isSelected = selectedFilter == label;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final chipBgColor = isSelected
+        ? (isDark ? Colors.white : Colors.black)
+        : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05));
+    final chipBorderColor = isSelected
+        ? Colors.transparent
+        : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08));
+    final chipTextColor = isSelected
+        ? (isDark ? Colors.black : Colors.white)
+        : (isDark ? Colors.white : Colors.black);
+
     return GestureDetector(
       onTap: () {
-        setState(() {
-          if (_selectedFilter == label) {
-            _selectedFilter = 'All'; // Toggle off
-          } else {
-            _selectedFilter = label;
-          }
-        });
+        if (selectedFilter == label) {
+          ref.read(libraryFilterProvider.notifier).state = 'All'; // Toggle off
+        } else {
+          ref.read(libraryFilterProvider.notifier).state = label;
+        }
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.onSurface
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label == 'All'
-              ? 'X'
-              : label, // 'All' might be a clear button, but let's keep it simple
-          style: TextStyle(
-            color: isSelected ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.onSurface,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: chipBgColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: chipBorderColor,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: chipTextColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (isSelected && label != 'All') ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    CupertinoIcons.xmark,
+                    size: 11,
+                    color: chipTextColor,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -176,6 +209,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Widget _buildLibraryList(BuildContext context, StorageService storage) {
+    ref.watch(libraryFilterProvider); // Watch to trigger rebuild when filter changes
     return ValueListenableBuilder<List<Playlist>>(
       valueListenable: storage.playlistsListenable, // Main driver
       builder: (context, playlists, __) {
@@ -209,7 +243,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.only(bottom: 160),
+              padding: const EdgeInsets.only(bottom: 120),
               itemCount: items.length,
               itemBuilder: (context, index) => items[index],
             );
@@ -219,105 +253,394 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
   }
 
+  Widget _buildGroupedSystemCard(BuildContext context, StorageService storage) {
+    final list = <Widget>[];
+
+    // 1. Liked Songs
+    final favoritesCount = storage.getFavorites().length;
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'Liked Songs',
+        subtitle: '$favoritesCount songs',
+        icon: FluentIcons.heart_24_filled,
+        iconBgColor: Colors.pinkAccent,
+        onTap: () {
+          Navigator.push(
+            context,
+            SlidePageRoute(
+              page: const PlaylistDetailsScreen(
+                playlistName: 'Favorites',
+                isSystemPlaylist: true,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    // 2. History
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'History',
+        subtitle: 'Recently Played',
+        icon: FluentIcons.history_24_filled,
+        iconBgColor: Colors.orangeAccent,
+        onTap: () {
+          Navigator.push(
+            context,
+            SlidePageRoute(page: const HistoryScreen()),
+          );
+        },
+      ),
+    );
+
+    // 3. Downloads
+    final downloads = storage.getDownloads();
+    final downloadState = ref.read(downloadProvider);
+    final isDownloading = downloadState.activeDownloads.isNotEmpty;
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'Downloads',
+        subtitle: '${downloads.length} files',
+        icon: FluentIcons.arrow_download_24_filled,
+        iconBgColor: Colors.blueAccent,
+        isLoading: isDownloading,
+        onTap: () {
+          Navigator.push(
+            context,
+            SlidePageRoute(
+              page: const PlaylistDetailsScreen(
+                playlistName: 'Downloads',
+                isSystemPlaylist: true,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    // 4. My Uploads
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'My Uploads',
+        subtitle: 'Upload and manage your tracks',
+        icon: FluentIcons.cloud_arrow_up_24_filled,
+        iconBgColor: Colors.teal,
+        onTap: () {
+          final authService = ref.read(authServiceProvider);
+          if (authService.isAuthenticated) {
+            Navigator.push(
+              context,
+              SlidePageRoute(page: const UserTracksScreen()),
+            );
+          } else {
+            _showGuestLoginPrompt(context);
+          }
+        },
+      ),
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03);
+    final cardBorder = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: cardBorder,
+                width: 1.0,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              clipBehavior: Clip.antiAlias,
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                children: [
+                  for (int i = 0; i < list.length; i++) ...[
+                    list[i],
+                    if (i < list.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 60,
+                        color: cardBorder,
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupedSystemCardForPlaylists(BuildContext context, StorageService storage) {
+    final list = <Widget>[];
+
+    // 1. Liked Songs
+    final favoritesCount = storage.getFavorites().length;
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'Liked Songs',
+        subtitle: '$favoritesCount songs',
+        icon: FluentIcons.heart_24_filled,
+        iconBgColor: Colors.pinkAccent,
+        onTap: () {
+          Navigator.push(
+            context,
+            SlidePageRoute(
+              page: const PlaylistDetailsScreen(
+                playlistName: 'Favorites',
+                isSystemPlaylist: true,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    // 2. History
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'History',
+        subtitle: 'Recently Played',
+        icon: FluentIcons.history_24_filled,
+        iconBgColor: Colors.orangeAccent,
+        onTap: () {
+          Navigator.push(
+            context,
+            SlidePageRoute(page: const HistoryScreen()),
+          );
+        },
+      ),
+    );
+
+    // 3. My Uploads
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'My Uploads',
+        subtitle: 'Upload and manage your tracks',
+        icon: FluentIcons.cloud_arrow_up_24_filled,
+        iconBgColor: Colors.teal,
+        onTap: () {
+          final authService = ref.read(authServiceProvider);
+          if (authService.isAuthenticated) {
+            Navigator.push(
+              context,
+              SlidePageRoute(page: const UserTracksScreen()),
+            );
+          } else {
+            _showGuestLoginPrompt(context);
+          }
+        },
+      ),
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03);
+    final cardBorder = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: cardBorder,
+                width: 1.0,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              clipBehavior: Clip.antiAlias,
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                children: [
+                  for (int i = 0; i < list.length; i++) ...[
+                    list[i],
+                    if (i < list.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 60,
+                        color: cardBorder,
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupedSystemCardForDownloads(BuildContext context, StorageService storage) {
+    final list = <Widget>[];
+
+    // 1. Downloads
+    final downloads = storage.getDownloads();
+    final downloadState = ref.read(downloadProvider);
+    final isDownloading = downloadState.activeDownloads.isNotEmpty;
+    list.add(
+      _buildCompactSystemCell(
+        context,
+        title: 'Downloads',
+        subtitle: '${downloads.length} files',
+        icon: FluentIcons.arrow_download_24_filled,
+        iconBgColor: Colors.blueAccent,
+        isLoading: isDownloading,
+        onTap: () {
+          Navigator.push(
+            context,
+            SlidePageRoute(
+              page: const PlaylistDetailsScreen(
+                playlistName: 'Downloads',
+                isSystemPlaylist: true,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03);
+    final cardBorder = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: cardBorder,
+                width: 1.0,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              clipBehavior: Clip.antiAlias,
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                children: [
+                  for (int i = 0; i < list.length; i++) ...[
+                    list[i],
+                    if (i < list.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 60,
+                        color: cardBorder,
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactSystemCell(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconBgColor,
+    bool isLoading = false,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+      onTap: onTap,
+      leading: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: iconBgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: isLoading
+            ? const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(
+                icon,
+                color: Colors.white,
+                size: 18,
+              ),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          fontSize: 11,
+        ),
+      ),
+      trailing: Icon(
+        CupertinoIcons.chevron_right,
+        size: 13,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+      ),
+    );
+  }
+
   List<Widget> _getLibraryItems(StorageService storage) {
+    final selectedFilter = ref.read(libraryFilterProvider);
     final List<Widget> list = [];
     final showPlaylists =
-        _selectedFilter == 'All' || _selectedFilter == 'Playlists';
+        selectedFilter == 'All' || selectedFilter == 'Playlists';
     final showArtists =
-        _selectedFilter == 'All' || _selectedFilter == 'Artists';
-    final showDownloads =
-        _selectedFilter == 'All' ||
-        _selectedFilter == 'Downloaded' ||
-        _selectedFilter == 'Playlists';
+        selectedFilter == 'All' || selectedFilter == 'Artists';
 
-    // 1. Liked Songs (Pinned) - Only show if in 'All' or 'Playlists'
-    if (showPlaylists) {
-      final favoritesCount = storage.getFavorites().length;
-      list.add(
-        LibraryTile(
-          title: 'Liked Songs',
-          subtitle: 'Playlist • $favoritesCount songs',
-          imageUrl:
-              'https://misc.scdn.co/liked-songs/liked-songs-300.png', // Fallback or static asset
-          // We can use a gradient container placeholder if image fails, handled by LibraryTile errorWidget
-          isPinned: true,
-          placeholderIcon: FluentIcons.heart_24_filled,
-          onTap: () {
-            Navigator.push(
-              context,
-              SlidePageRoute(
-                page: const PlaylistDetailsScreen(
-                  playlistName: 'Favorites',
-                  isSystemPlaylist: true,
-                ),
-              ),
-            );
-          },
-        ),
-      );
+    // 1. Grouped System Card Block
+    if (selectedFilter == 'All') {
+      list.add(_buildGroupedSystemCard(context, storage));
+    } else if (selectedFilter == 'Playlists') {
+      list.add(_buildGroupedSystemCardForPlaylists(context, storage));
+    } else if (selectedFilter == 'Downloaded') {
+      list.add(_buildGroupedSystemCardForDownloads(context, storage));
     }
 
-    // 2. History (Pinned)
-    if (showPlaylists) {
-      // Or maybe just 'All'? But user might think of History as a playlist-like thing.
-      // Let's show it in 'All' and 'Playlists' (as a system playlist concept)
-      // Or create a new filter 'History'? No, that's clutter.
-      // Spotify puts "Listening History" under "By you" or implicitly in "Recents".
-      // Let's stick to 'All' or 'Playlists'.
-      // Re-using showPlaylists variable for simplicity as it covers 'All' + 'Playlists'.
-      list.add(
-        LibraryTile(
-          title: 'History',
-          subtitle: 'System • Recently Played',
-          placeholderIcon: FluentIcons.history_24_filled,
-          isPinned: true,
-          onTap: () {
-            Navigator.push(
-              context,
-              SlidePageRoute(page: const HistoryScreen()),
-            );
-          },
-        ),
-      );
-    }
-
-    // 3. Downloads (Pinned/Folder)
-    if (showDownloads) {
-      // We can aggregate all downloads
-
-      final downloads = storage.getDownloads();
-      final downloadState = ref.read(downloadProvider);
-      final isDownloading = downloadState.activeDownloads.isNotEmpty;
-
-      // Always show Downloads tile as a pinned system item
-      list.add(
-        LibraryTile(
-          title: 'Downloads',
-          subtitle: 'Folder • ${downloads.length} files',
-          placeholderIcon: FluentIcons.arrow_download_24_filled,
-          isPinned: true,
-          isLoading: isDownloading,
-          onTap: () {
-            Navigator.push(
-              context,
-              SlidePageRoute(
-                page: const PlaylistDetailsScreen(
-                  playlistName: 'Downloads',
-                  isSystemPlaylist: true,
-                ),
-              ),
-            );
-          },
-        ),
-      );
-
-      // If filter is specific to 'Downloaded', maybe show individual songs?
-      // Spotify usually shows "Downloaded" as a filter that filters the LIST of playlists/albums.
-      // Here we have individual songs downloaded.
-      // Let's keep it as a folder for now.
-    }
-
-    // 3. Playlists (User)
+    // 2. Playlists (User)
     if (showPlaylists) {
       final playlists = storage.getPlaylistNames();
       for (final name in playlists) {
@@ -326,7 +649,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           LibraryTile(
             title: name,
             subtitle: 'Playlist • ${songs.length} songs',
-            // Use first song art as playlist art
             imageUrl: songs.isNotEmpty && songs.first.thumbnails.isNotEmpty
                 ? songs.first.thumbnails.last.url
                 : null,
@@ -342,21 +664,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         );
       }
 
-      // Add the "Import from Spotify" tile at the end of the user playlists
+      // Add the "Import from Spotify" tile
       list.add(
         ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
           leading: Container(
-            width: 56,
-            height: 56,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
               color: const Color(0xFF1DB954).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(FluentIcons.arrow_import_24_filled, color: Color(0xFF1DB954), size: 28),
+            child: const Icon(FluentIcons.arrow_import_24_filled, color: Color(0xFF1DB954), size: 22),
           ),
-          title: const Text('Import from Spotify', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-          subtitle: const Text('Add playlists via URL', style: TextStyle(fontSize: 13, color: Colors.grey)),
+          title: Text(
+            'Import from Spotify',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          subtitle: const Text(
+            'Add playlists via URL',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          trailing: Icon(
+            CupertinoIcons.chevron_right,
+            size: 13,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+          ),
           onTap: () {
             showDialog(
               context: context,
@@ -367,7 +704,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       );
     }
 
-    // 4. Artists (from History)
+    // 3. Artists (from History)
     if (showArtists) {
       final history = storage.getHistory();
       final Set<String> processedArtistNames = {};
@@ -377,7 +714,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           for (final artist in song.artists!) {
             final name = artist.name.trim();
             if (name.isEmpty || name == 'Unknown') continue;
-            // Skip composite/featured artist names
             if (name.contains(',') ||
                 name.contains('&') ||
                 name.toLowerCase().contains(' feat ') ||
@@ -386,7 +722,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             }
             if (!processedArtistNames.contains(name)) {
               processedArtistNames.add(name);
-              // Use browseId if available, fall back to empty string for tile
               final artistId = (artist.id != null && artist.id!.isNotEmpty)
                   ? artist.id!
                   : '';
@@ -401,7 +736,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
     return list;
   }
-
 
   void _showCreatePlaylistDialog(BuildContext context, StorageService storage) {
     final controller = TextEditingController();
@@ -447,28 +781,59 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     String playlistName,
     StorageService storage,
   ) {
-    // Re-implement or reuse existing dialog logic if possible.
-    // For brevity, I'll inline a simple delete option or similar.
-    showDialog(
+    showAppAlertDialog(
       context: context,
-      builder: (context) => SimpleDialog(
-        backgroundColor: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
-        children: [
-          SimpleDialogOption(
-            onPressed: () {
-              Navigator.pop(context);
-              storage.deletePlaylist(playlistName);
-            },
-            child: Row(
-              children: [
-                const Icon(FluentIcons.delete_24_regular, color: Colors.red),
-                const SizedBox(width: 12),
-                Text('Delete Playlist', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-              ],
+      title: 'Playlist Options',
+      content: Text('Are you sure you want to delete the playlist "$playlistName"?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            storage.deletePlaylist(playlistName);
+          },
+          child: Text(
+            'Delete',
+            style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showGuestLoginPrompt(BuildContext context) {
+    showAppAlertDialog(
+      context: context,
+      title: 'Sign In Required',
+      content: Text(
+        'Uploads require a registered account. Sign in or sign up to start uploading your own tracks!',
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context); // Close dialog
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AuthScreen()),
+            );
+          },
+          child: Text(
+            'Sign In',
+            style: TextStyle(
+              color: Theme.of(context).primaryColor,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

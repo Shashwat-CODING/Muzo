@@ -42,7 +42,7 @@ class UserData {
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     List<MuzoItem> parseUniqueResults(String key) {
-      final list = (json[key] as List?)?.map((e) => MuzoItem.fromJson(e)).toList() ?? [];
+      final list = (json[key] as List?)?.map((e) => MuzoItem.fromJson(Map<String, dynamic>.from(e))).toList() ?? [];
       final seen = <String>{};
       final unique = <MuzoItem>[];
       for (var item in list) {
@@ -55,7 +55,7 @@ class UserData {
     }
 
     List<Channel> parseUniqueChannels(String key) {
-      final list = (json[key] as List?)?.map((e) => Channel.fromJson(e)).toList() ?? [];
+      final list = (json[key] as List?)?.map((e) => Channel.fromJson(Map<String, dynamic>.from(e))).toList() ?? [];
       final seen = <String>{};
       final unique = <Channel>[];
       for (var item in list) {
@@ -74,7 +74,7 @@ class UserData {
       favorites: parseUniqueResults('favorites'),
       subscriptions: parseUniqueChannels('subscriptions'),
       playlists:
-          (json['playlists'] as List?)?.map((e) => Playlist.fromJson(e)).toList() ?? [],
+          (json['playlists'] as List?)?.map((e) => Playlist.fromJson(Map<String, dynamic>.from(e))).toList() ?? [],
     );
   }
 }
@@ -153,7 +153,7 @@ class Playlist {
       createdAt: json['created_at']?.toString() ?? '',
       songCount: json['song_count'] ?? 0,
       songs:
-          (json['songs'] as List?)?.map((e) => MuzoItem.fromJson(e)).toList() ?? [],
+          (json['songs'] as List?)?.map((e) => MuzoItem.fromJson(Map<String, dynamic>.from(e))).toList() ?? [],
     );
   }
 

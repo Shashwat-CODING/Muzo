@@ -1,12 +1,14 @@
+import 'dart:ui';
 import 'package:muzo/services/abi_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 
+
 class UpdateService {
   // Current app version - Update this when releasing a new version
-  static const String currentAppVersion = '3.0';
+  static const String currentAppVersion = '3.9';
 
   static const String _repoOwner = 'Shashwat-CODING';
   static const String _repoName = 'Muzo';
@@ -68,108 +70,140 @@ class UpdateService {
   }
 
   void _showUpdateDialog(BuildContext context, String version, String url, String tag) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dividerCol = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
+
     showDialog(
       context: context,
       useRootNavigator: true,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(28),
-          ),
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon + title
-              Row(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1C1C1E).withValues(alpha: 0.65) : const Color(0xFFE5E5EA).withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                  width: 0.8,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(Icons.system_update_alt_rounded,
-                        size: 24, color: Theme.of(context).colorScheme.onSurface),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                    child: Row(
                       children: [
-                        Text('Update Available',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            )),
-                        const SizedBox(height: 2),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text(version,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                              )),
+                          child: Icon(Icons.system_update_alt_rounded,
+                              size: 20, color: theme.colorScheme.onSurface),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Update Available',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurface,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Version $version',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'A new version of Muzo is available. Update now for the latest features and improvements.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    child: Text(
+                      'A new version of Muzo is available. Update now for the latest features and improvements.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        height: 1.35,
+                        letterSpacing: -0.1,
                       ),
-                      child: Text('Later',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _downloadApk(tag, url);
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.onSurface,
-                        foregroundColor: Theme.of(context).colorScheme.surface,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                  Container(height: 0.5, color: dividerCol),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                            ),
+                            child: Text(
+                              'Later',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                fontSize: 17,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Text('Download', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
+                      Container(width: 0.5, height: 44, color: dividerCol),
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _downloadApk(tag, url);
+                            },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                            ),
+                            child: Text(
+                              'Download',
+                              style: TextStyle(
+                                color: theme.primaryColor,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

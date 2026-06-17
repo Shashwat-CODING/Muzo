@@ -124,7 +124,7 @@ class _LyricsScreenState extends ConsumerState<LyricsScreen> {
                     onClose: () {},
                     positionStream: audioHandler.player.positionStream,
                     totalDuration:
-                        audioHandler.player.duration ?? Duration.zero,
+                        Duration(seconds: widget.durationSeconds),
                     isEmbedded: false,
                     accentColor: () {
                       final palette = ref

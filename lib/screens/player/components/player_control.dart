@@ -1,5 +1,6 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -184,21 +185,20 @@ class PlayerControlWidget extends ConsumerWidget {
             stream: player.positionStream,
             builder: (context, snapshot) {
               final position = snapshot.data ?? Duration.zero;
-              final duration = player.duration ?? Duration.zero;
+              final duration = mediaItemAsync.value?.duration ?? player.duration ?? Duration.zero;
               
-              final thumbColor = Theme.of(context).colorScheme.onSurface;
               final progressBarColor = Theme.of(context).colorScheme.onSurface;
               final baseBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2);
               final bufferedBarColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35);
 
               return ProgressBar(
-                thumbRadius: 6,
-                thumbGlowRadius: 15,
-                barHeight: 5,
+                thumbRadius: 0,
+                thumbGlowRadius: 0,
+                barHeight: 8,
                 baseBarColor: baseBarColor,
                 bufferedBarColor: bufferedBarColor,
                 progressBarColor: progressBarColor,
-                thumbColor: thumbColor,
+                thumbColor: Colors.transparent,
                 timeLabelPadding: 10,
                 timeLabelTextStyle: Theme.of(context)
                     .textTheme
@@ -242,9 +242,9 @@ class PlayerControlWidget extends ConsumerWidget {
             // Previous
             IconButton(
               icon: Icon(
-                FluentIcons.previous_24_filled,
+                CupertinoIcons.backward_fill,
                 color: Theme.of(context).colorScheme.onSurface,
-                size: 30,
+                size: 28,
               ),
               onPressed: () => audioHandler.skipToPrevious(),
             ),
@@ -293,9 +293,9 @@ class PlayerControlWidget extends ConsumerWidget {
             // Next
             IconButton(
               icon: Icon(
-                FluentIcons.next_24_filled,
+                CupertinoIcons.forward_fill,
                 color: Theme.of(context).colorScheme.onSurface,
-                size: 30,
+                size: 28,
               ),
               onPressed: () => audioHandler.skipToNext(),
             ),

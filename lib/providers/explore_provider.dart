@@ -5,7 +5,7 @@ import 'package:muzo/services/muzo_api_service.dart';
 final trendingContentProvider = FutureProvider<Map<String, List<MuzoItem>>>((
   ref,
 ) async {
-  final apiService = MuzoApiService();
+  final apiService = ref.watch(muzoApiServiceProvider);
   return apiService.getTrendingContent();
 });
 
@@ -34,4 +34,9 @@ final exploreContentProvider = FutureProvider<List<MuzoItem>>((ref) async {
   final songs = await ref.watch(newestSongsProvider.future);
   final videos = await ref.watch(newestVideosProvider.future);
   return [...songs, ...videos]..shuffle();
+});
+
+final topOnMuzoProvider = FutureProvider<List<MuzoItem>>((ref) async {
+  final apiService = ref.watch(muzoApiServiceProvider);
+  return apiService.getTopOnMuzo();
 });

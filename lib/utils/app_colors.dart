@@ -7,10 +7,10 @@ class AppColors {
   static const Color tertiaryText = Color(0xFF757575); // Grey[600] approx
 
   // UI Colors
-  static const Color primaryAccent = Color(0xFF5bc0be);
+  static const Color primaryAccent = Colors.white;
   static const Color error = Colors.redAccent;
 
   // Backgrounds
-  static const Color scaffoldDark = Color(0xFF0b132b);
-  static const Color cardDark = Color(0xFF1c2541);
+  static const Color scaffoldDark = Color(0xFF121212);
+  static const Color cardDark = Color(0xFF181818);
 }

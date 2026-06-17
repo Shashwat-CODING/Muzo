@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 import 'package:muzo/models/muzo_item.dart';
@@ -13,8 +14,6 @@ import 'package:muzo/screens/channel_screen.dart';
 import 'package:muzo/screens/album_screen.dart';
 import 'package:muzo/widgets/song_options_menu.dart';
 import 'package:muzo/utils/page_routes.dart';
-import 'package:muzo/services/navigator_key.dart';
-import 'package:muzo/providers/search_provider.dart';
 
 class ResultTile extends ConsumerWidget {
   final MuzoItem result;
@@ -43,8 +42,7 @@ class ResultTile extends ConsumerWidget {
           final type = result.resultType.toLowerCase();
           final bId = result.browseId;
           
-          final nav = navigatorKey.currentState;
-          if (nav == null) return;
+          final nav = Navigator.of(context);
 
           if (type == 'artist' && bId != null && bId.isNotEmpty) {
             nav.push(
@@ -95,8 +93,8 @@ class ResultTile extends ConsumerWidget {
         },
         child: Padding(
           padding: compact
-              ? const EdgeInsets.symmetric(horizontal: 0, vertical: 4)
-              : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ? const EdgeInsets.symmetric(horizontal: 0, vertical: 2)
+              : const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
           child: Row(
             children: [
               // Calculate width based on result type
@@ -104,13 +102,12 @@ class ResultTile extends ConsumerWidget {
               Builder(
                 builder: (context) {
                   final isVideo = result.resultType == 'video';
-                  // Default width guess for placeholders
-                  final defaultWidth = isVideo ? 100.0 : 56.0;
-                  final height = 56.0;
+                  final defaultWidth = isVideo ? 82.0 : 46.0;
+                  final height = 46.0;
                   return Container(
                     height: height,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(6),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.2),
@@ -120,7 +117,7 @@ class ResultTile extends ConsumerWidget {
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(6),
                       child: imageUrl.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: imageUrl,
@@ -204,7 +201,11 @@ class ResultTile extends ConsumerWidget {
               Consumer(
                 builder: (context, ref, _) {
                   if (result.videoId == null) {
-                    return const SizedBox.shrink();
+                    return Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 13,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+                    );
                   }
                   
                   // Use ref.read instead of ref.watch to prevent unnecessary rebuilds

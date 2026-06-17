@@ -1,7 +1,7 @@
+import 'dart:ui';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:muzo/widgets/global_background.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -119,31 +119,41 @@ class AboutScreen extends StatelessWidget {
   }
 
   Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
-    return Container(
-      width: 320,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey[400], size: 20),
-          const SizedBox(width: 16),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[300],
-              fontSize: 16,
-              fontFamily: '.SF Pro Text',
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1.0,
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.grey[400], size: 20),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[300],
+                  fontSize: 16,
+                  fontFamily: '.SF Pro Text',
+                ),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

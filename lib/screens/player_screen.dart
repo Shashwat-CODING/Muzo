@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-
 import 'player/standard_player.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
@@ -13,6 +12,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   final bool _isPanelClosed = true;
+
 
   @override
   Widget build(BuildContext context) {

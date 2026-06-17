@@ -1,9 +1,10 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/sleep_timer_provider.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 class SleepTimerDialog extends ConsumerStatefulWidget {
   const SleepTimerDialog({super.key});
@@ -42,118 +43,174 @@ class _SleepTimerDialogState extends ConsumerState<SleepTimerDialog> {
   @override
   Widget build(BuildContext context) {
     final currentTimer = ref.watch(sleepTimerProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dividerCol = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.white)
-                  .withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(20),
+              color: isDark ? const Color(0xFF1C1C1E).withValues(alpha: 0.65) : const Color(0xFFE5E5EA).withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                width: 0.8,
               ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Sleep Timer',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                    ),
-                    if (currentTimer != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Text(
-                        '${currentTimer.inMinutes}:${(currentTimer.inSeconds % 60).toString().padLeft(2, '0')}',
+                        'Sleep Timer',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                          letterSpacing: -0.4,
                         ),
                       ),
-                  ],
+                      if (currentTimer != null)
+                        Text(
+                          '${currentTimer.inMinutes}:${(currentTimer.inSeconds % 60).toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  alignment: WrapAlignment.center,
-                  children: _presetMinutes.map((mins) {
-                    return _buildTimerButton(context, '$mins min', () => _setTimer(mins));
-                  }).toList(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.start,
+                    children: _presetMinutes.map((mins) {
+                      return _buildTimerButton(context, '$mins min', () => _setTimer(mins));
+                    }).toList(),
+                  ),
                 ),
                 const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoTextField(
+                          controller: _customController,
+                          keyboardType: TextInputType.number,
+                          placeholder: 'Custom (minutes)',
+                          placeholderStyle: TextStyle(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
+                            fontSize: 14,
+                          ),
+                          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                              width: 0.8,
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          onChanged: (val) {
+                            setState(() {
+                              _customMinutes = int.tryParse(val);
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _customMinutes != null && _customMinutes! > 0
+                            ? () => _setTimer(_customMinutes!)
+                            : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _customMinutes != null && _customMinutes! > 0
+                                ? theme.primaryColor
+                                : theme.primaryColor.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Set',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(height: 0.5, color: dividerCol),
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _customController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'Custom (min)',
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-                            ),
+                      child: SizedBox(
+                        height: 44,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                          child: Text(
+                            'Dismiss',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontSize: 17,
+                              letterSpacing: -0.4,
                             ),
                           ),
                         ),
-                        onChanged: (val) {
-                          setState(() {
-                            _customMinutes = int.tryParse(val);
-                          });
-                        },
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    if (currentTimer != null) ...[
+                      Container(width: 0.5, height: 44, color: dividerCol),
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: TextButton(
+                            onPressed: _cancelTimer,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                            ),
+                            child: const Text(
+                              'Cancel Timer',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      onPressed: _customMinutes != null && _customMinutes! > 0
-                          ? () => _setTimer(_customMinutes!)
-                          : null,
-                      child: const Text('Set'),
-                    ),
+                    ],
                   ],
                 ),
-                if (currentTimer != null) ...[
-                  const SizedBox(height: 20),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                    ),
-                    onPressed: _cancelTimer,
-                    icon: const Icon(FluentIcons.dismiss_24_regular),
-                    label: const Text('Cancel Timer'),
-                  ),
-                ],
               ],
             ),
           ),
@@ -163,23 +220,30 @@ class _SleepTimerDialogState extends ConsumerState<SleepTimerDialog> {
   }
 
   Widget _buildTimerButton(BuildContext context, String label, VoidCallback onTap) {
+    final theme = Theme.of(context);
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+            width: 0.8,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurface,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
           ),
         ),
       ),

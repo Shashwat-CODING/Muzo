@@ -1,4 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/providers/search_provider.dart';
@@ -13,43 +16,15 @@ class SearchScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  bool _showSuggestions = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(_onSearchChanged);
-    // Auto-focus the search bar on open
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    setState(() {
-      _showSuggestions = _searchController.text.isNotEmpty;
-    });
-  }
 
   void _performSearch(String query) {
-    _searchController.text = query;
-    _searchController.selection = TextSelection.fromPosition(
+    final controller = ref.read(searchControllerProvider);
+    final focusNode = ref.read(searchFocusNodeProvider);
+    controller.text = query;
+    controller.selection = TextSelection.fromPosition(
       TextPosition(offset: query.length),
     );
-    _focusNode.unfocus();
-    setState(() {
-      _showSuggestions = false;
-    });
+    focusNode.unfocus();
     ref.read(searchQueryProvider.notifier).state = query;
   }
 
@@ -57,110 +32,130 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(searchResultsProvider);
     final currentFilter = ref.watch(searchFilterProvider);
-    final suggestionsAsync = ref.watch(
-      searchSuggestionsProvider(_searchController.text),
-    );
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final controller = ref.watch(searchControllerProvider);
+    final focusNode = ref.watch(searchFocusNodeProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            // Search bar — YouTube Music style
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 16,
-                  ),
-                  cursorColor: Theme.of(context).colorScheme.primary,
-                  decoration: InputDecoration(
-                    hintText: 'Search songs, albums, artists...',
-                    hintStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                      fontWeight: FontWeight.w400,
-                    ),
-                    filled: false,
-                    prefixIcon: IconButton(
-                      icon: Icon(
-                        FluentIcons.arrow_left_24_regular,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                        size: 22,
-                      ),
-                      onPressed: () {
-                        ref.read(searchQueryProvider.notifier).state = '';
-                        Navigator.pop(context);
-                      },
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              FluentIcons.dismiss_circle_24_filled,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              _focusNode.requestFocus();
-                              setState(() => _showSuggestions = false);
-                              ref.read(searchQueryProvider.notifier).state = '';
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                  onSubmitted: (value) => _performSearch(value),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ),
-
-            // Filter chips — YouTube Music style horizontal pills
-            if (!_showSuggestions) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: [
-                    _buildFilterChip('All', currentFilter),
-                    _buildFilterChip('Songs', currentFilter),
-                    _buildFilterChip('Videos', currentFilter),
-                    _buildFilterChip('Albums', currentFilter),
-                    _buildFilterChip('Artists', currentFilter),
-                    _buildFilterChip('Playlists', currentFilter),
-                    _buildFilterChip('Channels', currentFilter),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-
-            // Results / Suggestions
+            // iOS 26 Liquid Glass Filters at the top
+            _buildIos26Filters(context, ref, currentFilter),
+            
+            // Suggestions or Results
             Expanded(
-              child: _showSuggestions
-                  ? _buildSuggestions(suggestionsAsync)
-                  : _buildResults(searchResults, currentFilter),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, textValue, _) {
+                  final text = textValue.text;
+                  final showSuggestions = text.isNotEmpty && focusNode.hasFocus;
+                  
+                  if (showSuggestions) {
+                    final suggestionsAsync = ref.watch(searchSuggestionsProvider(text));
+                    return _buildSuggestions(suggestionsAsync);
+                  } else {
+                    return _buildResults(searchResults, currentFilter);
+                  }
+                },
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIos26Filters(BuildContext context, WidgetRef ref, String currentFilter) {
+    final filters = ['All', 'Songs', 'Videos', 'Albums', 'Artists', 'Playlists', 'Channels'];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: filters.length,
+        itemBuilder: (context, index) {
+          final filter = filters[index];
+          final isSelected = filter.toLowerCase() == currentFilter.toLowerCase();
+          
+          return _buildLiquidGlassChip(context, ref, filter, isSelected, isDark);
+        },
+      ),
+    );
+  }
+
+  Widget _buildLiquidGlassChip(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+    bool isSelected,
+    bool isDark,
+  ) {
+    final chipBgColor = isSelected
+        ? (isDark ? Colors.white : Colors.black)
+        : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05));
+    final chipBorderColor = isSelected
+        ? Colors.transparent
+        : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08));
+    final chipTextColor = isSelected
+        ? (isDark ? Colors.black : Colors.white)
+        : (isDark ? Colors.white : Colors.black);
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          if (isSelected) {
+            ref.read(searchFilterProvider.notifier).state = 'all';
+          } else {
+            ref.read(searchFilterProvider.notifier).state = label.toLowerCase();
+          }
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: chipBgColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: chipBorderColor,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: chipTextColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (isSelected && label != 'All') ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      CupertinoIcons.xmark,
+                      size: 11,
+                      color: chipTextColor,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -171,7 +166,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       data: (suggestions) {
         if (suggestions.isEmpty) return const SizedBox.shrink();
         return ListView.separated(
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.fromLTRB(0, 4, 0, 160),
           itemCount: suggestions.length,
           separatorBuilder: (_, __) => const SizedBox.shrink(),
           itemBuilder: (context, index) {
@@ -339,52 +334,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         child: Text(
           'Error: $error',
           style: const TextStyle(color: Colors.red),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String currentFilter) {
-    final isSelected = label.toLowerCase() == currentFilter.toLowerCase();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            ref.read(searchFilterProvider.notifier).state = label.toLowerCase();
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? (isDark ? Colors.white : Colors.black)
-                  : (isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.black.withValues(alpha: 0.05)),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected
-                    ? Colors.transparent
-                    : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? (isDark ? Colors.black : Colors.white)
-                    : Theme.of(context).colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
-          ),
         ),
       ),
     );

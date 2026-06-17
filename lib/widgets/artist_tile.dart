@@ -7,8 +7,6 @@ import 'package:muzo/screens/artist_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/utils/page_routes.dart';
-import 'package:muzo/services/navigator_key.dart';
-import 'package:muzo/providers/search_provider.dart';
 
 class ArtistTile extends ConsumerStatefulWidget {
   final String artistName;
@@ -107,8 +105,8 @@ class _ArtistTileState extends ConsumerState<ArtistTile> {
       placeholderIcon: FluentIcons.person_24_regular,
       onTap: () {
         final id = _navChannelId.isNotEmpty ? _navChannelId : widget.artistId;
-        final nav = navigatorKey.currentState;
-        if (id.isNotEmpty && nav != null) {
+        final nav = Navigator.of(context);
+        if (id.isNotEmpty) {
           nav.push(
             SlidePageRoute(
               page: ArtistScreen(

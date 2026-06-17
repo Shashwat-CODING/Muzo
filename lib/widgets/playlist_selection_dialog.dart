@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,8 @@ class _PlaylistSelectionDialogState
   Widget build(BuildContext context) {
     final storage = ref.watch(storageServiceProvider);
     final playlists = storage.getPlaylistNames();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerCol = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
 
     return AppAlertDialog(
       title: 'Add to Playlist',
@@ -40,35 +43,66 @@ class _PlaylistSelectionDialogState
                 color: Colors.transparent,
                 child: Container(
                   constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
                   ),
-                  child: SizedBox(
-                    height:
-                        playlists.length * 56.0 >
-                            MediaQuery.of(context).size.height * 0.5
-                        ? MediaQuery.of(context).size.height * 0.5
-                        : playlists.length * 56.0,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: dividerCol,
+                      width: 0.8,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
                     child: ListView.builder(
+                      shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       itemCount: playlists.length,
                       itemBuilder: (context, index) {
                         final name = playlists[index];
-                        return ListTile(
-                          leading: Icon(
-                            FluentIcons.music_note_2_24_regular,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          title: Text(
-                            name,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () {
-                            storage.addToPlaylist(name, widget.song);
-                            Navigator.pop(context);
-                            showGlassSnackBar(context, 'Added to $name');
-                          },
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                storage.addToPlaylist(name, widget.song);
+                                Navigator.pop(context);
+                                showGlassSnackBar(context, 'Added to $name');
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      FluentIcons.music_note_2_24_regular,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (index < playlists.length - 1)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 48.0),
+                                child: Container(height: 0.5, color: dividerCol),
+                              ),
+                          ],
                         );
                       },
                     ),
@@ -79,7 +113,10 @@ class _PlaylistSelectionDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+          ),
         ),
         TextButton(
           onPressed: () {
@@ -88,7 +125,7 @@ class _PlaylistSelectionDialogState
           },
           child: Text(
             'New Playlist',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
           ),
         ),
       ],
@@ -97,32 +134,40 @@ class _PlaylistSelectionDialogState
 
   void _showCreatePlaylistDialog(BuildContext context, StorageService storage) {
     final controller = TextEditingController();
+    final theme = Theme.of(context);
     showAppAlertDialog(
       context: context,
       title: 'Create Playlist',
       content: Padding(
-        padding: const EdgeInsets.only(top: 16.0),
+        padding: const EdgeInsets.only(top: 10.0),
         child: CupertinoTextField(
           controller: controller,
           placeholder: 'Playlist Name',
-          placeholderStyle: const TextStyle(color: CupertinoColors.systemGrey),
-          style: const TextStyle(color: CupertinoColors.white),
+          placeholderStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.35), fontSize: 14),
+          style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
           decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey6.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+              width: 0.8,
+            ),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+          ),
         ),
         TextButton(
           onPressed: () {
             if (controller.text.isNotEmpty) {
               storage.createPlaylist(controller.text);
-              // Automatically add the song to the new playlist
               storage.addToPlaylist(controller.text, widget.song);
               Navigator.pop(context);
               showGlassSnackBar(context, 'Added to ${controller.text}');
@@ -130,7 +175,7 @@ class _PlaylistSelectionDialogState
           },
           child: Text(
             'Create',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold),
           ),
         ),
       ],

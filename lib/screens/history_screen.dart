@@ -6,6 +6,7 @@ import 'package:muzo/services/storage_service.dart';
 import 'package:muzo/widgets/result_tile.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
 import 'package:muzo/widgets/app_alert_dialog.dart';
+import 'package:muzo/widgets/global_background.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -14,9 +15,10 @@ class HistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(storageServiceProvider);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
+    return GlobalBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
@@ -132,6 +134,6 @@ class HistoryScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),);
   }
 }

@@ -10,12 +10,14 @@ class SettingsState {
   final ThemeType themeType;
   final bool isGestureMode;
   final String appFontFamily;
+  final bool isAmoled;
 
   SettingsState({
     required this.audioQuality,
     required this.themeType,
     this.isGestureMode = false,
-    this.appFontFamily = 'Roboto',
+    this.appFontFamily = 'AR One Sans',
+    this.isAmoled = false,
   });
 
   SettingsState copyWith({
@@ -23,12 +25,14 @@ class SettingsState {
     ThemeType? themeType,
     bool? isGestureMode,
     String? appFontFamily,
+    bool? isAmoled,
   }) {
     return SettingsState(
       audioQuality: audioQuality ?? this.audioQuality,
       themeType: themeType ?? this.themeType,
       isGestureMode: isGestureMode ?? this.isGestureMode,
       appFontFamily: appFontFamily ?? this.appFontFamily,
+      isAmoled: isAmoled ?? this.isAmoled,
     );
   }
 }
@@ -40,7 +44,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           audioQuality: AudioQuality.high,
           themeType: ThemeType.auto,
           isGestureMode: false,
-          appFontFamily: 'Roboto',
+          appFontFamily: 'AR One Sans',
+          isAmoled: false,
         ),
       ) {
     _loadSettings();
@@ -51,7 +56,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final qualityIndex = box.get('audioQuality', defaultValue: 0);
     final themeTypeIndex = box.get('themeType', defaultValue: 0);
     final isGestureMode = box.get('isGestureMode', defaultValue: false) ?? false;
-    final appFontFamily = box.get('appFontFamily', defaultValue: 'Roboto');
+    final appFontFamily = box.get('appFontFamily', defaultValue: 'AR One Sans');
+    final isAmoled = box.get('isAmoled', defaultValue: false) ?? false;
 
     // Migration logic: If saved index is out of bounds, default to auto (0)
     final validThemeIndex =
@@ -64,6 +70,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       themeType: ThemeType.values[validThemeIndex],
       isGestureMode: isGestureMode,
       appFontFamily: appFontFamily,
+      isAmoled: isAmoled,
     );
   }
 
@@ -90,6 +97,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(appFontFamily: font);
     final box = await Hive.openBox('settings');
     await box.put('appFontFamily', font);
+  }
+
+  Future<void> setAmoled(bool enabled) async {
+    state = state.copyWith(isAmoled: enabled);
+    final box = await Hive.openBox('settings');
+    await box.put('isAmoled', enabled);
   }
 }
 

@@ -15,55 +15,98 @@ class AppAlertDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerCol = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08);
+
     return Dialog(
       backgroundColor: Colors.transparent, // Important for glass effect
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
       child: GlassContainer(
-        borderRadius: BorderRadius.circular(12),
-        color: (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E1E) : Colors.white),
-        opacity: 0.7,
+        borderRadius: BorderRadius.circular(14),
+        color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE5E5EA),
+        opacity: isDark ? 0.65 : 0.85,
+        blur: 20.0,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 4),
               child: Text(
                 title,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.4,
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
               child: DefaultTextStyle(
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                  fontSize: 13,
+                  height: 1.35,
+                  letterSpacing: -0.1,
+                ),
+                textAlign: TextAlign.center,
                 child: content,
               ),
             ),
-            const SizedBox(height: 16),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-            if (actions.isNotEmpty)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: actions.map((action) {
-                  return Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          right: actions.indexOf(action) != actions.length - 1
-                              ? BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                )
-                              : BorderSide.none,
-                        ),
+            if (actions.isNotEmpty) ...[
+              Container(height: 0.5, color: dividerCol),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(double.infinity, 44),
+                      fixedSize: const Size.fromHeight(44),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                      textStyle: const TextStyle(
+                        fontSize: 17,
+                        letterSpacing: -0.4,
                       ),
-                      child: action,
                     ),
-                  );
-                }).toList(),
+                  ),
+                ),
+                child: Builder(
+                  builder: (context) {
+                    if (actions.length == 2) {
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: actions[0],
+                          ),
+                          Container(width: 0.5, height: 44, color: dividerCol),
+                          Expanded(
+                            child: actions[1],
+                          ),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: List.generate(actions.length, (index) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              actions[index],
+                              if (index < actions.length - 1)
+                                Container(height: 0.5, color: dividerCol),
+                            ],
+                          );
+                        }),
+                      );
+                    }
+                  },
+                ),
               ),
-            if (actions.isEmpty) const SizedBox(height: 16),
+            ],
           ],
         ),
       ),
@@ -83,3 +126,4 @@ Future<T?> showAppAlertDialog<T>({
         AppAlertDialog(title: title, content: content, actions: actions),
   );
 }
+

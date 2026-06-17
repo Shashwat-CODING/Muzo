@@ -75,7 +75,7 @@ class LyricsService {
 
     // 1. Try Atomix Lyrics API primary
     try {
-      final atomixUri = Uri.parse('https://lyricsplus.atomix.one/v2/lyrics/get').replace(
+      final atomixUri = Uri.parse('https://lyrics.geeked.wtf/v2/lyrics/get').replace(
         queryParameters: {'title': cleanTrack, 'artist': cleanArtist, 'duration': duration.toString()},
       );
 

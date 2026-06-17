@@ -5,8 +5,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:muzo/services/auth_service.dart';
 import 'package:muzo/widgets/glass_snackbar.dart';
-import 'package:muzo/widgets/main_layout.dart';
-import 'package:muzo/screens/home_screen.dart';
+import 'package:muzo/providers/auth_gate_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -50,9 +49,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   void _back() => setState(() => _page = 0);
 
   void _skip() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
+    // Set guest mode — AuthGate will reactively show the main app.
+    ref.read(isGuestModeProvider.notifier).state = true;
+    if (context.mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _handleAuth() async {
@@ -87,11 +88,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
       if (mounted) {
         showGlassSnackBar(context, 'Welcome to Muzo!');
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const HomeScreen(),
-          ),
-        );
+        // AuthGate watches authServiceProvider and will reactively
+        // switch to MainLayout+HomeScreen now that auth token is set.
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -108,12 +109,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     final surface = Theme.of(context).colorScheme.surface;
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
+    final primaryColor = Theme.of(context).primaryColor;
     final orbColor1 = isDark
-        ? Colors.white.withValues(alpha: 0.04)
-        : const Color(0xFF6c63ff).withValues(alpha: 0.12);
+        ? primaryColor.withValues(alpha: 0.08)
+        : primaryColor.withValues(alpha: 0.15);
     final orbColor2 = isDark
-        ? Colors.white.withValues(alpha: 0.025)
-        : const Color(0xFF43c9b0).withValues(alpha: 0.10);
+        ? primaryColor.withValues(alpha: 0.04)
+        : primaryColor.withValues(alpha: 0.1);
 
     return Scaffold(
       backgroundColor: surface,
@@ -278,11 +280,11 @@ class _IntroPage extends ConsumerWidget {
                     await authService.loginWithGoogle();
                     if (context.mounted) {
                       showGlassSnackBar(context, 'Signed in with Google');
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => const HomeScreen(),
-                        ),
-                      );
+                      // AuthGate watches authServiceProvider and will
+                      // reactively switch to MainLayout+HomeScreen.
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
                     }
                   } catch (e) {
                     if (context.mounted) {
@@ -291,9 +293,12 @@ class _IntroPage extends ConsumerWidget {
                   }
                 },
                 style: FilledButton.styleFrom(
-                  backgroundColor: onSurface,
-                  foregroundColor: Theme.of(context).colorScheme.surface,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+                  foregroundColor: onSurface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: onSurface.withValues(alpha: 0.15)),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -305,7 +310,7 @@ class _IntroPage extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text('Continue with Google',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface)),
                   ],
                 ),
               ),
@@ -314,14 +319,15 @@ class _IntroPage extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               height: 52,
-              child: OutlinedButton(
+              child: FilledButton(
                 onPressed: onSignup,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: onSurface.withValues(alpha: 0.3)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text('Sign up with Email',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface)),
+                child: const Text('Sign up with Email',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 12),
@@ -337,7 +343,7 @@ class _IntroPage extends ConsumerWidget {
                 child: Text('Log in',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       color: onSurface,
                     )),
               ),
@@ -365,24 +371,25 @@ class _IntroPage extends ConsumerWidget {
   }
 
   Widget _pill(BuildContext context, IconData icon, String label) {
+    final primaryColor = Theme.of(context).primaryColor;
     final onSurf = Theme.of(context).colorScheme.onSurface;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: onSurf.withValues(alpha: 0.07),
+        color: primaryColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: onSurf.withValues(alpha: 0.1)),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: onSurf.withValues(alpha: 0.7)),
+          Icon(icon, size: 14, color: primaryColor),
           const SizedBox(width: 6),
           Text(label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: onSurf.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
+                color: onSurf.withValues(alpha: 0.85),
               )),
         ],
       ),
@@ -468,20 +475,20 @@ class _AuthPage extends StatelessWidget {
                     height: 48,
                     decoration: BoxDecoration(
                       color: onSurface.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: TabBar(
                       controller: tabController,
                       indicator: BoxDecoration(
-                        color: onSurface,
-                        borderRadius: BorderRadius.circular(10),
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       indicatorPadding: const EdgeInsets.all(4),
                       indicatorSize: TabBarIndicatorSize.tab,
-                      labelColor: Theme.of(context).colorScheme.surface,
+                      labelColor: Theme.of(context).colorScheme.onPrimary,
                       unselectedLabelColor: onSurface.withValues(alpha: 0.5),
-                      labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                      unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                       dividerColor: Colors.transparent,
                       tabs: const [Tab(text: 'Log in'), Tab(text: 'Sign up')],
                     ),
@@ -490,7 +497,7 @@ class _AuthPage extends StatelessWidget {
 
                   // Forms
                   SizedBox(
-                    height: 220,
+                    height: 260,
                     child: TabBarView(
                       controller: tabController,
                       children: [
@@ -537,14 +544,14 @@ class _AuthPage extends StatelessWidget {
                             child: SizedBox(
                               height: 24, width: 24,
                               child: CircularProgressIndicator(
-                                  color: onSurface, strokeWidth: 2),
+                                  color: Theme.of(context).primaryColor, strokeWidth: 2),
                             ),
                           )
                         : FilledButton(
                             onPressed: onAuth,
                             style: FilledButton.styleFrom(
-                              backgroundColor: onSurface,
-                              foregroundColor: Theme.of(context).colorScheme.surface,
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16)),
                             ),
@@ -552,7 +559,7 @@ class _AuthPage extends StatelessWidget {
                               animation: tabController,
                               builder: (_, __) => Text(
                                 tabController.index == 0 ? 'Log in' : 'Create account',
-                                style: TextStyle(
+                                style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -601,16 +608,16 @@ class _AuthPage extends StatelessWidget {
               )
             : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: onSurf.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: onSurf.withValues(alpha: 0.35), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),

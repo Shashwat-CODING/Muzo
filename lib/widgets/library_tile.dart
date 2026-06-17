@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
@@ -31,21 +32,21 @@ class LibraryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
       onTap: onTap,
       onLongPress: onLongPress,
       leading: SizedBox(
-        width: 56,
-        height: 56,
+        width: 46,
+        height: 46,
         child: Stack(
           alignment: Alignment.center,
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 shape: isRound ? BoxShape.circle : BoxShape.rectangle,
-                borderRadius: isRound ? null : BorderRadius.circular(4),
+                borderRadius: isRound ? null : BorderRadius.circular(6),
                 color: Colors.grey[850], // Placeholder color
                 border: isLoading
                     ? Border.all(color: const Color(0xFF1ED760), width: 2)
@@ -53,7 +54,7 @@ class LibraryTile extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(
-                  isRound ? 56 : (isLoading ? 2 : 4),
+                  isRound ? 46 : (isLoading ? 2 : 6),
                 ), // Adjust radius if border present
                 child: imageUrl != null && imageUrl!.isNotEmpty
                     ? CachedNetworkImage(
@@ -64,7 +65,7 @@ class LibraryTile extends StatelessWidget {
                             placeholderIcon ??
                                 FluentIcons.music_note_2_24_regular,
                             color: Colors.grey,
-                            size: 24,
+                            size: 20,
                           ),
                         ),
                       )
@@ -73,7 +74,7 @@ class LibraryTile extends StatelessWidget {
                           placeholderIcon ??
                               FluentIcons.music_note_2_24_regular,
                           color: Colors.grey,
-                          size: 24,
+                          size: 20,
                         ),
                       ),
               ),
@@ -85,7 +86,11 @@ class LibraryTile extends StatelessWidget {
         title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       subtitle: subtitle != null
           ? Row(
@@ -96,7 +101,7 @@ class LibraryTile extends StatelessWidget {
                     child: const Icon(
                       FluentIcons.pin_12_filled,
                       color: Color(0xFF1ED760),
-                      size: 12,
+                      size: 11,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -106,13 +111,21 @@ class LibraryTile extends StatelessWidget {
                     subtitle!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             )
           : null,
-      trailing: trailing,
+      trailing: trailing ??
+          Icon(
+            CupertinoIcons.chevron_right,
+            size: 13,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+          ),
     );
   }
 }

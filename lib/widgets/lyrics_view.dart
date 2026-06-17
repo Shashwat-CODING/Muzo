@@ -34,18 +34,16 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
   StreamSubscription<Duration>? _positionSubscription;
 
   bool get _isKaraoke => widget.lyrics.karaokeLines != null;
+  bool get _isSynced => widget.lyrics.syncedLyrics.trim().isNotEmpty;
+  bool get _hasPlainLyrics => widget.lyrics.plainLyrics.trim().isNotEmpty;
 
   @override
   void initState() {
     super.initState();
 
-    if (!_isKaraoke) {
+    if (!_isKaraoke && _isSynced) {
       _lyricController = LyricController();
-      if (widget.lyrics.syncedLyrics.isNotEmpty) {
-        _lyricController.loadLyric(widget.lyrics.syncedLyrics);
-      } else {
-        _lyricController.loadLyric(widget.lyrics.plainLyrics);
-      }
+      _lyricController.loadLyric(widget.lyrics.syncedLyrics);
       _positionSubscription = widget.positionStream.listen((duration) {
         _lyricController.setProgress(duration);
       });
@@ -55,8 +53,93 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
   @override
   void dispose() {
     _positionSubscription?.cancel();
-    if (!_isKaraoke) _lyricController.dispose();
+    if (!_isKaraoke && _isSynced) {
+      _lyricController.dispose();
+    }
     super.dispose();
+  }
+
+  Widget _buildFallbackView(BuildContext context, String? fontFamily, {required bool isInstrumental}) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isInstrumental ? Icons.music_note_rounded : Icons.text_snippet_rounded,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isInstrumental ? "Instrumental" : "No lyrics available",
+            style: TextStyle(
+              fontFamily: fontFamily,
+              fontSize: widget.isEmbedded ? 18 : 22,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlainLyricsView(BuildContext context, String? fontFamily) {
+    final List<String> rawLines = widget.lyrics.plainLyrics.split('\n');
+    final double fontSize = widget.isEmbedded ? 18.0 : 22.0;
+
+    return ShaderMask(
+      shaderCallback: (rect) {
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            Colors.black,
+            Colors.black,
+            Colors.transparent,
+          ],
+          stops: [0.0, 0.08, 0.92, 1.0],
+        ).createShader(rect);
+      },
+      blendMode: BlendMode.dstIn,
+      child: SingleChildScrollView(
+        physics: widget.scrollable
+            ? const BouncingScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: widget.isEmbedded ? 24 : 40,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: widget.isEmbedded ? 12 : 24),
+            ...rawLines.map((line) {
+              final trimmed = line.trim();
+              if (trimmed.isEmpty) {
+                return const SizedBox(height: 20);
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Text(
+                  trimmed,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: fontFamily,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.4,
+                  ),
+                ),
+              );
+            }),
+            SizedBox(height: widget.isEmbedded ? 24 : 48),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -120,13 +203,17 @@ class _LyricsViewState extends ConsumerState<LyricsView> {
                   isEmbedded: widget.isEmbedded,
                   scrollable: widget.scrollable,
                 )
-              : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 14.0),
-                  child: LyricView(
-                    controller: _lyricController,
-                    style: customLyricStyle,
-                  ),
-                ),
+              : (widget.lyrics.instrumental || !_hasPlainLyrics
+                  ? _buildFallbackView(context, fontFamily, isInstrumental: widget.lyrics.instrumental)
+                  : (!_isSynced
+                      ? _buildPlainLyricsView(context, fontFamily)
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 14.0),
+                          child: LyricView(
+                            controller: _lyricController,
+                            style: customLyricStyle,
+                          ),
+                        ))),
         ),
       ],
     );
