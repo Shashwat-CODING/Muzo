@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Muzo
+GenericName=Music Player
+Comment=Music, Tracks & Community — Stream and share your music
+Exec=muzo
+Icon=com.shashwat.muzo
+Type=Application
+Terminal=false
+StartupNotify=true
+StartupWMClass=Muzo
+Categories=Audio;Music;Player;
+Keywords=music;player;stream;audio;community;tracks;
+MimeType=audio/mpeg;audio/ogg;audio/wav;audio/flac;audio/aac;audio/mp4;
