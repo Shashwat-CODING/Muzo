@@ -1,0 +1,318 @@
+name: Build & Release Flutter App
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  # ─────────────────────────────────────────────
+  # WINDOWS – NSIS installer (.exe)
+  # ─────────────────────────────────────────────
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # NOTE: Do NOT set flutter-version alongside channel.
+      # Passing flutter-version: "stable" + channel: "stable" causes
+      # "Unable to determine Flutter version" in subosito/flutter-action@v2.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ env.PUB_CACHE }}
+          key: pub-cache-windows-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-cache-windows-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          # choco does not update PATH in the current session; add it manually
+          $nsisPath = "C:\Program Files (x86)\NSIS"
+          echo "$nsisPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Create NSIS installer script
+        shell: pwsh
+        run: |
+          $appName  = "Muzo"
+          $exeName  = "Muzo"
+          $outFile  = "dist\${appName}-Setup.exe"
+          $buildDir = "build\windows\x64\runner\Release"
+
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          $nsisScript = @"
+          !include "MUI2.nsh"
+
+          Name "${appName}"
+          OutFile "${outFile}"
+          InstallDir "`$PROGRAMFILES64\${appName}"
+          InstallDirRegKey HKCU "Software\${appName}" ""
+          RequestExecutionLevel admin
+
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+
+          !insertmacro MUI_UNPAGE_CONFIRM
+          !insertmacro MUI_UNPAGE_INSTFILES
+
+          !insertmacro MUI_LANGUAGE "English"
+
+          Section "Install"
+            SetOutPath "`$INSTDIR"
+            File /r "${buildDir}\*.*"
+            CreateShortcut "`$DESKTOP\${appName}.lnk" "`$INSTDIR\${exeName}.exe"
+            CreateDirectory "`$SMPROGRAMS\${appName}"
+            CreateShortcut "`$SMPROGRAMS\${appName}\${appName}.lnk" "`$INSTDIR\${exeName}.exe"
+            WriteRegStr HKCU "Software\${appName}" "" "`$INSTDIR"
+            WriteUninstaller "`$INSTDIR\Uninstall.exe"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${appName}" \
+                             "DisplayName" "${appName}"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${appName}" \
+                             "UninstallString" "`$INSTDIR\Uninstall.exe"
+          SectionEnd
+
+          Section "Uninstall"
+            Delete "`$INSTDIR\Uninstall.exe"
+            RMDir /r "`$INSTDIR"
+            Delete "`$DESKTOP\${appName}.lnk"
+            RMDir /r "`$SMPROGRAMS\${appName}"
+            DeleteRegKey HKCU "Software\${appName}"
+            DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${appName}"
+          SectionEnd
+          "@
+
+          Set-Content -Path "installer.nsi" -Value $nsisScript
+
+      - name: Compile NSIS installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+
+  # ─────────────────────────────────────────────
+  # LINUX – AppImage
+  # ─────────────────────────────────────────────
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libglib2.0-dev libpango1.0-dev libcairo2-dev \
+            libgdk-pixbuf2.0-dev libatk1.0-dev \
+            fuse libfuse2 \
+            file wget curl \
+            libmpv-dev mpv \
+            libepoxy-dev \
+            libegl1-mesa-dev libgl1-mesa-dev \
+            libgles2-mesa-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-linux-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-cache-linux-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Linux release
+        run: flutter build linux --release
+
+      - name: Download appimagetool
+        run: |
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" \
+               -O /usr/local/bin/appimagetool
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Assemble AppDir
+        run: |
+          APP_NAME="Muzo"
+          EXE_NAME="Muzo"
+          BUILD_DIR="build/linux/x64/release/bundle"
+
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp -r "$BUILD_DIR"/. AppDir/usr/bin/
+
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          export LD_LIBRARY_PATH="$HERE/usr/lib:$LD_LIBRARY_PATH"
+          exec "$HERE/usr/bin/EXE_PLACEHOLDER" "$@"
+          EOF
+          sed -i "s/EXE_PLACEHOLDER/$EXE_NAME/" AppDir/AppRun
+          chmod +x AppDir/AppRun
+
+          cat > "AppDir/$APP_NAME.desktop" << EOF
+          [Desktop Entry]
+          Name=$APP_NAME
+          Exec=$EXE_NAME
+          Icon=$APP_NAME
+          Type=Application
+          Categories=Utility;
+          EOF
+
+          if [ -f "assets/icon.png" ]; then
+            cp assets/icon.png "AppDir/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+            cp assets/icon.png "AppDir/$APP_NAME.png"
+          else
+            convert -size 256x256 xc:#6750A4 "AppDir/$APP_NAME.png" 2>/dev/null || \
+            cp /usr/share/pixmaps/*.png "AppDir/$APP_NAME.png" 2>/dev/null || true
+          fi
+
+      - name: Build AppImage
+        run: |
+          APP_NAME="Muzo"
+          mkdir -p dist
+          ARCH=x86_64 appimagetool AppDir "dist/${APP_NAME}-x86_64.AppImage"
+        env:
+          ARCH: x86_64
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/*.AppImage
+
+  # ─────────────────────────────────────────────
+  # PUBLISH – Upload both to the latest release
+  # ─────────────────────────────────────────────
+  publish:
+    name: Publish to Latest Release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux]
+
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/windows
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: artifacts/linux
+
+      - name: Get latest release
+        id: get_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              per_page: 10,
+            });
+
+            const myRelease = releases.data.find(r =>
+              r.author.login === context.repo.owner && !r.draft
+            );
+
+            if (!myRelease) core.setFailed("No release found created by the repo owner.");
+
+            core.setOutput("upload_url", myRelease.upload_url);
+            core.setOutput("release_id",  myRelease.id);
+            console.log(`Found release: ${myRelease.tag_name} (id: ${myRelease.id})`);
+
+      - name: Upload Windows installer to release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs   = require("fs");
+            const path = require("path");
+            const dir  = "artifacts/windows";
+
+            const files = fs.readdirSync(dir).filter(f => f.endsWith(".exe"));
+            for (const file of files) {
+              const filePath = path.join(dir, file);
+              const data     = fs.readFileSync(filePath);
+              await github.rest.repos.uploadReleaseAsset({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                release_id:   ${{ steps.get_release.outputs.release_id }},
+                name:         file,
+                data:         data,
+                headers: {
+                  "content-type":   "application/octet-stream",
+                  "content-length": data.length,
+                },
+              });
+              console.log(`Uploaded: ${file}`);
+            }
+
+      - name: Upload Linux AppImage to release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs   = require("fs");
+            const path = require("path");
+            const dir  = "artifacts/linux";
+
+            const files = fs.readdirSync(dir).filter(f => f.endsWith(".AppImage"));
+            for (const file of files) {
+              const filePath = path.join(dir, file);
+              const data     = fs.readFileSync(filePath);
+              await github.rest.repos.uploadReleaseAsset({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                release_id:   ${{ steps.get_release.outputs.release_id }},
+                name:         file,
+                data:         data,
+                headers: {
+                  "content-type":   "application/octet-stream",
+                  "content-length": data.length,
+                },
+              });
+              console.log(`Uploaded: ${file}`);
+            }
