@@ -13,56 +13,53 @@
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white" alt="Dart" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS-lightgrey" alt="Platform" />
-  <img src="https://img.shields.io/badge/Version-3.4.0-blueviolet" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-4.0.0-blueviolet" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
 </p>
 
 ---
 
-Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, and a modern, fully gesture-driven UI — no account required.
+Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, a modern gesture-driven UI, Spotify playlist imports, a sleep timer, and community sharing — with or without an account.
 
 ---
 
 ## 🚀 Key Features
 
-### 🎧 Immersive Audio Experience
-- **Synced & Karaoke Lyrics** — Real-time synchronized lyrics that auto-scroll. Karaoke mode highlights individual words/syllables as they're sung.
-- **Lyrics in Gesture Mode** — Frosted-glass lyrics panel above controls in gesture player — double-tap and volume swipe still work through it.
-- **Lofi Mode** — Instantly transform any track into a Lofi vibe with slowed speed (0.9×), pitch correction, and native reverb effects.
-- **Multi-Language Audio** — Automatically detects and lets you switch between available audio languages.
-- **Background Playback** — Keep music playing while using other apps or with screen off.
-- **Audio Quality Control** — Choose between High, Medium, and Low quality.
-- **Native Audio Effects** — Platform-specific audio effects for a rich sound experience.
+### 🎧 Immersive Audio & Lyrics
+- **Smooth Word-by-Word Karaoke** — Words in karaoke mode fill up with color gradually in real-time as the artist sings (running at a buttery-smooth 60+ FPS).
+- **Line-by-Line Synced Sweep** — Synced lyrics feature a progressive sweep effect across the text, coloring repeated lines sequentially.
+- **Active Line Highlight & Scrolling** — Active line slides slightly to the right and lights up. Scrolling or tapping a line glides smoothly rather than jumping abruptly.
+- **Frosted-Glass Gesture Mode Lyrics** — Transparent lyrics panel positioned above controls in the gesture player, letting you double-tap or swipe volume right through it.
+- **Lofi Mode** — Transform any track into a Lofi vibe with slowed speed (0.9×), pitch correction, and native reverb effects.
+- **Multi-Language Audio & Quality Control** — Detects and switches between available languages and streams in High, Medium, or Low quality.
+- **Background Playback & Native Effects** — Keep music playing with the screen off while utilizing platform-specific audio effects.
 
 ### 🕹️ Gesture Player
-- **Full Gesture Control** — Fully immersive gesture-based player where album art fills the entire screen.
+- **Full Gesture Control** — Immersive gesture-based player where album art fills the entire screen.
 - **Double-Tap to Play/Pause** — Toggle playback anywhere with an animated flash icon.
-- **Swipe Left/Right** — Skip to next or previous track.
-- **Swipe Down to Close** — Swipe down on the left half to dismiss the player.
-- **Volume Bar** — Swipe up/down on the right half to control volume — frosted-glass vertical bar with fill indicator.
+- **Swipe Navigation** — Swipe left/right to skip tracks; swipe down on the left half to dismiss the player.
+- **Frosted Volume Bar** — Swipe up/down on the right half to control volume with a glass vertical bar and fill indicator.
 - **Bottom Controls Popup** — Glassmorphic popup with title, artist, progress bar, queue, lyrics, and favorite buttons.
 
-### 📚 Library & Discovery
-- **Auto-Queue** — Automatically queues recommended songs for endless playback.
-- **Smart Library** — Organize music with **Favorites**, **History**, and custom **Playlists**.
-- **Channel Subscriptions** — Subscribe to favorite artists and YouTube channels.
+### 🎨 Modern Adaptive UI/UX
+- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
+- **Contrast-Aware Elements** — Status bar icons, player controls, progress sliders, borders, and menus automatically invert colors based on active theme for perfect legibility.
+- **Big Screen & Desktop Optimization** — Dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
+- **Sleek iOS-Inspired Forms** — Rebuilt music upload/edit menus and notifications using modern pill-shaped inputs and circular badges.
+
+### 📚 Discovery, Import & Community
+- **Spotify Playlist Import** — Paste any public Spotify playlist URL to instantly import your favorite tracks.
+- **Community Feed & Sharing** — Search, stream, and discover tracks uploaded by the community in a dedicated global feed.
+- **Artist Following** — Follow your favorite artists and channels directly from their profile pages to easily keep track of them.
+- **Smart Queue & Infinite Playback** — Queue clearing successfully empties upcoming songs in auto-queue mode, and disables the clear button when only the active song is playing.
 - **Offline Downloads** — Download songs and videos for offline listening.
-- **Smart Search** — Quickly find songs, artists, albums, and playlists.
 - **Recently Played Grid** — Compact 2-column grid of recently played tracks on the home screen.
 
-### 🎨 Modern UI/UX
-- **Sleek Glassmorphism** — Beautiful glassmorphic elements and smooth animations throughout.
-- **Immersive Player** — Dynamic blurred album art background for a premium visual experience.
-- **Dynamic Theming** — UI automatically adapts colors from the currently playing album art.
-- **Marquee Titles** — Auto-scrolling text for long song and artist names.
-- **Smooth Transitions** — Fluid zoom and slide animations between screens.
-- **Consistent Dark Theme** — Optimized contrast and colors for a comfortable dark mode.
-
-### 🛡️ Privacy & Reliability
-- **Zero-Wait Launch** — App initializes instantly with parallel background loading.
-- **Ad-Free Streaming** — Enjoy music without interruptions.
-- **Privacy Focused** — No login required. All data (favorites, playlists, history) stored locally.
-- **RapidAPI Fallback** — Robust fallback ensures playback reliability if the primary API fails.
+### 🛡️ Privacy & Accounts
+- **Optional Accounts & Cloud Sync** — Create an account or sign in with Google to upload your own tracks and sync data.
+- **Privacy First** — No login required. All data (favorites, playlists, history) is stored locally by default.
+- **Zero-Wait Launch** — Parallel background loading ensures instant app initialization.
+- **Ad-Free & Reliable** — Uninterrupted listening with robust RapidAPI fallback to guarantee playback.
 - **Share to Play** — Share links from YouTube or YouTube Music directly into Muzo.
 
 ---
@@ -82,6 +79,9 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
   <img src="images/10.jpg" width="30%" />
   <img src="images/11.jpg" width="30%" />
   <img src="images/12.jpg" width="30%" />
+  <img src="images/13.jpg" width="30%" />
+  <img src="images/14.jpg" width="30%" />
+  <img src="images/15.jpg" width="30%" />
 </p>
 
 ---
@@ -183,6 +183,8 @@ Muzo stands on the shoulders of these amazing Flutter/Dart packages:
 | [cached_network_image](https://pub.dev/packages/cached_network_image) | [Baseflow](https://github.com/Baseflow/flutter_cached_network_image) |
 | [dio](https://pub.dev/packages/dio) | [cfug](https://github.com/cfug/dio) |
 | [flutter_animate](https://pub.dev/packages/flutter_animate) | [gskinner](https://github.com/gskinner/flutter_animate) |
+| [google_sign_in](https://pub.dev/packages/google_sign_in) | [Flutter Team](https://github.com/flutter/packages) |
+| [app_links](https://pub.dev/packages/app_links) | [Julien Eluard](https://github.com/llfbandit) |
 
 ---
 
