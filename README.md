@@ -6,46 +6,45 @@
 
 <p align="center">
   <strong>A powerful, privacy-focused YouTube Music client built with Flutter.</strong><br/>
-  Ad-free · Offline · Lyrics · Gesture-driven · Beautiful
+  Ad-free · Offline · Synced Lyrics · Liquid Glass UI · Smart Cache
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white" alt="Dart" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS-lightgrey" alt="Platform" />
-  <img src="https://img.shields.io/badge/Version-4.0.0-blueviolet" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-4.1.0-blueviolet" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
 </p>
 
 ---
 
-Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, a modern gesture-driven UI, Spotify playlist imports, a sleep timer, and community sharing — with or without an account.
+Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, a modern Liquid Glass UI, smart background caching, Spotify playlist imports, a sleep timer, and community sharing — with or without an account.
 
 ---
 
 ## 🚀 Key Features
 
-### 🎧 Immersive Audio & Lyrics
+### 🎨 Liquid Glass UI/UX
+- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes using the dynamic `liquid_glass_easy` package. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
+- **Custom Shaders & Blur** — High-performance frosted glass panels, overlays, and custom shaders that adapt smoothly to artwork colors.
+- **Contrast-Aware Elements** — Status bar icons, player controls, progress sliders, borders, and menus automatically invert colors based on the active theme for perfect legibility.
+- **Big Screen & Desktop Optimization** — Dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
+- **Sleek iOS-Inspired Forms** — Rebuilt music upload/edit menus and notifications using modern pill-shaped inputs and circular badges.
+
+### 🎧 Immersive Audio & Synced Lyrics
 - **Smooth Word-by-Word Karaoke** — Words in karaoke mode fill up with color gradually in real-time as the artist sings (running at a buttery-smooth 60+ FPS).
 - **Line-by-Line Synced Sweep** — Synced lyrics feature a progressive sweep effect across the text, coloring repeated lines sequentially.
 - **Active Line Highlight & Scrolling** — Active line slides slightly to the right and lights up. Scrolling or tapping a line glides smoothly rather than jumping abruptly.
-- **Frosted-Glass Gesture Mode Lyrics** — Transparent lyrics panel positioned above controls in the gesture player, letting you double-tap or swipe volume right through it.
 - **Lofi Mode** — Transform any track into a Lofi vibe with slowed speed (0.9×), pitch correction, and native reverb effects.
 - **Multi-Language Audio & Quality Control** — Detects and switches between available languages and streams in High, Medium, or Low quality.
 - **Background Playback & Native Effects** — Keep music playing with the screen off while utilizing platform-specific audio effects.
 
-### 🕹️ Gesture Player
-- **Full Gesture Control** — Immersive gesture-based player where album art fills the entire screen.
-- **Double-Tap to Play/Pause** — Toggle playback anywhere with an animated flash icon.
-- **Swipe Navigation** — Swipe left/right to skip tracks; swipe down on the left half to dismiss the player.
-- **Frosted Volume Bar** — Swipe up/down on the right half to control volume with a glass vertical bar and fill indicator.
-- **Bottom Controls Popup** — Glassmorphic popup with title, artist, progress bar, queue, lyrics, and favorite buttons.
-
-### 🎨 Modern Adaptive UI/UX
-- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
-- **Contrast-Aware Elements** — Status bar icons, player controls, progress sliders, borders, and menus automatically invert colors based on active theme for perfect legibility.
-- **Big Screen & Desktop Optimization** — Dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
-- **Sleek iOS-Inspired Forms** — Rebuilt music upload/edit menus and notifications using modern pill-shaped inputs and circular badges.
+### ⚡ Smart Cache System
+- **Asynchronous Background Caching** — Automatically caches the audio stream of newly added tracks in the background upon adding them to playlists, favorites, or the library.
+- **Multi-Resolution Artwork Caching** — Downloads and saves both high-resolution and low-resolution thumbnails locally, ensuring immediate visual feedback without network delay.
+- **Instant Zero-Wait Playback** — Bypasses network request times entirely for cached tracks, allowing immediate streaming of local audio streams.
+- **Bandwidth-Aware Checks** — Skips download queues if a track has already been cached or downloaded to save battery and network data.
 
 ### 📚 Discovery, Import & Community
 - **Spotify Playlist Import** — Paste any public Spotify playlist URL to instantly import your favorite tracks.
@@ -64,6 +63,29 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 
 ---
 
+## 🌍 Localisation Status
+
+Muzo is fully localised and supports multiple languages. Below is the translation completion status for each supported language:
+
+| Language | Code | Progress | Coverage |
+| :--- | :---: | :--- | :---: |
+| **English** | `en` | ████████████████████ | 100% |
+| **Hindi** | `hi` | ████████████████████ | 100% |
+| **Bengali** | `bn` | ████████████████████ | 100% |
+| **Arabic** | `ar` | ████████████████████ | 100% |
+| **Russian** | `ru` | ████████████████████ | 100% |
+| **Spanish** | `es` | ████████████████████ | 100% |
+| **French** | `fr` | ████████████████████ | 100% |
+| **German** | `de` | ████████████████████ | 100% |
+| **Japanese** | `ja` | ████████████████████ | 100% |
+| **Kazakh** | `kk` | ████████████████████ | 100% |
+| **Telugu** | `te` | ████████████████████ | 100% |
+| **Assamese** | `as` | ████████████████████ | 100% |
+| **Chinese** | `zh` | ████████████████████ | 100% |
+
+---
+
+
 ## 📸 Screenshots
 
 <p align="center">
@@ -80,6 +102,8 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
   <img src="images/11.jpg" width="30%" />
   <img src="images/12.jpg" width="30%" />
   <img src="images/13.jpg" width="30%" />
+  <img src="images/14.jpg" width="30%" />
+  <img src="images/15.jpg" width="30%" />
 </p>
 
 ---
@@ -96,7 +120,7 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 | **Lyrics** | [flutter_lyric](https://pub.dev/packages/flutter_lyric) + custom karaoke engine |
 | **Local Storage** | [Hive](https://docs.hivedb.dev/) |
 | **Networking** | [Dio](https://pub.dev/packages/dio) & [Http](https://pub.dev/packages/http) |
-| **UI Components** | [FluentUI System Icons](https://pub.dev/packages/fluentui_system_icons), [Google Fonts](https://pub.dev/packages/google_fonts), [Cached Network Image](https://pub.dev/packages/cached_network_image) |
+| **UI Components** | `liquid_glass_easy`, [FluentUI System Icons](https://pub.dev/packages/fluentui_system_icons), [Google Fonts](https://pub.dev/packages/google_fonts), [Cached Network Image](https://pub.dev/packages/cached_network_image) |
 | **API** | Custom YouTube Internal API & RapidAPI (fallback) |
 
 ---
