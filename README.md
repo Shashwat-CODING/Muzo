@@ -23,16 +23,16 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 
 ---
 
-## 🚀 Key Features
+## <img src="https://img.icons8.com/fluency/20/rocket.png" align="absmiddle"/> Key Features
 
-### 🎨 Liquid Glass UI/UX
+### <img src="https://img.icons8.com/fluency/18/color-palette.png" align="absmiddle"/> Liquid Glass UI/UX
 - **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes using the dynamic `liquid_glass_easy` package. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
 - **Custom Shaders & Blur** — High-performance frosted glass panels, overlays, and custom shaders that adapt smoothly to artwork colors.
 - **Contrast-Aware Elements** — Status bar icons, player controls, progress sliders, borders, and menus automatically invert colors based on the active theme for perfect legibility.
 - **Big Screen & Desktop Optimization** — Dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
 - **Sleek iOS-Inspired Forms** — Rebuilt music upload/edit menus and notifications using modern pill-shaped inputs and circular badges.
 
-### 🎧 Immersive Audio & Synced Lyrics
+### <img src="https://img.icons8.com/fluency/18/headphones.png" align="absmiddle"/> Immersive Audio & Synced Lyrics
 - **Smooth Word-by-Word Karaoke** — Words in karaoke mode fill up with color gradually in real-time as the artist sings (running at a buttery-smooth 60+ FPS).
 - **Line-by-Line Synced Sweep** — Synced lyrics feature a progressive sweep effect across the text, coloring repeated lines sequentially.
 - **Active Line Highlight & Scrolling** — Active line slides slightly to the right and lights up. Scrolling or tapping a line glides smoothly rather than jumping abruptly.
@@ -40,13 +40,13 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 - **Multi-Language Audio & Quality Control** — Detects and switches between available languages and streams in High, Medium, or Low quality.
 - **Background Playback & Native Effects** — Keep music playing with the screen off while utilizing platform-specific audio effects.
 
-### ⚡ Smart Cache System
+### <img src="https://img.icons8.com/fluency/18/lightning-bolt.png" align="absmiddle"/> Smart Cache System
 - **Asynchronous Background Caching** — Automatically caches the audio stream of newly added tracks in the background upon adding them to playlists, favorites, or the library.
 - **Multi-Resolution Artwork Caching** — Downloads and saves both high-resolution and low-resolution thumbnails locally, ensuring immediate visual feedback without network delay.
 - **Instant Zero-Wait Playback** — Bypasses network request times entirely for cached tracks, allowing immediate streaming of local audio streams.
 - **Bandwidth-Aware Checks** — Skips download queues if a track has already been cached or downloaded to save battery and network data.
 
-### 📚 Discovery, Import & Community
+### <img src="https://img.icons8.com/fluency/18/books.png" align="absmiddle"/> Discovery, Import & Community
 - **Spotify Playlist Import** — Paste any public Spotify playlist URL to instantly import your favorite tracks.
 - **Community Feed & Sharing** — Search, stream, and discover tracks uploaded by the community in a dedicated global feed.
 - **Artist Following** — Follow your favorite artists and channels directly from their profile pages to easily keep track of them.
@@ -54,7 +54,7 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 - **Offline Downloads** — Download songs and videos for offline listening.
 - **Recently Played Grid** — Compact 2-column grid of recently played tracks on the home screen.
 
-### 🛡️ Privacy & Accounts
+### <img src="https://img.icons8.com/fluency/18/security-shield-green.png" align="absmiddle"/> Privacy & Accounts
 - **Optional Accounts & Cloud Sync** — Create an account or sign in with Google to upload your own tracks and sync data.
 - **Privacy First** — No login required. All data (favorites, playlists, history) is stored locally by default.
 - **Zero-Wait Launch** — Parallel background loading ensures instant app initialization.
@@ -63,7 +63,7 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 
 ---
 
-## 🌍 Localisation Status
+## <img src="https://img.icons8.com/fluency/20/globe.png" align="absmiddle"/> Localisation Status
 
 Muzo is fully localised and supports multiple languages. Below is the translation completion status for each supported language:
 
@@ -86,29 +86,64 @@ Muzo is fully localised and supports multiple languages. Below is the translatio
 ---
 
 
-## 📸 Screenshots
+## <img src="https://img.icons8.com/fluency/20/camera.png" align="absmiddle"/> Screenshots
+
+### <img src="https://img.icons8.com/fluency/18/home.png" align="absmiddle"/> Home & Navigation
 
 <p align="center">
-  <img src="images/1.jpg" width="30%" />
-  <img src="images/2.jpg" width="30%" />
-  <img src="images/3.jpg" width="30%" />
-  <img src="images/4.jpg" width="30%" />
-  <img src="images/5.jpg" width="30%" />
-  <img src="images/6.jpg" width="30%" />
-  <img src="images/7.jpg" width="30%" />
-  <img src="images/8.jpg" width="30%" />
-  <img src="images/9.jpg" width="30%" />
-  <img src="images/10.jpg" width="30%" />
-  <img src="images/11.jpg" width="30%" />
-  <img src="images/12.jpg" width="30%" />
-  <img src="images/13.jpg" width="30%" />
-  <img src="images/14.jpg" width="30%" />
-  <img src="images/15.jpg" width="30%" />
+  <img src="images/home.jpg" width="30%" alt="Home Screen" />
+  <img src="images/home_with_miniplayer.jpg" width="30%" alt="Home with Mini Player" />
+  <img src="images/library.jpg" width="30%" alt="Library" />
+</p>
+
+### <img src="https://img.icons8.com/fluency/18/search.png" align="absmiddle"/> Search
+
+<p align="center">
+  <img src="images/search_with _results.jpg" width="30%" alt="Search Results" />
+  <img src="images/search_with _search_suggestions.jpg" width="30%" alt="Search Suggestions" />
+</p>
+
+### <img src="https://img.icons8.com/fluency/18/headphones.png" align="absmiddle"/> Player
+
+<p align="center">
+  <img src="images/Immersive_player.jpg" width="30%" alt="Immersive Player" />
+  <img src="images/leagcy_player.jpg" width="30%" alt="Legacy Player" />
+  <img src="images/song_queue.jpg" width="30%" alt="Song Queue" />
+</p>
+
+### <img src="https://img.icons8.com/fluency/18/microphone.png" align="absmiddle"/> Lyrics
+
+<p align="center">
+  <img src="images/lyrics_with_controls.jpg" width="30%" alt="Lyrics with Controls" />
+  <img src="images/lyrics_without_controls.jpg" width="30%" alt="Lyrics without Controls" />
+</p>
+
+### <img src="https://img.icons8.com/fluency/18/conference-call.png" align="absmiddle"/> Community & Profile
+
+<p align="center">
+  <img src="images/community.jpg" width="30%" alt="Community Feed" />
+  <img src="images/profile_screen.jpg" width="30%" alt="Profile Screen" />
+</p>
+
+### <img src="https://img.icons8.com/fluency/18/settings.png" align="absmiddle"/> Settings & Customization
+
+<p align="center">
+  <img src="images/settings.jpg" width="30%" alt="Settings" />
+  <img src="images/app_theme_selector.jpg" width="30%" alt="Theme Selector" />
+  <img src="images/accent_color_selector.jpg" width="30%" alt="Accent Color" />
+  <img src="images/custom_accent_color_selector.jpg" width="30%" alt="Custom Accent Color" />
+  <img src="images/app_language_selector.jpg" width="30%" alt="Language Selector" />
+</p>
+
+### <img src="https://img.icons8.com/fluency/18/information.png" align="absmiddle"/> About
+
+<p align="center">
+  <img src="images/about_screen.jpg" width="30%" alt="About Screen" />
 </p>
 
 ---
 
-## 🛠️ Tech Stack
+## <img src="https://img.icons8.com/fluency/20/maintenance.png" align="absmiddle"/> Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -125,7 +160,7 @@ Muzo is fully localised and supports multiple languages. Below is the translatio
 
 ---
 
-## ⚙️ Setup & Installation
+## <img src="https://img.icons8.com/fluency/20/settings.png" align="absmiddle"/> Setup & Installation
 
 ### Prerequisites
 
@@ -159,7 +194,7 @@ Muzo is fully localised and supports multiple languages. Below is the translatio
 
 ---
 
-## 🤝 Contributing
+## <img src="https://img.icons8.com/fluency/20/handshake.png" align="absmiddle"/> Contributing
 
 Contributions are welcome! Whether it's reporting a bug, suggesting a feature, or writing code, your help is appreciated.
 
@@ -179,19 +214,19 @@ Contributions are welcome! Whether it's reporting a bug, suggesting a feature, o
 
 ---
 
-## 🙏 Acknowledgements
+## <img src="https://img.icons8.com/fluency/20/like.png" align="absmiddle"/> Acknowledgements
 
 Muzo wouldn't exist without the incredible work of these developers and projects. Huge thanks to:
 
-### 🎬 youtube_explode_dart
+### <img src="https://img.icons8.com/fluency/18/youtube.png" align="absmiddle"/> youtube_explode_dart
 A massive thank you to **[Hexer10](https://github.com/Hexer10)**, the original author of [youtube_explode_dart](https://github.com/Hexer10/youtube_explode_dart) — the backbone of Muzo's YouTube streaming and metadata extraction. Also special thanks to **[anandnet](https://github.com/anandnet)** for maintaining an up-to-date fork that keeps Muzo working with the latest YouTube changes.
 
-### 🎵 Animesh (n-ce) — fast-saavn & ytify
+### <img src="https://img.icons8.com/fluency/18/music.png" align="absmiddle"/> Animesh (n-ce) — fast-saavn & ytify
 An enormous shoutout to **[Animesh (n-ce)](https://github.com/n-ce)** — creator of:
 - **[fast-saavn](https://github.com/n-ce/saavn)** — the blazing-fast, open JioSaavn API that powers Muzo's music metadata, song details, and search results.
-- **[ytify](https://github.com/n-ce/ytify)** — a beautifully minimal YouTube audio streaming web app that was a **huge source of inspiration** during Muzo's development. Animesh's approach to UI, UX, and YouTube audio handling influenced many of Muzo's design decisions. Thank you for the open-source spirit and for being so helpful throughout the development journey! 🙌
+- **[ytify](https://github.com/n-ce/ytify)** — a beautifully minimal YouTube audio streaming web app that was a **huge source of inspiration** during Muzo's development. Animesh's approach to UI, UX, and YouTube audio handling influenced many of Muzo's design decisions. Thank you for the open-source spirit and for being so helpful throughout the development journey!
 
-### 📦 Open-Source Libraries
+### <img src="https://img.icons8.com/fluency/18/open-box.png" align="absmiddle"/> Open-Source Libraries
 Muzo stands on the shoulders of these amazing Flutter/Dart packages:
 
 | Package | Author / Maintainers |
@@ -210,7 +245,7 @@ Muzo stands on the shoulders of these amazing Flutter/Dart packages:
 
 ---
 
-## 📝 License
+## <img src="https://img.icons8.com/fluency/20/terms-and-conditions.png" align="absmiddle"/> License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
 
