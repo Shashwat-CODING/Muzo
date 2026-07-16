@@ -26,7 +26,7 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 ## <img src="https://img.icons8.com/fluency/20/rocket.png" align="absmiddle"/> Key Features
 
 ### <img src="https://img.icons8.com/fluency/18/color-palette.png" align="absmiddle"/> Liquid Glass UI/UX
-- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes using the dynamic `liquid_glass_easy` package. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
+- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes using our own custom-made `liquid_glass_easy` library. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
 - **Custom Shaders & Blur** — High-performance frosted glass panels, overlays, and custom shaders that adapt smoothly to artwork colors.
 - **Contrast-Aware Elements** — Status bar icons, player controls, progress sliders, borders, and menus automatically invert colors based on the active theme for perfect legibility.
 - **Big Screen & Desktop Optimization** — Dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
