@@ -10,26 +10,32 @@
 </p>
 
 <p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.Shashwat.Muzo">
+    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60" />
+  </a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white" alt="Dart" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS-lightgrey" alt="Platform" />
-  <img src="https://img.shields.io/badge/Version-4.1.0-blueviolet" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-2.0.0-blueviolet" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
 </p>
 
 ---
 
-Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, a modern Liquid Glass UI, smart background caching, Spotify playlist imports, a sleep timer, and community sharing — with or without an account.
+Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It is now available on the [Google Play Store](https://play.google.com/store/apps/details?id=com.Shashwat.Muzo)! It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, a modern Liquid Glass UI, smart background caching, Spotify playlist imports, a sleep timer, and community sharing — with or without an account.
 
 ---
 
 ## <img src="https://img.icons8.com/fluency/20/rocket.png" align="absmiddle"/> Key Features
 
 ### <img src="https://img.icons8.com/fluency/18/color-palette.png" align="absmiddle"/> Liquid Glass UI/UX
-- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes using our own custom-made `liquid_glass_easy` library. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
+- **Dynamic Glassmorphic Themes** — Premium styling in both Dark and Light modes using the dynamic `liquid_glass_easy` package. Light Mode features a beautiful, semi-transparent white tint (light glassmorphism) that adapts dynamically to the album art.
 - **Custom Shaders & Blur** — High-performance frosted glass panels, overlays, and custom shaders that adapt smoothly to artwork colors.
 - **Contrast-Aware Elements** — Status bar icons, player controls, progress sliders, borders, and menus automatically invert colors based on the active theme for perfect legibility.
-- **Big Screen & Desktop Optimization** — Dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
+- **Big Screen & Desktop Optimization** — Optimized player layouts with responsive max-width constraints (up to 1300px), centered dialogs, and a dedicated top search bar and profile dropdown menu for desktop, laptop, and tablet formats.
 - **Sleek iOS-Inspired Forms** — Rebuilt music upload/edit menus and notifications using modern pill-shaped inputs and circular badges.
 
 ### <img src="https://img.icons8.com/fluency/18/headphones.png" align="absmiddle"/> Immersive Audio & Synced Lyrics
@@ -53,13 +59,15 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 - **Smart Queue & Infinite Playback** — Queue clearing successfully empties upcoming songs in auto-queue mode, and disables the clear button when only the active song is playing.
 - **Offline Downloads** — Download songs and videos for offline listening.
 - **Recently Played Grid** — Compact 2-column grid of recently played tracks on the home screen.
+- **Custom Canvas Video Backgrounds** — Support for custom MP4 canvas video backgrounds with a dedicated uploader dashboard card.
 
 ### <img src="https://img.icons8.com/fluency/18/security-shield-green.png" align="absmiddle"/> Privacy & Accounts
-- **Optional Accounts & Cloud Sync** — Create an account or sign in with Google to upload your own tracks and sync data.
+- **Optional Accounts & Cloud Sync** — Create an account or sign in with Google to upload your own tracks and view your Apple-style Profile Card.
 - **Privacy First** — No login required. All data (favorites, playlists, history) is stored locally by default.
 - **Zero-Wait Launch** — Parallel background loading ensures instant app initialization.
-- **Ad-Free & Reliable** — Uninterrupted listening with robust RapidAPI fallback to guarantee playback.
+- **Ad-Free & Reliable** — Uninterrupted listening with robust RapidAPI and Metadata API Relay fallback (utilizing Hugging Face bucket caching) to guarantee playback.
 - **Share to Play** — Share links from YouTube or YouTube Music directly into Muzo.
+- **Muzo Deep Linking (`muzo://`)** — Full custom URL scheme support to instantly open/play songs (`muzo://s/<id>`), artists (`muzo://artist/<id>`), albums (`muzo://album/<id>`), and playlists (`muzo://playlist/<id>`) directly via browser links or shared Ytify integration URLs.
 
 ---
 
@@ -82,9 +90,15 @@ Muzo is fully localised and supports multiple languages. Below is the translatio
 | **Telugu** | `te` | ████████████████████ | 100% |
 | **Assamese** | `as` | ████████████████████ | 100% |
 | **Chinese** | `zh` | ████████████████████ | 100% |
+| **Punjabi** | `pa` | ████████████████████ | 100% |
+| **Polish** | `pl` | ████████████████████ | 100% |
+| **Portuguese**| `pt` | ████████████████████ | 100% |
+| **Serbian** | `sr` | ████████████████████ | 100% |
+| **Turkish** | `tr` | ████████████████████ | 100% |
+| **Urdu** | `ur` | ████████████████████ | 100% |
+| **Korean** | `ko` | ████████████████████ | 100% |
 
 ---
-
 
 ## <img src="https://img.icons8.com/fluency/20/camera.png" align="absmiddle"/> Screenshots
 
