@@ -71,6 +71,33 @@ Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter.
 
 ---
 
+## <img src="https://img.icons8.com/fluency/20/coffee-to-go.png" align="absmiddle"/> Support & Donations
+
+If you love Muzo and want to support its ongoing development, consider buying me a coffee or donating! Your support keeps the project alive and ad-free.
+
+> [!NOTE]
+> All cryptocurrency addresses below accept **USDT** on their respective networks.
+
+### <img src="https://img.icons8.com/fluency/18/qr-code.png" align="absmiddle"/> UPI (India)
+- **UPI ID:** `shashwat22817@fam`
+
+### <img src="https://img.icons8.com/fluency/18/bitcoin.png" align="absmiddle"/> Cryptocurrency (USDT)
+
+| Network | USDT Address |
+| :--- | :--- |
+| **USDT (ERC-20)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **Optimism (OP)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **Arbitrum One (ARETH)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **opBNB** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **BNB Smart Chain (BEP-20)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **Solana (SOL)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **TRON (TRC-20)** | `TRvZLT4F3W2xrKmduc6fQ6RLJM6Jy5ny7w` |
+| **Avalanche C-Chain (AVAX)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **Celo** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+| **Polygon (MATIC)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
+
+---
+
 ## <img src="https://img.icons8.com/fluency/20/globe.png" align="absmiddle"/> Localisation Status
 
 Muzo is fully localised and supports multiple languages. Below is the translation completion status for each supported language:
@@ -256,30 +283,6 @@ Muzo stands on the shoulders of these amazing Flutter/Dart packages:
 | [flutter_animate](https://pub.dev/packages/flutter_animate) | [gskinner](https://github.com/gskinner/flutter_animate) |
 | [google_sign_in](https://pub.dev/packages/google_sign_in) | [Flutter Team](https://github.com/flutter/packages) |
 | [app_links](https://pub.dev/packages/app_links) | [Julien Eluard](https://github.com/llfbandit) |
-
----
-
-## <img src="https://img.icons8.com/fluency/20/coffee-to-go.png" align="absmiddle"/> Support & Donations
-
-If you love Muzo and want to support its ongoing development, consider buying me a coffee or donating! Your support keeps the project alive and ad-free.
-
-### <img src="https://img.icons8.com/fluency/18/qr-code.png" align="absmiddle"/> UPI (India)
-- **UPI ID:** `shashwat22817@fam`
-
-### <img src="https://img.icons8.com/fluency/18/bitcoin.png" align="absmiddle"/> Cryptocurrency
-
-| Network / Coin | Address |
-| :--- | :--- |
-| **USDT (ERC-20)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **Optimism** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **Arbitrum One (ARETH)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **opBNB** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **BNB Smart Chain (BEP-20)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **Solana (SOL)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **TRON (TRC-20)** | `TRvZLT4F3W2xrKmduc6fQ6RLJM6Jy5ny7w` |
-| **Avalanche C-Chain (AVAX)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **Celo** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
-| **Polygon (MATIC)** | `0xAF01BD2867122f46e3cFeC9449068E021C746f25` |
 
 ---
 
