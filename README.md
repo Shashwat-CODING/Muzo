@@ -1,7 +1,7 @@
 # Muzo — Premium Music Client
 
 <p align="center">
-  <img src="assets/logo 1.webp" alt="Muzo Logo" width="150" height="150" />
+  <img src="assets/logo.png" alt="Muzo Logo" width="150" height="150" />
 </p>
 
 <p align="center">
@@ -24,6 +24,10 @@
 </p>
 
 ---
+
+> [!WARNING]
+> **GitHub Releases Discontinued**  
+> No more releases or updates will be made on GitHub. All future updates will be distributed exclusively through the **[Google Play Store](https://play.google.com/store/apps/details?id=com.Shashwat.Muzo)**.
 
 Muzo is a feature-rich, privacy-focused YouTube Music client built with Flutter. It is now available on the [Google Play Store](https://play.google.com/store/apps/details?id=com.Shashwat.Muzo)! It offers a premium ad-free experience with background playback, offline downloads, synchronized & karaoke lyrics, a modern Liquid Glass UI, smart background caching, Spotify playlist imports, a sleep timer, and community sharing — with or without an account.
 
