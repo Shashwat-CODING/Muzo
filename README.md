@@ -83,7 +83,7 @@ If you love Muzo and want to support its ongoing development, consider buying me
 > All cryptocurrency addresses below accept **USDT** on their respective networks.
 
 ### <img src="https://img.icons8.com/fluency/18/qr-code.png" align="absmiddle"/> UPI (India)
-- **UPI ID:** `shashwat22817@fam`
+- **UPI ID:** `shashwat2817@fam`
 
 ### <img src="https://img.icons8.com/fluency/18/bitcoin.png" align="absmiddle"/> Cryptocurrency (USDT)
 
