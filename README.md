@@ -12,7 +12,7 @@ Ad-free · Offline · Synced Lyrics · Liquid Glass UI · Smart Cache
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20macOS-lightgrey)
-![Version](https://img.shields.io/badge/Version-2.0.0-blueviolet)
+![Version](https://img.shields.io/badge/Version-5.2.0-blueviolet)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 </div>
