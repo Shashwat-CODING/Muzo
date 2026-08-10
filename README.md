@@ -29,12 +29,14 @@ Ad-free · Offline · Synced Lyrics · Liquid Glass UI · Smart Cache
 | | |
 |:---:|:---:|
 | ❌ **No new commits** | ❌ **No new GitHub releases** |
-| ❌ **No APKs published here** | ❌ **Issues / PRs no longer tracked** |
+| ❌ **No APKs published here** | ❌ **Issues / PRs no longer tracked here** |
 | ✅ **Continuous updates on Play Store** | ✅ **New features ship there first** |
 
 ### 👉 [**Get the latest version on Google Play**](https://play.google.com/store/apps/details?id=com.Shashwat.Muzo) 👈
 
-*This code is preserved for historical/reference purposes only and reflects an old snapshot of the app. Building from this source will **not** give you the current experience — install from the Play Store instead.*
+> **Already fixed:** most bugs and issues reported against this repo have already been resolved — but **only in the Play Store build**. This source code is an old, frozen snapshot and does **not** include those fixes.
+
+*This code is preserved for historical/reference purposes only. Building from this source will **not** give you the current, bug-free experience — install from the Play Store instead.*
 
 </div>
 
@@ -193,7 +195,7 @@ English · Hindi · Bengali · Arabic · Russian · Spanish · French · German 
 
 ## ⚙️ Setup & Installation
 
-> ⚠️ Reminder: this repo is a frozen, outdated snapshot. For the real, up-to-date app, install from the [Play Store](https://play.google.com/store/apps/details?id=com.Shashwat.Muzo). The steps below are kept for historical/reference purposes only.
+> ⚠️ Reminder: this repo is a frozen, outdated snapshot — known issues from this version have already been fixed, but only in the Play Store build. For the real, up-to-date, bug-fixed app, install from the [Play Store](https://play.google.com/store/apps/details?id=com.Shashwat.Muzo). The steps below are kept for historical/reference purposes only.
 
 **Prerequisites:** Flutter SDK (latest stable), Dart SDK, Android Studio / VS Code, Java JDK 17
 
