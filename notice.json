@@ -1,1 +1,10 @@
-
+{
+  "enabled": true,
+  "id": "notice_unremarkable_story_01",
+  "show_always": false,
+  "title": "Read UNREMARKABLE",
+  "text": "A story that looks ordinary at first — until you realize there is nothing ordinary about it. Read UNREMARKABLE, a gripping new story worth experiencing from beginning to end.",
+  "image_url": "https://i.ibb.co/21w47Vw6/2026-10-07-08-14-21.jpg",
+  "button_text": "Read Now",
+  "button_url": "http://kouzu.in/"
+}
