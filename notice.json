@@ -1,14 +1,14 @@
 {
-  "enabled": false,
-  "id": "unremarkable_story_promo_01",
-  "showAlways": false,
+  "enabled": true,
+  "id": "0",
+  "showAlways": true,
   "title": "Must-Read Story: UNREMARKABLE",
   "message": "Dive into UNREMARKABLE—a gripping, high-stakes story you won't want to miss. Tap below to read it now!",
-  "imageUrl": "https://i.ibb.co/21w47Vw6/2026-10-07-08-14-21.jpg",
+  "imageUrl": "https://i.ibb.co/ccTbVZkq/Faceless-Man-Unremarkable.png",
   "buttons": [
     {
       "text": "Read Story Now",
-      "url": "http://kouzu.in/",
+      "url": "https://unremarkable.kouzu.in/",
       "primary": true
     },
     {
