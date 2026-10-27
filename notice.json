@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "id": "muzo-710-issue",
-  "showAlways": true,
+  "showAlways": false,
   "title": "Important: Muzo Update in Review",
   "message": "We're aware of a serious bug affecting Muzo and are working to fix it. The fix is ready, but the update is currently under review by Google Play, which is taking longer than expected. Please be patient while we wait for approval. We'll release the update as soon as it's approved. Thank you for understanding.",
   "imageUrl": "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
