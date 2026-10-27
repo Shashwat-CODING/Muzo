@@ -1,15 +1,22 @@
+```json
 {
   "enabled": true,
-  "id": "muzo-710-issue",
+  "id": "muzo-v710-release",
   "showAlways": false,
-  "title": "Important: Muzo Update in Review",
-  "message": "We're aware of a serious bug affecting Muzo and are working to fix it. The fix is ready, but the update is currently under review by Google Play, which is taking longer than expected. Please be patient while we wait for approval. We'll release the update as soon as it's approved. Thank you for understanding.",
-  "imageUrl": "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
+  "title": "We're Sorry! Muzo v7.1.0 Is Here",
+  "message": "We're extremely sorry for the inconvenience caused. Muzo v7.1.0 is now available, fixing major issues. Please update to the latest version. Thank you for your patience and support!",
+  "imageUrl": "https://i.ibb.co/sSvk2HT/Glossy-V7-1-0-Update-Announcement.png",
   "buttons": [
     {
-      "text": "Got It",
-      "url": null,
+      "text": "Get",
+      "url": "https://play.google.com/store/apps/details?id=com.Shashwat.Muzo",
       "primary": true
+    },
+    {
+      "text": "Ignore",
+      "url": null,
+      "primary": false
     }
   ]
 }
+```
