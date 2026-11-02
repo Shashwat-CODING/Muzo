@@ -1,20 +1,15 @@
 {
   "enabled": true,
-  "id": "muzo-v710-release",
+  "id": "muzo-no-more-ads",
   "showAlways": false,
-  "title": "We're Sorry! Muzo v7.1.0 Is Here",
-  "message": "We're extremely sorry for the inconvenience caused. Muzo v7.1.0 is now available, fixing major issues. Please update to the latest version. Thank you for your patience and support!",
-  "imageUrl": "https://i.ibb.co/sSvk2HT/Glossy-V7-1-0-Update-Announcement.png",
+  "title": "No More Ads 🎉",
+  "message": "We're sorry for the interruptions caused by ads. Thank you for your patience and support. Now, just enjoy your music!",
+  "imageUrl": "https://i.ibb.co/WpFw6yRK/Glassmorphic-No-More-Ads-Poster.png",
   "buttons": [
     {
-      "text": "Get",
-      "url": "https://play.google.com/store/apps/details?id=com.Shashwat.Muzo",
-      "primary": true
-    },
-    {
-      "text": "Ignore",
+      "text": "THANK GOD",
       "url": null,
-      "primary": false
+      "primary": true
     }
   ]
 }
