@@ -1,14 +1,14 @@
 {
   "enabled": true,
-  "id": "muzo-no-more-ads",
-  "showAlways": false,
-  "title": "No More Ads 🎉",
-  "message": "We're sorry for the interruptions caused by ads. Thank you for your patience and support. Now, just enjoy your music!",
-  "imageUrl": "https://i.ibb.co/WpFw6yRK/Glassmorphic-No-More-Ads-Poster.png",
+  "id": "muzo-v8.0.0-update",
+  "showAlways": true,
+  "title": "Muzo 8.0.0 is Here! 🚀",
+  "message": "A major update is here! 🎉 Efficient Liquid Glass, Replay & Listening Stats, Studio Lossless FLAC, Spatial Audio, synced lyrics, and more. Update now and experience the all-new Muzo!",
+  "imageUrl": "https://i.ibb.co/QFBxjSyp/banner.png",
   "buttons": [
     {
-      "text": "THANK GOD",
-      "url": null,
+      "text": "UPDATE NOW",
+      "url": "https://play.google.com/store/apps/details?id=com.Shashwat.Muzo",
       "primary": true
     }
   ]
